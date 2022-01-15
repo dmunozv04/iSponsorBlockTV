@@ -1,0 +1,7 @@
+{
+    "atvs": [
+        {"identifier": "", "airplay_credentials": ""}
+    ],
+    "apikey":"",
+    "skip_categories": ["sponsor"]
+}
