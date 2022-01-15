@@ -153,3 +153,4 @@ cython_debug/
 
 #config folder
 config/
+config.json

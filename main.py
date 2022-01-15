@@ -1,10 +1,8 @@
 import sys
 import asyncio
-from webbrowser import get
 import pyatv
 import aiohttp
 from async_lru import alru_cache
-from datetime import timedelta
 import json
 
 
@@ -127,7 +125,7 @@ async def loop_atv(event_loop, atv_config, apikey, categories):
     except:
         atv.close()
 
-def load_config(config_file="config/config.json"):
+def load_config(config_file="config.json"):
     with open(config_file) as f:
         config = json.load(f)
     return config["atvs"][0], config["apikey"], config["skip_categories"]
