@@ -53,3 +53,5 @@ To exit press ENTER
 ## Contributors
 
 - [dmunozv04](https://github.com/dmunozv04) - creator and maintainer
+## License
+[![GNU GPLv3](https://www.gnu.org/graphics/gplv3-127x51.png)](https://www.gnu.org/licenses/gpl-3.0.en.html)
