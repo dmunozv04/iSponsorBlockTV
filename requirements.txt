@@ -1,3 +1,4 @@
+pyatv
 aiohttp[speedups]
 aiodns
 async_lru
