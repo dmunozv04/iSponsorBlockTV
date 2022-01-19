@@ -2,7 +2,7 @@ import sys
 import asyncio
 import pyatv
 import aiohttp
-from async_lru import alru_cache
+from cache import AsyncTTL
 import json
 
 
@@ -51,7 +51,7 @@ async def process_playstatus(playstatus, apikey, rc, app, web_session, categorie
         await time_to_segment(segments, playstatus.position, rc)
         
 
-@alru_cache(maxsize = 5)
+@AsyncTTL(time_to_live=300, maxsize=5)
 async def get_vid_id(title, artist, api_key, web_session):
     url = f"https://youtube.googleapis.com/youtube/v3/search?q={title} - {artist}&key={api_key}&maxResults=1"
     async with web_session.get(url) as response:
@@ -59,8 +59,8 @@ async def get_vid_id(title, artist, api_key, web_session):
         vid_id = response["items"][0]["id"]["videoId"]
         return vid_id
 
-@listToTuple        
-@alru_cache(maxsize = 5)
+@listToTuple
+@AsyncTTL(time_to_live=300, maxsize=5)
 async def get_segments(vid_id, web_session, categories = ["sponsor"]):
     params = {"videoID": vid_id,
               "category": categories,
