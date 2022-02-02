@@ -7,8 +7,26 @@ This project is written in asycronous python and should be pretty quick.
 ## Installation
 
 ### Docker
-`WIP`
+## Setup
 
+You need to retrieve airplay keys to be able to connect to the Apple TV. (It will be made simpler in the future)
+For now, use `atvremote`, a script included in pyatv:
+1. atvremote scan
+2. atvremote pair --protocol airplay --id `identifier you got on the previous step`
+
+Get  [YouTube api key](https://developers.google.com/youtube/registering_an_application)
+
+Edit config.json.template and save it as config.json (this is the /PATH_TO_YOUR_CONFIG.json file)
+## Run
+```sh
+docker pull ghcr.io/dmunozv04/iSponsorBlockTV/isponsorblocktv
+docker run -d \
+--name iSponsorBlockTV \
+--restart=unless-stopped \
+--network=host \
+-v /PATH_TO_YOUR_CONFIG.json:/app/config.json \
+ghcr.io/dmunozv04/iSponsorBlockTV/isponsorblocktv
+```
 ### From source
 
 You need to install [python](https://www.python.org/downloads/) first, and to make it available in your PATH. After, clone the repo.
