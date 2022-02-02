@@ -5,7 +5,7 @@ FROM python:3.10-slim-bullseye
 WORKDIR /app
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends gcc
+    apt-get install -y gcc
 
 COPY requirements.txt .
 
