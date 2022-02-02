@@ -1,12 +1,29 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.10-alpine
+#TEMP IMAGE
+FROM python:3.10-alpine as builder
 
 WORKDIR /app
 
-COPY requirements.txt requirements.txt
+RUN apk update && \ 
+    apk add build-base
 
-RUN pip3 install -r requirements.txt
+COPY requirements.txt .
+
+RUN pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt
+
+#FINAL IMAGE
+FROM python:3.10-alpine
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+WORKDIR /app
+
+COPY --from=builder /app/wheels /wheels
+COPY --from=builder /app/requirements.txt .
+
+RUN pip install --no-cache /wheels/*
 
 COPY . .
 
