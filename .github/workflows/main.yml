@@ -3,9 +3,7 @@
 name: build docker images
 
 # Controls when the workflow will run
-on:
-  push:
-    branches: master
+on: push
 
 permissions: 
   contents: read
