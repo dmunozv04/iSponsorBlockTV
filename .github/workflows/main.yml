@@ -1,12 +1,11 @@
  This is a basic workflow to help you get started with Actions
 
-name: Docker Builds
+name: build docker images
 
 # Controls when the workflow will run
 on:
-  workflow_dispatch:
   push:
-   branches: master
+    branches: master
 
 permissions: 
   contents: read
