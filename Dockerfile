@@ -3,7 +3,7 @@
 FROM python:3.10-bullseye AS compile-image
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends build-essential gcc
+    apt-get install -y --no-install-recommends build-essential gcc rustc
 
 RUN python -m venv /opt/venv
 
