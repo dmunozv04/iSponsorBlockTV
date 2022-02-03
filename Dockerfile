@@ -11,9 +11,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 COPY requirements.txt .
 
-RUN pip install wheel
-
-RUN pip install -r requirements.txt
+RUN pip install --upgrade pip && pip install wheel && pip install -r requirements.txt
 
 FROM python:3.10-slim-bullseye
 
