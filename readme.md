@@ -19,13 +19,13 @@ Get  [YouTube api key](https://developers.google.com/youtube/registering_an_appl
 Edit config.json.template and save it as config.json (this is the /PATH_TO_YOUR_CONFIG.json file)
 ## Run
 ```sh
-docker pull ghcr.io/dmunozv04/iSponsorBlockTV/isponsorblocktv
+docker pull ghcr.io/dmunozv04/isponsorblocktv
 docker run -d \
 --name iSponsorBlockTV \
 --restart=unless-stopped \
 --network=host \
 -v /PATH_TO_YOUR_CONFIG.json:/app/config.json \
-ghcr.io/dmunozv04/iSponsorBlockTV/isponsorblocktv
+ghcr.io/dmunozv04/isponsorblocktv
 ```
 ### From source
 

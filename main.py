@@ -4,6 +4,15 @@ import pyatv
 import aiohttp
 from cache import AsyncTTL
 import json
+import atexit
+
+def exit_handler():
+    print("exiting...")
+    loop = asyncio.get_event_loop()
+    loop.stop()
+    atv.close()
+
+atexit.register(exit_handler)
 
 
 def listToTuple(function):
@@ -28,6 +37,7 @@ class MyPushListener(pyatv.interface.PushListener):
         self.app = atv.metadata.app
         self.web_session = aiohttp.ClientSession()
         self.categories = categories
+        self.atv = atv
         
     
     def playstatus_update(self, updater, playstatus):
@@ -36,11 +46,11 @@ class MyPushListener(pyatv.interface.PushListener):
         except:
             pass
         self.task = asyncio.create_task(process_playstatus(playstatus, self.apikey, self.rc, self.app, self.web_session, self.categories))
-
     def playstatus_error(self, updater, exception):
         print(exception)
         print("stopped")
         # Error in exception
+        
 
 async def process_playstatus(playstatus, apikey, rc, app, web_session, categories):
     if playstatus.device_state == playstatus.device_state.Playing and app.identifier == "com.google.ios.youtube":
@@ -113,6 +123,7 @@ async def connect_atv(loop, identifier, airplay_credentials):
 async def loop_atv(event_loop, atv_config, apikey, categories):
     identifier = atv_config["identifier"]
     airplay_credentials = atv_config["airplay_credentials"]
+    global atv
     atv = await connect_atv(event_loop, identifier, airplay_credentials)
 
     
@@ -120,8 +131,10 @@ async def loop_atv(event_loop, atv_config, apikey, categories):
     try:
         atv.push_updater.listener = listener
         atv.push_updater.start()
-        print("Press ENTER to quit")
-        await event_loop.run_in_executor(None, sys.stdin.readline)
+        #print("Press ENTER to quit")
+        while True:
+            await asyncio.sleep(1000)
+        #await event_loop.run_in_executor(None, sys.stdin.readline)
     except:
         atv.close()
 
