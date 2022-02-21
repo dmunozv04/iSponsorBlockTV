@@ -41,5 +41,3 @@ jobs:
           platforms: linux/amd64, linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ghcr.io/dmunozv04/isponsorblocktv:latest
-          cache-from: type=registry,ref=dmunozv04/isponsorblocktv:buildcache
-          cache-to: type=registry,ref=dmunozv04/isponsorblocktv:buildcache,mode=max
