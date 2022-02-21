@@ -91,14 +91,16 @@ async def get_segments(vid_id, web_session, categories = ["sponsor"]):
 
 
 async def time_to_segment(segments, position, rc):
-    future_segments = []
-    for i in segments:
-        if i[0] > position:
-            future_segments.append(i)
-    next_segement = future_segments[0]
-    time_to_next = next_segement[0] - position
-    await skip(time_to_next, next_segement[1], rc)
-    
+    for segment in segments:
+        if position < 2 and (position >= segment[0] and position < segment[1]):
+            next_segment = [position, segment[1]]
+            break
+        if segment[0] > position:
+            next_segment = segment
+            break
+    time_to_next = next_segment[0] - position
+    await skip(time_to_next, next_segment[1], rc)
+
 async def skip(time_to, position, rc):
     await asyncio.sleep(time_to)
     await rc.set_position(position)
