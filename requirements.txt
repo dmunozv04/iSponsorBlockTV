@@ -1,4 +1,4 @@
 pyatv
-aiohttp[speedups]
+aiohttp
 aiodns
 async-cache
