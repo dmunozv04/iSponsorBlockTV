@@ -25,8 +25,9 @@ jobs:
       # Get the repositery's code
       - name: Checkout
         uses: actions/checkout@v2
-
-        name: Docker meta
+        
+      # Generate docker tags
+      - name: Docker meta
         id: meta
         uses: docker/metadata-action@v3
         with:
