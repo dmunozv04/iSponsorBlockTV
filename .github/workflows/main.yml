@@ -25,7 +25,7 @@ jobs:
       # Get the repositery's code
       - name: Checkout
         uses: actions/checkout@v2
-        
+
       # Generate docker tags
       - name: Docker meta
         id: meta
@@ -57,3 +57,5 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=ghcr.io/dmunozv04/isponsorblocktv:buildcache
+          cache-to: type=registry,ref=ghcr.io/dmunozv04/isponsorblocktv:buildcache,mode=max
