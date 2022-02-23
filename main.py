@@ -147,4 +147,5 @@ def load_config(config_file="config.json"):
 if __name__ == "__main__":
     atv_config, apikey, categories = load_config()
     event_loop = asyncio.get_event_loop_policy().get_event_loop()
+    print("starting")
     event_loop.run_until_complete(loop_atv(event_loop, atv_config, apikey, categories))

@@ -23,4 +23,4 @@ WORKDIR /app
 
 COPY main.py .
 
-ENTRYPOINT ["/opt/venv/bin/python3", "main.py"]
+ENTRYPOINT ["/opt/venv/bin/python3", "-u", "main.py"]
