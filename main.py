@@ -34,7 +34,6 @@ class MyPushListener(pyatv.interface.PushListener):
     def __init__(self, apikey, atv, categories):
         self.apikey = apikey
         self.rc = atv.remote_control
-        self.app = atv.metadata.app
         self.web_session = aiohttp.ClientSession()
         self.categories = categories
         self.atv = atv
@@ -45,15 +44,15 @@ class MyPushListener(pyatv.interface.PushListener):
             self.task.cancel()
         except:
             pass
-        self.task = asyncio.create_task(process_playstatus(playstatus, self.apikey, self.rc, self.app, self.web_session, self.categories))
+        self.task = asyncio.create_task(process_playstatus(playstatus, self.apikey, self.rc, self.web_session, self.categories, self.atv))
     def playstatus_error(self, updater, exception):
         print(exception)
         print("stopped")
         # Error in exception
         
 
-async def process_playstatus(playstatus, apikey, rc, app, web_session, categories):
-    if playstatus.device_state == playstatus.device_state.Playing and app.identifier == "com.google.ios.youtube":
+async def process_playstatus(playstatus, apikey, rc, web_session, categories, atv):
+    if playstatus.device_state == playstatus.device_state.Playing and atv.metadata.app.identifier == "com.google.ios.youtube":
         vid_id = await get_vid_id(playstatus.title, playstatus.artist, apikey, web_session)
         print(vid_id)
         segments, duration = await get_segments(vid_id, web_session, categories)
