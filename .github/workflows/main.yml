@@ -3,7 +3,15 @@
 name: build docker images
 
 # Controls when the workflow will run
-on: push
+on:
+  push:
+    branches:
+      - 'main'
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - 'main'
 
 permissions: 
   contents: read
@@ -17,6 +25,12 @@ jobs:
       # Get the repositery's code
       - name: Checkout
         uses: actions/checkout@v2
+
+        name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          images: ghcr.io/dmunozv04/isponsorblocktv
       
       # https://github.com/docker/setup-qemu-action
       - name: Set up QEMU
@@ -40,4 +54,5 @@ jobs:
           context: .
           platforms: linux/amd64, linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ghcr.io/dmunozv04/isponsorblocktv:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
