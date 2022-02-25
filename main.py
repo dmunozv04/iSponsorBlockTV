@@ -6,14 +6,6 @@ from cache import AsyncTTL
 import json
 import atexit
 
-def exit_handler():
-    print("exiting...")
-    loop = asyncio.get_event_loop()
-    loop.stop()
-    atv.close()
-
-atexit.register(exit_handler)
-
 
 def listToTuple(function):
     def wrapper(*args):
@@ -111,7 +103,7 @@ async def connect_atv(loop, identifier, airplay_credentials):
     atvs = await pyatv.scan(loop, identifier = identifier)
 
     if not atvs:
-        print("No device found", file=sys.stderr)
+        print("No device found")
         return
 
     config = atvs[0]
@@ -124,7 +116,6 @@ async def connect_atv(loop, identifier, airplay_credentials):
 async def loop_atv(event_loop, atv_config, apikey, categories):
     identifier = atv_config["identifier"]
     airplay_credentials = atv_config["airplay_credentials"]
-    global atv
     atv = await connect_atv(event_loop, identifier, airplay_credentials)
 
     
@@ -132,7 +123,7 @@ async def loop_atv(event_loop, atv_config, apikey, categories):
     try:
         atv.push_updater.listener = listener
         atv.push_updater.start()
-        #print("Press ENTER to quit")
+        print("Push updater started")
         while True:
             await asyncio.sleep(1000)
         #await event_loop.run_in_executor(None, sys.stdin.readline)
@@ -142,10 +133,16 @@ async def loop_atv(event_loop, atv_config, apikey, categories):
 def load_config(config_file="config.json"):
     with open(config_file) as f:
         config = json.load(f)
-    return config["atvs"][0], config["apikey"], config["skip_categories"]
-    
+    return config["atvs"], config["apikey"], config["skip_categories"]
+  
+def start_async():
+    loop = asyncio.get_event_loop_policy().get_event_loop()
+    asyncio.set_event_loop(loop)
+    atv_configs, apikey, categories = load_config()
+    for i in atv_configs:
+        loop.create_task(loop_atv(loop, i, apikey, categories))
+    loop.run_forever()
+              
 if __name__ == "__main__":
-    atv_config, apikey, categories = load_config()
-    event_loop = asyncio.get_event_loop_policy().get_event_loop()
     print("starting")
-    event_loop.run_until_complete(loop_atv(event_loop, atv_config, apikey, categories))
+    start_async()
