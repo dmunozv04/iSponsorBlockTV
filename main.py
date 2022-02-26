@@ -129,6 +129,9 @@ async def loop_atv(event_loop, atv_config, apikey, categories):
         #await event_loop.run_in_executor(None, sys.stdin.readline)
     except:
         atv.close()
+        print("Finished connection with ATV")
+        asyncio.sleep(5)
+        loop_atv(event_loop, atv_config, apikey, categories)
 
 def load_config(config_file="config.json"):
     with open(config_file) as f:
