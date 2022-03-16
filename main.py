@@ -40,7 +40,7 @@ class MyPushListener(pyatv.interface.PushListener):
     def playstatus_error(self, updater, exception):
         print(exception)
         print("stopped")
-        # Error in exception
+
         
 
 async def process_playstatus(playstatus, apikey, rc, web_session, categories, atv):
@@ -103,7 +103,7 @@ async def connect_atv(loop, identifier, airplay_credentials):
     atvs = await pyatv.scan(loop, identifier = identifier)
 
     if not atvs:
-        print("No device found")
+        print("No device found, will retry")
         return
 
     config = atvs[0]
@@ -117,21 +117,30 @@ async def loop_atv(event_loop, atv_config, apikey, categories):
     identifier = atv_config["identifier"]
     airplay_credentials = atv_config["airplay_credentials"]
     atv = await connect_atv(event_loop, identifier, airplay_credentials)
+    if atv:
+        listener = MyPushListener(apikey, atv, categories)
 
-    
-    listener = MyPushListener(apikey, atv, categories)
-    try:
         atv.push_updater.listener = listener
         atv.push_updater.start()
         print("Push updater started")
-        while True:
-            await asyncio.sleep(1000)
-        #await event_loop.run_in_executor(None, sys.stdin.readline)
-    except:
-        atv.close()
-        print("Finished connection with ATV")
-        asyncio.sleep(5)
-        loop_atv(event_loop, atv_config, apikey, categories)
+    while True:
+        await asyncio.sleep(20)
+        try:
+            atv.metadata.app
+        except:
+            print("Reconnecting to Apple TV")
+            #reconnect to apple tv
+            atv = await connect_atv(event_loop, identifier, airplay_credentials)
+            if atv:
+                listener = MyPushListener(apikey, atv, categories)
+
+                atv.push_updater.listener = listener
+                atv.push_updater.start()
+                print("Push updater started")
+            
+            
+            
+
 
 def load_config(config_file="config.json"):
     with open(config_file) as f:
