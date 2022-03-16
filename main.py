@@ -4,7 +4,6 @@ import pyatv
 import aiohttp
 from cache import AsyncTTL
 import json
-import atexit
 
 
 def listToTuple(function):
