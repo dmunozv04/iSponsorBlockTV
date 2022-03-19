@@ -11,6 +11,7 @@ This project is written in asycronous python and should be pretty quick.
 
 You need to retrieve airplay keys to be able to connect to the Apple TV. (It will be made simpler in the future)
 For now, use `atvremote`, a script included in pyatv:
+1. ```docker run --rm -it --network=host --entrypoint /bin/bash ghcr.io/dmunozv04/isponsorblocktv```
 1. atvremote scan
 2. atvremote pair --protocol airplay --id `identifier you got on the previous step`
 
