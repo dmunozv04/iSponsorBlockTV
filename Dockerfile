@@ -1,23 +1,21 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.10-bullseye AS compile-image
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends build-essential gcc rustc
+FROM python:3.9.7-alpine
 
 RUN python -m venv /opt/venv
 
-ENV PATH="/opt/venv/bin:$PATH"
+ENV PATH="/opt/venv/bin:$PATH" PIP_NO_CACHE_DIR=off
 
 COPY requirements.txt .
 
-RUN pip install --upgrade pip && pip install wheel && pip install -r requirements.txt
+RUN apk add gcc musl-dev build-base linux-headers libffi-dev rust cargo openssl-dev git && \
+    pip install setuptools-rust && \
+    pip install -r requirements.txt && \
+    apk del gcc musl-dev build-base linux-headers libffi-dev rust cargo openssl-dev git && \
+    rm -rf /root/.cache /root/.cargo
 
-FROM python:3.10-slim-bullseye
 
-COPY --from=compile-image /opt/venv /opt/venv
-
-ENV PATH="/opt/venv/bin:$PATH"
+COPY requirements.txt .
 
 WORKDIR /app
 
