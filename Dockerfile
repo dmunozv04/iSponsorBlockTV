@@ -8,8 +8,8 @@ ENV PATH="/opt/venv/bin:$PATH" PIP_NO_CACHE_DIR=off
 
 COPY requirements.txt .
 
-RUN apk add gcc musl-dev build-base linux-headers libffi-dev rust cargo openssl-dev git && \
-    pip install setuptools-rust && \
+RUN apk add gcc musl-dev build-base linux-headers libffi-dev rust cargo openssl-dev git avahi && \
+    pip install --upgrade pip setuptools-rust wheel && \
     pip install -r requirements.txt && \
     apk del gcc musl-dev build-base linux-headers libffi-dev rust cargo openssl-dev git && \
     rm -rf /root/.cache /root/.cargo
