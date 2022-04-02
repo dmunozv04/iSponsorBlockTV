@@ -79,6 +79,7 @@ def main():
             apikey = input("Enter your API key: ")
             config["apikey"] = apikey
     else:
+        print("get youtube apikey here: https://developers.google.com/youtube/registering_an_application")
         apikey = input("Enter your API key: ")
         config["apikey"] = apikey
         
