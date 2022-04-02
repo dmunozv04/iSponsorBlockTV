@@ -10,12 +10,15 @@ This project is written in asycronous python and should be pretty quick.
 ### Setup
 
 You need to set up several things before you can run the project.
-1. Create blank config file: ```touch config.json```
-2. ```docker run --rm -it \
+Create blank config file: `touch config.json`
+Run:
+```sh
+docker run --rm -it \
 --network=host \
 --entrypoint /opt/venv/bin/python3 /app/create_config.py \
 -v /PATH_TO_YOUR_CONFIG.json:/app/config.json \
-ghcr.io/dmunozv04/isponsorblocktv```
+ghcr.io/dmunozv04/isponsorblocktv
+```
 ## Run
 ```sh
 docker pull ghcr.io/dmunozv04/isponsorblocktv
