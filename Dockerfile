@@ -19,6 +19,6 @@ COPY requirements.txt .
 
 WORKDIR /app
 
-COPY main.py .
+COPY *.py .
 
 ENTRYPOINT ["/opt/venv/bin/python3", "-u", "main.py"]
