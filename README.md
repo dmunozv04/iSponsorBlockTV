@@ -4,21 +4,18 @@ Skip sponsor segments in YouTube videos playing on an Apple TV.
 
 This project is written in asycronous python and should be pretty quick.
 
-## Installation
+# Installation
 
-### Docker
-## Setup
+## Docker
+### Setup
 
-You need to retrieve airplay keys to be able to connect to the Apple TV. (It will be made simpler in the future)
-For now, use `atvremote`, a script included in pyatv:
-1. ```docker run --rm -it --network=host --entrypoint /bin/bash ghcr.io/dmunozv04/isponsorblocktv```
-2. atvremote scan
-3. atvremote pair --protocol airplay --id `identifier you got on the previous step`
-4. ```exit``` the container
-
-Get  [YouTube api key](https://developers.google.com/youtube/registering_an_application)
-
-Edit config.json.template and save it as config.json (this is the /PATH_TO_YOUR_CONFIG.json file)
+You need to set up several things before you can run the project.
+1. Create blank config file: ```touch config.json```
+2. ```docker run --rm -it \
+--network=host \
+--entrypoint /opt/venv/bin/python3 /app/create_config.py \
+-v /PATH_TO_YOUR_CONFIG.json:/app/config.json \
+ghcr.io/dmunozv04/isponsorblocktv```
 ## Run
 ```sh
 docker pull ghcr.io/dmunozv04/isponsorblocktv
@@ -29,14 +26,14 @@ docker run -d \
 -v /PATH_TO_YOUR_CONFIG.json:/app/config.json \
 ghcr.io/dmunozv04/isponsorblocktv
 ```
-### From source
+## From source
 
 You need to install [python](https://www.python.org/downloads/) first, and to make it available in your PATH. After, clone the repo.
 Then you need to download the dependencies with pip: 
 ```python3 -m pip install -r requirements.txt```
 Lastly, run ```main.py```
 
-## Setup
+### Setup
 
 You need to retrieve airplay keys to be able to connect to the Apple TV. (It will be made simpler in the future)
 For now, use `atvremote`, a script included in pyatv:
@@ -46,7 +43,7 @@ For now, use `atvremote`, a script included in pyatv:
 Get  [YouTube api key](https://developers.google.com/youtube/registering_an_application)
 
 Edit config.json.template and save it as config.json
-## Usage
+# Usage
 
 Run iSponsorBLockTV in the same network as the Apple TV.
 
@@ -54,15 +51,14 @@ It connect to the Apple TV, watch its activity and skip any sponsor segment usin
 
 The last 5 videos' segments are cached to limit the number on queries on SponsorBlock and YouTube.
 
-To exit press ENTER
 
-## Libraries used
+# Libraries used
 - [pyatv](https://github.com/postlund/pyatv) Used to connect to the Apple TV
 - [asyncio] and [aiohttp]
 - [async_lru]
 - [json]
 
-## Contributing
+# Contributing
 
 1. Fork it (<https://github.com/dmunozv04/iSponsorBlockTV/fork>)
 2. Create your feature branch (`git checkout -b my-new-feature`)
@@ -74,5 +70,5 @@ To exit press ENTER
 
 - [dmunozv04](https://github.com/dmunozv04) - creator and maintainer
 - [HaltCatchFire](https://github.com/HaltCatchFire) - updated dependencies and improved skip logic
-## License
+# License
 [![GNU GPLv3](https://www.gnu.org/graphics/gplv3-127x51.png)](https://www.gnu.org/licenses/gpl-3.0.en.html)
