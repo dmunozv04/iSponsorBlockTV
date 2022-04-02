@@ -15,9 +15,10 @@ Run:
 ```sh
 docker run --rm -it \
 --network=host \
---entrypoint /opt/venv/bin/python3 /app/create_config.py \
+--entrypoint /opt/venv/bin/python3 \
 -v /PATH_TO_YOUR_CONFIG.json:/app/config.json \
-ghcr.io/dmunozv04/isponsorblocktv
+ghcr.io/dmunozv04/isponsorblocktv \
+/app/create_config.py
 ```
 ## Run
 ```sh
