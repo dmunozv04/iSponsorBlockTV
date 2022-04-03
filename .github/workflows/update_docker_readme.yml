@@ -16,7 +16,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    
+          # Get the repository's code
+      - name: Checkout
+        uses: actions/checkout@v2
+
+          # Update description
       - name: Update repo description
         uses: peter-evans/dockerhub-description@v2
         with:
