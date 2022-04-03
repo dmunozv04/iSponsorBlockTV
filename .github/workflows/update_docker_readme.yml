@@ -12,6 +12,9 @@ on:
 
   workflow_dispatch:
 
+jobs:
+  update_description:
+    runs-on: ubuntu-latest
       - name: Update repo description
         uses: peter-evans/dockerhub-description@v2
         with:
