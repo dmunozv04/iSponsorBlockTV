@@ -70,10 +70,3 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=ghcr.io/dmunozv04/isponsorblocktv:buildcache
           cache-to: type=registry,ref=ghcr.io/dmunozv04/isponsorblocktv:buildcache,mode=max
-      
-      - name: Update repo description
-        uses: peter-evans/dockerhub-description@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
-          repository: dmunozv04/isponsorblocktv

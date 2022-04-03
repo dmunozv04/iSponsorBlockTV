@@ -1,0 +1,20 @@
+name: update docker description
+
+# Controls when the workflow will run
+on:
+  push:
+    branches:
+      - 'main'
+    tags:
+      - 'v*'
+    paths:
+      - 'README.md'
+
+  workflow_dispatch:
+
+      - name: Update repo description
+        uses: peter-evans/dockerhub-description@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          repository: dmunozv04/isponsorblocktv
