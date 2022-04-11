@@ -4,7 +4,7 @@ FROM python:alpine
 
 RUN python -m venv /opt/venv
 
-ENV PATH="/opt/venv/bin:$PATH" PIP_NO_CACHE_DIR=off
+ENV PATH="/opt/venv/bin:$PATH" PIP_NO_CACHE_DIR=off iSPBTV_docker=True
 
 COPY requirements.txt .
 
