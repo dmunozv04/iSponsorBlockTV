@@ -1,6 +1,6 @@
 import plistlib
 import os
-from . import helpers, config_setup
+from . import config_setup
 
 default_plist = {"Label": "com.dmunozv04iSponsorBlockTV",
                  "RunAtLoad": True,
