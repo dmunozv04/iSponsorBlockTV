@@ -5,48 +5,9 @@ Skip sponsor segments in YouTube videos playing on an Apple TV.
 This project is written in asycronous python and should be pretty quick.
 
 # Installation
+Check the [wiki](https://github.com/dmunozv04/iSponsorBlockTV/wiki/Installation)
 
-## Docker
-### Setup
 
-You need to set up several things before you can run the project.
-Create blank config file: `touch config.json`
-Run:
-```sh
-docker run --rm -it \
---network=host \
---entrypoint /opt/venv/bin/python3 \
--v /PATH_TO_YOUR_CONFIG.json:/app/config.json \
-ghcr.io/dmunozv04/isponsorblocktv \
-/app/create_config.py
-```
-## Run
-```sh
-docker pull ghcr.io/dmunozv04/isponsorblocktv
-docker run -d \
---name iSponsorBlockTV \
---restart=unless-stopped \
---network=host \
--v /PATH_TO_YOUR_CONFIG.json:/app/config.json \
-ghcr.io/dmunozv04/isponsorblocktv
-```
-## From source
-
-You need to install [python](https://www.python.org/downloads/) first, and to make it available in your PATH. After, clone the repo.
-Then you need to download the dependencies with pip: 
-```python3 -m pip install -r requirements.txt```
-Lastly, run ```main.py```
-
-### Setup
-
-You need to retrieve airplay keys to be able to connect to the Apple TV. (It will be made simpler in the future)
-For now, use `atvremote`, a script included in pyatv:
-1. atvremote scan
-2. atvremote pair --protocol airplay --id `identifier you got on the previous step`
-
-Get  [YouTube api key](https://developers.google.com/youtube/registering_an_application)
-
-Edit config.json.template and save it as config.json
 # Usage
 
 Run iSponsorBLockTV in the same network as the Apple TV.
