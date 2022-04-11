@@ -13,7 +13,7 @@ default_plist = {"Label": "com.dmunozv04iSponsorBlockTV",
                  }
 def create_plist(path):
     plist = default_plist
-    plist["ProgramArguments"] = [path + "/iSponsorBlockTV"]
+    plist["ProgramArguments"] = [path + "/iSponsorBlockTV-macos"]
     plist["StandardErrorPath"] = path + "/iSponsorBlockTV.error.log"
     plist["StandardOutPath"] = path + "/iSponsorBlockTV.out.log"
     plist["WorkingDirectory"] = path
@@ -29,7 +29,7 @@ def run_setup(file):
    
 def main():
     correct_path = os.path.expanduser("~/iSponsorBlockTV")
-    if os.path.isfile(correct_path + "/iSponsorBlockTV"):
+    if os.path.isfile(correct_path + "/iSponsorBlockTV-macos"):
         print("Program is on the right path")
         print("The launch daemon will now be installed")
         create_plist(correct_path)
