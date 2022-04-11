@@ -2,3 +2,4 @@ pyatv
 aiohttp
 aiodns
 async-cache
+argparse
