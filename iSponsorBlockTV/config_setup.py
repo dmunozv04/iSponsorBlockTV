@@ -2,18 +2,10 @@ import pyatv
 import json
 import asyncio
 from pyatv.const import DeviceModel
-from pyatv.scripts import TransformProtocol
 import sys
 
-def load_config(config_file="config.json"):
-    try:
-        with open(config_file) as f:
-            config = json.load(f)
-    except:
-        config = {}
-    return config
 
-def save_config(config, config_file="config.json"):
+def save_config(config, config_file):
     with open(config_file, "w") as f:
         json.dump(config, f)
 
@@ -42,23 +34,26 @@ async def find_atvs(loop):
                 await pairing.begin()
                 if pairing.device_provides_pin:
                     pin = await _read_input(loop, "Enter PIN on screen: ")
-                pairing.pin(pin)
+                    pairing.pin(pin)
+
                 await pairing.finish()
-                creds = pairing.service.credentials
-                atvs.append({"identifier": identifier, "airplay_credentials": creds})
-                print("Pairing successful")
+                if pairing.has_paired:
+                    creds = pairing.service.credentials
+                    atvs.append({"identifier": identifier, "airplay_credentials": creds})
+                    print("Pairing successful")
                 await pairing.close()
     return atvs
     
     
     
     
-def main():
-    config = load_config()
+def main(config, config_file, debug):
     try: num_atvs = len(config["atvs"])
     except: num_atvs = 0
     if input("Found {} Apple TV(s) in config.json. Add more? (y/n) ".format(num_atvs)) == "y":
         loop = asyncio.get_event_loop_policy().get_event_loop()
+        if debug:
+            loop.set_debug(True)
         asyncio.set_event_loop(loop)
         task = loop.create_task(find_atvs(loop))
         loop.run_until_complete(task)
@@ -96,7 +91,7 @@ def main():
         skip_categories = categories.split(" ")
     config["skip_categories"] = skip_categories
     print("config finished")
-    save_config(config)
+    save_config(config, config_file)
         
     
     
