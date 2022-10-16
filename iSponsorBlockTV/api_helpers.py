@@ -21,6 +21,11 @@ async def get_vid_id(title, artist, api_key, web_session):
     url = constants.Youtube_api + "search"
     async with web_session.get(url, params=params) as resp:
         data = await resp.json()
+        
+    if "error" in data:
+        print(data["error"])
+        return
+
     for i in data["items"]:
         title_api = html.unescape(i["snippet"]["title"])
         artist_api = html.unescape(i["snippet"]["channelTitle"])
