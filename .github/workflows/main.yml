@@ -35,7 +35,8 @@ jobs:
         with:
           images: ghcr.io/dmunozv04/isponsorblocktv, dmunozv04/isponsorblocktv
           tags: |
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+            type=raw,value=latest,priority=900,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+            type=ref,enable=true,priority=600,prefix=pr-,suffix=,event=pr
       
       # https://github.com/docker/setup-qemu-action
       - name: Set up QEMU
