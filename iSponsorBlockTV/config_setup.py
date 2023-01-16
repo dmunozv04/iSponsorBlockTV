@@ -102,7 +102,7 @@ def main(config, config_file, debug):
     if skip_categories != []:
         if input("Skip categories already specified. Change them? (y/n) ") == "y":
             categories = input(
-                "Enter skip categories (space sepparated) Options: [sponsor, selfpromo, exclusive_access, interaction, poi_highlight, intro, outro, preview, filler, music_offtopic:\n"
+                "Enter skip categories (space sepparated)(don't add a comma in between) Options: [sponsor selfpromo exclusive_access interaction poi_highlight intro outro preview filler music_offtopic:\n"
             )
             skip_categories = categories.split(" ")
     else:
