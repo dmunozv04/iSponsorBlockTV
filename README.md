@@ -6,7 +6,7 @@ This project is written in asycronous python and should be pretty quick.
 
 # Installation
 Check the [wiki](https://github.com/dmunozv04/iSponsorBlockTV/wiki/Installation)
-
+Warning: armv7 builds have been deprecated
 
 # Usage
 
