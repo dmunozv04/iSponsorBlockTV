@@ -23,6 +23,9 @@ The last 5 videos' segments are cached to limit the number on queries on Sponsor
 - [async_lru]
 - [json]
 
+# Projects using this proect
+- [Home Assistant Addon](https://github.com/bertybuttface/addons/tree/main/isponsorblocktv)
+
 # Contributing
 
 1. Fork it (<https://github.com/dmunozv04/iSponsorBlockTV/fork>)
