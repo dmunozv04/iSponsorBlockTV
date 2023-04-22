@@ -125,11 +125,13 @@ def main(config, config_file, debug):
         web_session = aiohttp.ClientSession()
         while True:
             channel_info = {}
-            channel = input("Enter a channel name or \"/exit to exit\": ")
+            channel = input("Enter a channel name or \"/exit\" to exit: ")
             if channel == "/exit":
                 break
 
-            results = asyncio.run(api_helpers.search_channels(channel, apikey, web_session))
+            task = loop.create_task(api_helpers.search_channels(channel, apikey, web_session))
+            loop.run_until_complete(task)
+            results = task.result()
             if len(results) == 0:
                 print("No channels found")
                 continue
@@ -156,6 +158,8 @@ def main(config, config_file, debug):
             channel_info["id"] = results[int(choice)][0]
             channel_info["name"] = results[int(choice)][1]
             channel_whitelist.append(channel_info)
+    # Close web session asynchronously
+    loop.run_until_complete(web_session.close())
     
     config["channel_whitelist"] = channel_whitelist
 

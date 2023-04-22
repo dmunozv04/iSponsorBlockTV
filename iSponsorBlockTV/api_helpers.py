@@ -57,7 +57,7 @@ async def search_channels(channel, api_key, web_session):
         else:
             subCount = channelData["items"][0]["statistics"]["subscriberCount"]
 
-        channel.append((i["snippet"]["channelId"], i["snippet"]["channelTitle"], subCount))
+        channels.append((i["snippet"]["channelId"], i["snippet"]["channelTitle"], subCount))
 
     return channels
 
