@@ -46,10 +46,10 @@ def app_start():
 
     else:
         try:  # Check if config file has the correct structure
-            config["atvs"], config["apikey"], config["skip_categories"]
+            config["atvs"], config["apikey"], config["skip_categories"], config["channel_whitelist"]
         except:  # If not, ask to setup the program
             print("invalid config file, please run with --setup")
             sys.exit()
         main.main(
-            config["atvs"], config["apikey"], config["skip_categories"], args.debug
+            config["atvs"], config["apikey"], config["skip_categories"], config["channel_whitelist"], args.debug
         )

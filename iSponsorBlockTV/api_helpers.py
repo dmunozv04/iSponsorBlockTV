@@ -21,13 +21,45 @@ async def get_vid_id(title, artist, api_key, web_session):
     url = constants.Youtube_api + "search"
     async with web_session.get(url, params=params) as resp:
         data = await resp.json()
+    
+    if "error" in data:
+        return
+
     for i in data["items"]:
+        if (i["id"]["kind"] != "youtube#video"):
+            continue
         title_api = html.unescape(i["snippet"]["title"])
         artist_api = html.unescape(i["snippet"]["channelTitle"])
         if title_api == title and artist_api == artist:
-            return i["id"]["videoId"]
+            return (i["id"]["videoId"], i["snippet"]["channelId"])
     return
 
+@AsyncLRU(maxsize=10)
+async def search_channels(channel, api_key, web_session):
+    channels = []
+    params = {"q": channel, "key": api_key, "part": "snippet", "type": "channel", "maxResults": "5"}
+    url = constants.Youtube_api + "search"
+    async with web_session.get(url, params=params) as resp:
+        data = await resp.json()
+
+    if "error" in data:
+        return channels
+
+    for i in data["items"]:
+        # Get channel subcription number
+        params = {"id": i["snippet"]["channelId"], "key": api_key, "part": "statistics"}
+        url = constants.Youtube_api + "channels"
+        async with web_session.get(url, params=params) as resp:
+            channelData = await resp.json()
+
+        if channelData["items"][0]["statistics"]["hiddenSubscriberCount"]:
+            subCount = "Hidden"
+        else:
+            subCount = channelData["items"][0]["statistics"]["subscriberCount"]
+
+        channel.append((i["snippet"]["channelId"], i["snippet"]["channelTitle"], subCount))
+
+    return channels
 
 @listToTuple
 @AsyncTTL(time_to_live=300, maxsize=5)
