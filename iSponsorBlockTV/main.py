@@ -61,6 +61,9 @@ async def process_playstatus(
         )
         if vid_id:
             print(f"ID: {vid_id[0]}, Channel ID: {vid_id[1]}")
+            for i in whitelist:
+                if vid_id[1] == i["id"]:
+                    return
             segments = await api_helpers.get_segments(vid_id, web_session, categories)
             print(segments)
             await time_to_segment(
