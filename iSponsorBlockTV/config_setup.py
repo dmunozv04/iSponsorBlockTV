@@ -58,6 +58,7 @@ async def find_atvs(loop):
 
 
 def main(config, config_file, debug):
+    loop = asyncio.get_event_loop_policy().get_event_loop()
     try:
         num_atvs = len(config["atvs"])
     except:
