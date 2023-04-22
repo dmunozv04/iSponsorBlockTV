@@ -3,5 +3,6 @@
         {"identifier": "", "airplay_credentials": ""}
     ],
     "apikey":"",
-    "skip_categories": ["sponsor"]
+    "skip_categories": ["sponsor"],
+    "channel_whitelist": []
 }

@@ -6,22 +6,22 @@ This project is written in asycronous python and should be pretty quick.
 
 # Installation
 Check the [wiki](https://github.com/dmunozv04/iSponsorBlockTV/wiki/Installation)
-Warning: armv7 builds have been deprecated
+
+Warning: armv7 builds have been deprecated.
 
 # Usage
 
-Run iSponsorBLockTV in the same network as the Apple TV.
+Run iSponsorBLockTV on the same network as the Apple TV.
 
-It connect to the Apple TV, watch its activity and skip any sponsor segment using the [SponsorBlock](https://sponsor.ajay.app/) API.
+It connects to the Apple TV, watches its activity and skips any sponsor segment using the [SponsorBlock](https://sponsor.ajay.app/) API.
 
 The last 5 videos' segments are cached to limit the number on queries on SponsorBlock and YouTube.
 
 
 # Libraries used
 - [pyatv](https://github.com/postlund/pyatv) Used to connect to the Apple TV
-- [asyncio] and [aiohttp]
-- [async_lru]
-- [json]
+- asyncio and [aiohttp](https://github.com/aio-libs/aiohttp)
+- [async-cache](https://github.com/iamsinghrajat/async-cache)
 
 # Projects using this proect
 - [Home Assistant Addon](https://github.com/bertybuttface/addons/tree/main/isponsorblocktv)
@@ -38,5 +38,6 @@ The last 5 videos' segments are cached to limit the number on queries on Sponsor
 
 - [dmunozv04](https://github.com/dmunozv04) - creator and maintainer
 - [HaltCatchFire](https://github.com/HaltCatchFire) - updated dependencies and improved skip logic
+- [Oxixes](https://github.com/oxixes) - added support for channel whitelist and minor improvements
 # License
 [![GNU GPLv3](https://www.gnu.org/graphics/gplv3-127x51.png)](https://www.gnu.org/licenses/gpl-3.0.en.html)

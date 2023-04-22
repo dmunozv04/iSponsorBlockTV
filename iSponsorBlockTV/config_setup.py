@@ -3,7 +3,9 @@ import json
 import asyncio
 from pyatv.const import DeviceModel
 import sys
-
+import aiohttp
+import asyncio
+from . import api_helpers
 
 def save_config(config, config_file):
     with open(config_file, "w") as f:
@@ -74,9 +76,9 @@ def main(config, config_file, debug):
         try:
             for i in atvs:
                 config["atvs"].append(i)
-            print("done adding")
+            print("Done adding")
         except:
-            print("rewriting atvs (don't worry if none were saved before)")
+            print("Rewriting atvs (don't worry if none were saved before)")
             config["atvs"] = atvs
 
     try:
@@ -84,12 +86,12 @@ def main(config, config_file, debug):
     except:
         apikey = ""
     if apikey != "":
-        if input("Apikey already specified. Change it? (y/n) ") == "y":
+        if input("API key already specified. Change it? (y/n) ") == "y":
             apikey = input("Enter your API key: ")
             config["apikey"] = apikey
     else:
         print(
-            "get youtube apikey here: https://developers.google.com/youtube/registering_an_application"
+            "Get youtube apikey here: https://developers.google.com/youtube/registering_an_application"
         )
         apikey = input("Enter your API key: ")
         config["apikey"] = apikey
@@ -108,10 +110,58 @@ def main(config, config_file, debug):
             skip_categories = [x for x in skip_categories if x != ''] # Remove empty strings
     else:
         categories = input(
-            "Enter skip categories (space sepparated) Options: [sponsor, selfpromo, exclusive_access, interaction, poi_highlight, intro, outro, preview, filler, music_offtopic:\n"
+            "Enter skip categories (space or comma sepparated) Options: [sponsor, selfpromo, exclusive_access, interaction, poi_highlight, intro, outro, preview, filler, music_offtopic:\n"
         )
-        skip_categories = categories.split(" ")
+        skip_categories = categories.replace(",", " ").split(" ")
+        skip_categories = [x for x in skip_categories if x != ''] # Remove empty strings
     config["skip_categories"] = skip_categories
 
-    print("config finished")
+    try:
+        channel_whitelist = config["channel_whitelist"]
+    except:
+        channel_whitelist = []
+
+    if input("Do you want to whitelist any channels from being ad-blocked? (y/n) ") == "y":
+        web_session = aiohttp.ClientSession()
+        while True:
+            channel_info = {}
+            channel = input("Enter a channel name or \"/exit\" to exit: ")
+            if channel == "/exit":
+                break
+
+            task = loop.create_task(api_helpers.search_channels(channel, apikey, web_session))
+            loop.run_until_complete(task)
+            results = task.result()
+            if len(results) == 0:
+                print("No channels found")
+                continue
+                
+            for i in range(len(results)):
+                print(f"{i}: {results[i][1]} - Subs: {results[i][2]}")
+            print("5: Enter a custom channel ID")
+            print("6: Go back")
+
+            choice = -1
+            choice = input("Select one option of the above [0-6]: ")
+            while choice not in [str(x) for x in range(7)]:
+                print("Invalid choice")
+                choice = input("Select one option of the above [0-6]: ")
+
+            if choice == "5":
+                channel_info["id"] = input("Enter a channel ID: ")
+                channel_info["name"] = input("Enter the channel name: ")
+                channel_whitelist.append(channel_info)
+                continue
+            elif choice == "6":
+                continue
+
+            channel_info["id"] = results[int(choice)][0]
+            channel_info["name"] = results[int(choice)][1]
+            channel_whitelist.append(channel_info)
+    # Close web session asynchronously
+    loop.run_until_complete(web_session.close())
+    
+    config["channel_whitelist"] = channel_whitelist
+
+    print("Config finished")
     save_config(config, config_file)
