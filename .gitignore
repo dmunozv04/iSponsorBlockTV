@@ -156,3 +156,5 @@ cython_debug/
 #config folder
 config/
 config.json
+
+.DS_Store
