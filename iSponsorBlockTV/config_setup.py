@@ -159,8 +159,8 @@ def main(config, config_file, debug):
             channel_info["id"] = results[int(choice)][0]
             channel_info["name"] = results[int(choice)][1]
             channel_whitelist.append(channel_info)
-    # Close web session asynchronously
-    loop.run_until_complete(web_session.close())
+        # Close web session asynchronously
+        loop.run_until_complete(web_session.close())
     
     config["channel_whitelist"] = channel_whitelist
 
