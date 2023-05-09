@@ -1,6 +1,6 @@
 # iSponsorBlockTV
 
-Skip sponsor segments in YouTube videos playing on an Apple TV.
+Skip sponsor segments in YouTube videos playing on an Apple TV. Sponsor Block in YouTube for apple TV
 
 This project is written in asycronous python and should be pretty quick.
 
