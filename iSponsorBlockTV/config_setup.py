@@ -30,7 +30,7 @@ async def find_atvs(loop):
         # Only get Apple TV's
         if (
           i.device_info.operating_system == OperatingSystem.TvOS
-          and input("Found {}. Do you want to add it? (y/n) ".format(i.name)) == "y"
+          and input(f"Found {i.name}. Do you want to add it? (y/n) ") == "y"
         ):
             identifier = i.identifier
 
