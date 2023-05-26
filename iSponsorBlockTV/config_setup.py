@@ -1,7 +1,7 @@
 import pyatv
 import json
 import asyncio
-from pyatv.const import DeviceModel
+from pyatv.const import OperatingSystem
 import sys
 import aiohttp
 import asyncio
@@ -28,12 +28,7 @@ async def find_atvs(loop):
     atvs = []
     for i in devices:
         # Only get Apple TV's
-        if i.device_info.model in [
-            DeviceModel.Gen4,
-            DeviceModel.Gen4K,
-            DeviceModel.AppleTV4KGen2,
-        ]:
-            # if i.device_info.model in [DeviceModel.AppleTV4KGen2]: #FOR TESTING
+        if i.device_info.operating_system == OperatingSystem.TvOS:
             if input("Found {}. Do you want to add it? (y/n) ".format(i.name)) == "y":
 
                 identifier = i.identifier
