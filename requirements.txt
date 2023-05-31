@@ -1,3 +1,4 @@
+miniaudio==1.57
 pyatv
 aiohttp
 aiodns
