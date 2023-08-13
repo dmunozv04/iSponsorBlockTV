@@ -15,6 +15,8 @@ Run iSponsorBLockTV on the same network as the Apple TV.
 
 It connects to the Apple TV, watches its activity and skips any sponsor segment using the [SponsorBlock](https://sponsor.ajay.app/) API.
 
+The Apple TV does not communicate the YouTube video ID directly, and a YouTube Data API key is needed to get the video ID from the video title and author that Apple TV provides.
+
 The last 5 videos' segments are cached to limit the number on queries on SponsorBlock and YouTube.
 
 
