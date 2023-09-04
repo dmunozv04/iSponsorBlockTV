@@ -1,0 +1,365 @@
+.container {
+    background: $boost;
+    margin: 1;
+    padding: 1 1 0 1;
+    height: auto;
+    width: 100%;
+}
+
+.title {
+    text-style: bold underline;
+    dock: top;
+    background: $primary-background;
+    width: 100%;
+
+}
+.subtitle{
+    width: 100%;
+}
+
+#setup-wizard{
+    scrollbar-gutter: stable;
+}
+
+.small-button{
+    height: 3;
+
+}
+
+.button-100 {
+    width: 100%;
+}
+/* Exit screen */
+
+ExitScreen {
+    align: center middle;
+}
+
+#dialog-exit {
+    grid-size: 3;
+    grid-gutter: 1 2;
+    grid-rows: 1fr 3;
+    padding: 1 2;
+    width: 35%;
+    min-width: 50;
+    max-width: 70;
+    height: 11;
+    border: thick $background 80%;
+    background: $surface;
+}
+
+#question {
+    column-span: 3;
+    height: 1fr;
+    width: 1fr;
+    content-align: center middle;
+}
+/* Device editor */
+EditDevice {
+    align: center middle;
+}
+#edit-device-container {
+    padding: 1 2 0 2;
+    background: $surface;
+    border: thick $background 80%;
+    height: 17;
+    width: 50%;
+    min-width: 40;
+}
+
+#device-id-container{
+    grid-size: 4;
+    grid-gutter: 1 2;
+    grid-rows: 1fr 3;
+    width: 100%;
+    margin-right: 1;
+}
+#device-id-input{
+    column-span: 3;
+    height: 1fr;
+    width: 1fr;
+    content-align: center middle;
+}
+#device-id-view{
+    width: 1fr;
+}
+#device-offset-container{
+    width: 100%;
+}
+#device-offset-input{
+    width: 12;
+}
+#device-offset-slider{
+    width: 100%;
+    margin-right: 12;
+}
+
+/* devices */
+#devices-manager {
+    min-height: 4;
+    height: auto;
+    max-height: 70%;
+    width: 100%;
+    scrollbar-gutter: stable;
+    overflow-y: auto;
+
+}
+
+Element {
+    background: $panel;
+    border-top: solid $panel-lighten-2;
+    layout: horizontal;
+    height: 2;
+    width: 100%;
+    margin: 0 1 0 1;
+    padding: 0;
+}
+Element > .element-name {
+    offset: 0 -1;
+    padding: 0;
+    width: 100%;
+    align: left middle;
+    text-align: left;
+
+}
+Element > .element-remove {
+    dock: right;
+    padding: 0;
+    align: left middle;
+    text-align: center;
+    width: 8;
+    min-width: 8;
+    margin: 0 1 0 0;
+}
+
+#add-device {
+    text-style: bold;
+    width: 100%;
+    align: left middle;
+    text-align: center;
+    dock: left;
+
+    text-align: left;
+}
+#add-device-button-container{
+    height: 1;
+    width: 100%;
+    margin: 1 1 0 1;
+}
+
+
+
+/* Add devices */
+#add-device-container{
+    border: thick $background 80%;
+    background: $surface;
+    padding: 1 2 0 2;
+    height: auto;
+    width: 50%;
+    min-width: 40;
+}
+#add-device-switch-buttons{
+    grid-size: 2 1;
+    height: 5;
+    width: 100%;
+    padding: 1 1;
+}
+#add-device-pin-container{
+    height: auto;
+}
+#add-device-dial-container{
+    height: auto;
+}
+#pairing-code-input.-valid {
+    border: tall $success 60%;
+}
+
+#pairing-code-input.-valid:focus {
+    border: tall $success;
+}
+
+#add-device-pin-add-button{
+    margin: 1 1 0 1;
+    width: 100%;
+}
+#add-device-dial-add-button{
+    margin: 1 1 0 1;
+    width: 100%;
+}
+#add-device-info{
+    height: auto;
+    min-height: 0;
+    width: 100%;
+    padding: 0 1;
+}
+
+/* ApiKey */
+#api-key-grid{
+    grid-size: 4;
+    grid-gutter: 1 2;
+    grid-rows: 1fr 3;
+    padding: 1 1;
+    width: 100%;
+    height: 5;
+}
+#api-key-input{
+    column-span: 3;
+    height: 1fr;
+    width: 1fr;
+    content-align: center middle;
+}
+/* Skip Categories */
+#skip-categories-manager{
+    min-height: 10;
+    height: auto;
+    max-height: 70%;
+    width: 100%;
+    scrollbar-gutter: stable;
+}
+#skip-categories-selection-list{
+    height: auto;
+    width: 100%;
+    background: $boost;
+    margin: 1;
+}
+
+/* Segment count tracking */
+#skip-count-tracking-switch{
+    margin: 1;
+}
+
+/* Channel Whitelist */
+
+#channel-whitelist-manager {
+    min-height: 5;
+    height: auto;
+    max-height: 70%;
+    width: 100%;
+    scrollbar-gutter: stable;
+    overflow-y: auto;
+}
+
+#add-channel {
+    text-style: bold;
+    width: 100%;
+    align: left middle;
+    text-align: center;
+    dock: left;
+
+    text-align: left;
+}
+#add-channel-button-container{
+    height: 1;
+    width: 100%;
+    margin: 1 1 0 1;
+}
+
+
+/* Add Channel */
+AddChannel{
+    align: center middle;
+    overflow-y: auto;
+    background: $background 60%;
+}
+#add-channel-container{
+    padding: 1 2 0 2;
+    border: thick $background 80%;
+    background: $surface;
+    height: auto;
+    width: 50%;
+    min-width: 40;
+
+}
+#add-channel-switch-buttons{
+    grid-size: 2 1;
+    height: 5;
+    width: 100%;
+    padding: 1 1;
+}
+.button-switcher{
+    width: 100%;
+    text-align: center;
+}
+#add-channel-switcher{
+    height: auto;
+    width: auto;
+}
+#add-channel-switcher-container{
+    height: auto;
+    width: 100%;
+}
+#add-channel-search-container{
+    height: auto;
+}
+#add-channel-search-inputs{
+    height: 3;
+    width: 100%;
+    grid-size: 4 1;
+    margin: 0 1 0 0;
+    /* padding: 0 1; */
+}
+#channel-name-input-search{
+    width: 100%;
+    height: auto;
+    column-span: 3;
+}
+#search-channel-button{
+    width: 1fr;
+    height: auto;
+    column-span: 1;
+    margin: 0 0 0 0;
+}
+#channel-search-results{
+    height: auto;
+    width: 100%;
+    background: $boost;
+    margin: 1;
+}
+
+#add-channel-info{
+    height: auto;
+    width: 100%;
+    margin: 0 1;
+}
+#add-channel-id-container{
+    height: auto;
+}
+#channel-name-input-id{
+    margin: 1 0;
+}
+
+#add-channel-search-no-key{
+    padding: 0 0 1 1;
+}
+
+/* Mute/Skip ads */
+#ad-skip-mute-container{
+    padding: 1;
+    height: auto;
+}
+
+/* Migrate screen */
+MigrationScreen {
+    align: center middle;
+}
+
+
+#dialog-migration {
+    grid-size: 2;
+    grid-gutter: 1 2;
+    grid-rows: 1fr 3;
+    padding: 1 2;
+    width: 35%;
+    min-width: 50;
+    max-width: 70;
+    height: 11;
+    border: thick $background 80%;
+    background: $surface;
+}
+
+#question-migrate {
+    column-span: 2;
+    height: 1fr;
+    width: 1fr;
+    content-align: center middle;
+}

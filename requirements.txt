@@ -1,6 +1,10 @@
 miniaudio==1.57
-pyatv
 aiohttp
-aiodns
 async-cache
 argparse
+pyytlounge
+textual
+textual-slider
+ssdp
+rich
+xmltodict

@@ -1,107 +1,67 @@
-import pyatv
 import json
 import asyncio
-from pyatv.const import OperatingSystem
 import sys
 import aiohttp
-import asyncio
-from . import api_helpers
+from . import api_helpers, ytlounge
 
-def save_config(config, config_file):
-    with open(config_file, "w") as f:
-        json.dump(config, f)
-
-
-# Taken from postlund/pyatv atvremote.py
-async def _read_input(loop: asyncio.AbstractEventLoop, prompt: str):
-    sys.stdout.write(prompt)
-    sys.stdout.flush()
-    user_input = await loop.run_in_executor(None, sys.stdin.readline)
-    return user_input.strip()
-
-
-async def find_atvs(loop):
-    devices = await pyatv.scan(loop)
-    if not devices:
-        print("No devices found")
+async def pair_device(loop):
+    try:
+        lounge_controller = ytlounge.YtLoungeApi("iSponsorBlockTV")
+        pairing_code = input("Enter pairing code (found in Settings - Link with TV code): ")
+        pairing_code = int(pairing_code.replace("-", "").replace(" ","")) # remove dashes and spaces
+        print("Pairing...")
+        paired = await lounge_controller.pair(pairing_code)
+        if not paired:
+            print("Failed to pair device")
+            return
+        device = {
+            "screen_id": lounge_controller.auth.screen_id,
+            "name": lounge_controller.screen_name,
+        }
+        print(f"Paired device: {device['name']}")
+        return device
+    except Exception as e:
+        print(f"Failed to pair device: {e}")
         return
-    atvs = []
-    for i in devices:
-        # Only get Apple TV's
-        if (
-          i.device_info.operating_system == OperatingSystem.TvOS
-          and input(f"Found {i.name}. Do you want to add it? (y/n) ") == "y"
-        ):
-            identifier = i.identifier
-
-            pairing = await pyatv.pair(
-                i, loop=loop, protocol=pyatv.Protocol.AirPlay
-            )
-            await pairing.begin()
-            if pairing.device_provides_pin:
-                pin = await _read_input(loop, "Enter PIN on screen: ")
-                pairing.pin(pin)
-
-            await pairing.finish()
-            if pairing.has_paired:
-                creds = pairing.service.credentials
-                atvs.append(
-                    {"identifier": identifier, "airplay_credentials": creds}
-                )
-                print("Pairing successful")
-            await pairing.close()
-    return atvs
-
-
-def main(config, config_file, debug):
+    
+def main(config, debug: bool) -> None:
+    print("Welcome to the iSponsorBlockTV cli setup wizard")
     loop = asyncio.get_event_loop_policy().get_event_loop()
-    try:
-        num_atvs = len(config["atvs"])
-    except:
-        num_atvs = 0
-    if (
-        input("Found {} Apple TV(s) in config.json. Add more? (y/n) ".format(num_atvs))
-        == "y"
-    ):
-        loop = asyncio.get_event_loop_policy().get_event_loop()
-        if debug:
-            loop.set_debug(True)
-        asyncio.set_event_loop(loop)
-        task = loop.create_task(find_atvs(loop))
+    if debug:
+        loop.set_debug(True)
+    asyncio.set_event_loop(loop)
+    if hasattr(config, "atvs"):
+        print("The atvs config option is deprecated and has stopped working. Please read this for more information on how to upgrade to V2: \nhttps://github.com/dmunozv04/iSponsorBlockTV/wiki/Migrate-from-V1-to-V2")
+        if input("Do you want to remove the legacy 'atvs' entry (the app won't start with it present)? (y/n) ") == "y":
+            del config["atvs"]
+    devices = config.devices
+    while not input(f"Paired with {len(devices)} Device(s). Add more? (y/n) ") == "n":
+        task = loop.create_task(pair_device(loop))
         loop.run_until_complete(task)
-        atvs = task.result()
-        try:
-            for i in atvs:
-                config["atvs"].append(i)
-            print("Done adding")
-        except:
-            print("Rewriting atvs (don't worry if none were saved before)")
-            config["atvs"] = atvs
+        device = task.result()
+        if device:
+            devices.append(device)
+    config.devices = devices
 
-    try:
-        apikey = config["apikey"]
-    except:
-        apikey = ""
-    if apikey != "":
+    apikey = config.apikey
+    if apikey:
         if input("API key already specified. Change it? (y/n) ") == "y":
             apikey = input("Enter your API key: ")
             config["apikey"] = apikey
     else:
-        print(
-            "Get youtube apikey here: https://developers.google.com/youtube/registering_an_application"
-        )
-        apikey = input("Enter your API key: ")
-        config["apikey"] = apikey
-
-    try:
-        skip_categories = config["skip_categories"]
-    except:
-        skip_categories = []
-
-    if skip_categories != []:
+        if input("API key only needed for the channel whitelist function. Add it? (y/n) ") == "y":
+            print(
+                "Get youtube apikey here: https://developers.google.com/youtube/registering_an_application"
+            )
+            apikey = input("Enter your API key: ")
+            config["apikey"] = apikey
+    config.apikey = apikey
+    
+    skip_categories = config.skip_categories
+    if skip_categories:
         if input("Skip categories already specified. Change them? (y/n) ") == "y":
             categories = input(
-                "Enter skip categories (space or comma sepparated) Options: [sponsor selfpromo exclusive_access interaction poi_highlight intro outro preview filler music_offtopic:\n"
+                "Enter skip categories (space or comma sepparated) Options: [sponsor selfpromo exclusive_access interaction poi_highlight intro outro preview filler music_offtopic]:\n"
             )
             skip_categories = categories.replace(",", " ").split(" ")
             skip_categories = [x for x in skip_categories if x != ''] # Remove empty strings
@@ -111,14 +71,12 @@ def main(config, config_file, debug):
         )
         skip_categories = categories.replace(",", " ").split(" ")
         skip_categories = [x for x in skip_categories if x != ''] # Remove empty strings
-    config["skip_categories"] = skip_categories
+    config.skip_categories = skip_categories
 
-    try:
-        channel_whitelist = config["channel_whitelist"]
-    except:
-        channel_whitelist = []
-
+    channel_whitelist = config.channel_whitelist
     if input("Do you want to whitelist any channels from being ad-blocked? (y/n) ") == "y":
+        if(not apikey):
+            print("WARNING: You need to specify an API key to use this function, otherwise the program will fail to start.\nYou can add one by re-running this setup wizard.")
         web_session = aiohttp.ClientSession()
         while True:
             channel_info = {}
@@ -158,7 +116,8 @@ def main(config, config_file, debug):
         # Close web session asynchronously
         loop.run_until_complete(web_session.close())
     
-    config["channel_whitelist"] = channel_whitelist
-
+    config.channel_whitelist = channel_whitelist
+    
+    config.skip_count_tracking = not input("Do you want to report skipped segments to sponsorblock. Only the segment UUID will be sent? (y/n) ") == "n"
     print("Config finished")
-    save_config(config, config_file)
+    config.save()

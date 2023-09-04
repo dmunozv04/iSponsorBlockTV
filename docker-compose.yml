@@ -1,0 +1,8 @@
+version: '3.3'
+services:
+    iSponsorBlockTV:
+        image: ghcr.io/dmunozv04/isponsorblocktv
+        container_name: iSponsorBlockTV
+        restart: unless-stopped
+        volumes:
+        - /PATH_TO_YOUR_DATA_DIR:/app/data

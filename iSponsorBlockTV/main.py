@@ -1,148 +1,147 @@
 import asyncio
-import pyatv
 import aiohttp
 import time
 import logging
-from . import api_helpers
+from . import api_helpers, ytlounge
+import traceback
 
 
-class MyPushListener(pyatv.interface.PushListener):
-    task = None
-    apikey = None
-    rc = None
+class DeviceListener:
+    def __init__(self, api_helper, config, screen_id, offset):
+        self.api_helper = api_helper
+        self.lounge_controller = ytlounge.YtLoungeApi(screen_id, config, api_helper)
+        self.offset = offset
+        self.cancelled = False
 
-    web_session = None
-    categories = ["sponsor"]
-    whitelist = []
+    # Ensures that we have a valid auth token
+    async def refresh_auth_loop(self):
+        while True:
+            await asyncio.sleep(60 * 60 * 24)  # Refresh every 24 hours
+            try:
+                await self.lounge_controller.refresh_auth()
+            except:
+                # traceback.print_exc()
+                pass
 
-    def __init__(self, apikey, atv, categories, whitelist, web_session):
-        self.apikey = apikey
-        self.rc = atv.remote_control
-        self.web_session = web_session
-        self.categories = categories
-        self.whitelist = whitelist
-        self.atv = atv
+    async def is_available(self):
+        try:
+            return await self.lounge_controller.is_available()
+        except:
+            # traceback.print_exc()
+            return False
 
-    def playstatus_update(self, updater, playstatus):
-        logging.debug("Playstatus update" + str(playstatus))
+    # Main subscription loop
+    async def loop(self):
+        lounge_controller = self.lounge_controller
+        while not lounge_controller.linked():
+            try:
+                await lounge_controller.refresh_auth()
+            except:
+                # traceback.print_exc()
+                await asyncio.sleep(10)
+
+        while not self.cancelled:
+            while not (await self.is_available()) and not self.cancelled:
+                await asyncio.sleep(10)
+            try:
+                await lounge_controller.connect()
+            except:
+                pass
+            while not lounge_controller.connected() and not self.cancelled:
+                await asyncio.sleep(10)
+                try:
+                    await lounge_controller.connect()
+                except:
+                    pass
+            # print(f"Connected to device {lounge_controller.screen_name}")
+            try:
+                print("Subscribing to lounge")
+                sub = await lounge_controller.subscribe_monitored(self)
+                await sub
+                print("Subscription ended")
+            except:
+                pass
+
+    # Method called on playback state change
+    async def __call__(self, state):
+        logging.debug("Playstatus update" + str(state))
         try:
             self.task.cancel()
         except:
             pass
         time_start = time.time()
-        self.task = asyncio.create_task(
-            process_playstatus(
-                playstatus,
-                self.apikey,
-                self.rc,
-                self.web_session,
-                self.categories,
-                self.atv,
-                time_start,
-                self.whitelist
-            )
-        )
+        self.task = asyncio.create_task(self.process_playstatus(state, time_start))
 
-    def playstatus_error(self, updater, exception):
-        logging.error(exception)
-        print("stopped")
-
-
-async def process_playstatus(
-    playstatus, apikey, rc, web_session, categories, atv, time_start, whitelist
-):
-    logging.debug("App playing is:" + str(atv.metadata.app.identifier))
-    if (
-        playstatus.device_state == playstatus.device_state.Playing
-        and atv.metadata.app.identifier == "com.google.ios.youtube"
-    ):
-        vid_id = await api_helpers.get_vid_id(
-            playstatus.title, playstatus.artist, apikey, web_session
-        )
-        if vid_id:
-            print(f"ID: {vid_id[0]}, Channel ID: {vid_id[1]}")
-            for i in whitelist:
-                if vid_id[1] == i["id"]:
-                    print("Channel whitelisted, skipping.")
-                    return
-            segments = await api_helpers.get_segments(vid_id[0], web_session, categories)
+    # Processes the playback state change
+    async def process_playstatus(self, state, time_start):
+        segments = []
+        if state.videoId:
+            segments = await self.api_helper.get_segments(state.videoId)
             print(segments)
-            await time_to_segment(
-                segments, playstatus.position, rc, time_start, web_session
-            )
-        else:
-            print("Could not find video id")
+        if state.state.value == 1 and segments:  # Playing and has segments to skip
+            await self.time_to_segment(segments, state.currentTime, time_start)
 
+    # Finds the next segment to skip to and skips to it
+    async def time_to_segment(self, segments, position, time_start):
+        start_next_segment = None
+        next_segment = None
+        for segment in segments:
+            if position < 2 and (
+                    segment["start"] <= position < segment["end"]
+            ):
+                next_segment = segment
+                start_next_segment = position  # different variable so segment doesn't change
+                break
+            if segment["start"] > position:
+                next_segment = segment
+                start_next_segment = next_segment["start"]
+                break
+        if start_next_segment:
+            time_to_next = start_next_segment - position - (time.time() - time_start) - self.offset
+            await self.skip(time_to_next, next_segment["end"], next_segment["UUID"])
 
-async def time_to_segment(segments, position, rc, time_start, web_session):
-    position = position + (time.time() - time_start)
-    for segment in segments:
-        if position < 2 and (
-            position >= segment["start"] and position < segment["end"]
-        ):
-            next_segment = [position, segment["end"]]
-            break
-        if segment["start"] > position:
-            next_segment = segment
-            break
-    time_to_next = next_segment["start"] - position
-    await skip(time_to_next, next_segment["end"], next_segment["UUID"], rc, web_session)
+    # Skips to the next segment (waits for the time to pass)
+    async def skip(self, time_to, position, UUID):
+        await asyncio.sleep(time_to)
+        asyncio.create_task(self.lounge_controller.seek_to(position))
+        asyncio.create_task(
+            self.api_helper.mark_viewed_segments(UUID)
+        )  # Don't wait for this to finish
 
-
-async def skip(time_to, position, UUID, rc, web_session):
-    await asyncio.sleep(time_to)
-    await rc.set_position(position)
-    # await api_helpers.viewed_segments(UUID, web_session) DISABLED FOR NOW
-
-
-async def connect_atv(loop, identifier, airplay_credentials):
-    """Find a device and print what is playing."""
-    print("Discovering devices on network...")
-    atvs = await pyatv.scan(loop, identifier=identifier)
-
-    if not atvs:
-        print("No device found, will retry")
-        return
-
-    config = atvs[0]
-    config.set_credentials(pyatv.Protocol.AirPlay, airplay_credentials)
-
-    print(f"Connecting to {config.address}")
-    return await pyatv.connect(config, loop)
-
-
-async def loop_atv(event_loop, atv_config, apikey, categories, whitelist, web_session):
-    identifier = atv_config["identifier"]
-    airplay_credentials = atv_config["airplay_credentials"]
-    atv = await connect_atv(event_loop, identifier, airplay_credentials)
-    if atv:
-        listener = MyPushListener(apikey, atv, categories, whitelist, web_session)
-
-        atv.push_updater.listener = listener
-        atv.push_updater.start()
-        print("Push updater started")
-    while True:
-        await asyncio.sleep(20)
+    # Stops the connection to the device
+    async def cancel(self):
+        self.cancelled = True
         try:
-            atv.metadata.app
-        except:
-            print("Reconnecting to Apple TV")
-            # reconnect to apple tv
-            atv = await connect_atv(event_loop, identifier, airplay_credentials)
-            if atv:
-                listener = MyPushListener(apikey, atv, categories, whitelist, web_session)
-
-                atv.push_updater.listener = listener
-                atv.push_updater.start()
-                print("Push updater started")
+            self.task.cancel()
+        except Exception as e:
+            traceback.print_exc()
 
 
-def main(atv_configs, apikey, categories, whitelist, debug):
+async def finish(devices):
+    for i in devices:
+        await i.cancel()
+
+
+def main(config, debug):
     loop = asyncio.get_event_loop_policy().get_event_loop()
+    tasks = []  # Save the tasks so the interpreter doesn't garbage collect them
+    devices = []  # Save the devices to close them later
     if debug:
         loop.set_debug(True)
     asyncio.set_event_loop(loop)
-    web_session = aiohttp.ClientSession()
-    for i in atv_configs:
-        loop.create_task(loop_atv(loop, i, apikey, categories, whitelist, web_session))
-    loop.run_forever()
+    tcp_connector = aiohttp.TCPConnector(ttl_dns_cache=300)
+    web_session = aiohttp.ClientSession(loop=loop, connector=tcp_connector)
+    api_helper = api_helpers.ApiHelper(config, web_session)
+    for i in config.devices:
+        device = DeviceListener(api_helper, config, i.screen_id, i.offset)
+        devices.append(device)
+        tasks.append(loop.create_task(device.loop()))
+        tasks.append(loop.create_task(device.refresh_auth_loop()))
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt as e:
+        print("Keyboard interrupt detected, cancelling tasks and exiting...")
+        traceback.print_exc()
+        loop.run_until_complete(finish(devices))
+    finally:
+        loop.run_until_complete(web_session.close())

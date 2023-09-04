@@ -1,7 +1,7 @@
 import plistlib
 import os
 from . import config_setup
-
+"""Not updated to V2 yet, should still work. Here be dragons"""
 default_plist = {
     "Label": "com.dmunozv04iSponsorBlockTV",
     "RunAtLoad": True,
