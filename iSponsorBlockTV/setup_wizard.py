@@ -226,12 +226,12 @@ class AddDevice(ModalWithClickExit):
 
     @on(Input.Changed, "#pairing-code-input")
     def changed_pairing_code(self, event: Input.Changed):
-        self.query_one("#add-device-button").disabled = not event.validation_result.is_valid
+        self.query_one("#add-device-pin-add-button").disabled = not event.validation_result.is_valid
 
     @on(Input.Submitted, "#pairing-code-input")
     @on(Button.Pressed, "#add-device-pin-add-button")
     async def handle_add_device_pin(self) -> None:
-        self.query_one("#add-device-button").disabled = True
+        self.query_one("#add-device-pin-add-button").disabled = True
         lounge_controller = ytlounge.YtLoungeApi("iSponsorBlockTV")
         pairing_code = self.query_one("#pairing-code-input").value
         pairing_code = int(pairing_code.replace("-", "").replace(" ", ""))  # remove dashes and spaces
@@ -253,7 +253,7 @@ class AddDevice(ModalWithClickExit):
             self.dismiss([device])
         else:
             self.query_one("#pairing-code-input").value = ""
-            self.query_one("#add-device-button").disabled = False
+            self.query_one("#add-device-pin-add-button").disabled = False
             self.query_one("#add-device-info").update("[#ff0000]Failed to add device")
 
     @on(Button.Pressed, "#add-device-dial-add-button")
