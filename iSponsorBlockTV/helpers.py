@@ -76,6 +76,9 @@ class Config:
                 else:  # Running in docker without mounting the data dir
                     print("Running in docker without mounting the data dir, check the wiki for more information: "
                           "https://github.com/dmunozv04/iSponsorBlockTV/wiki/Installation#Docker")
+                    print("This image has recently been updated to v2, and requires changes.",
+                          "Please read this for more information on how to upgrade to V2:",
+                          "https://github.com/dmunozv04/iSponsorBlockTV/wiki/Migrate-from-V1-to-V2")
                     print("Exiting in 10 seconds...")
                     time.sleep(10)
                     sys.exit()
