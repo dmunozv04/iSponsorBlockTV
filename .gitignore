@@ -154,7 +154,9 @@ cython_debug/
 #.idea/
 
 #config folder
-config/
-config.json
+data/
+data/config.json
+
+.DS_Store
 
 .DS_Store

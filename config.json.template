@@ -1,8 +1,21 @@
 {
-    "atvs": [
-        {"identifier": "", "airplay_credentials": ""}
+    "devices": [
+        {
+            "screen_id": "",
+            "name": "YouTube on TV",
+            "offset": 0
+        }
     ],
-    "apikey":"",
-    "skip_categories": ["sponsor"],
-    "channel_whitelist": []
+    "skip_categories": [
+        "sponsor"
+    ],
+    "skip_count_tracking": true,
+    "mute_ads": true,
+    "skip_ads": true,
+    "apikey": "",
+    "channel_whitelist": [
+        {"id": "",
+        "name": ""
+        }
+    ]
 }
