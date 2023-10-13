@@ -8,6 +8,7 @@ import traceback
 
 class DeviceListener:
     def __init__(self, api_helper, config, screen_id, offset):
+        self.task: asyncio.Task = None
         self.api_helper = api_helper
         self.lounge_controller = ytlounge.YtLoungeApi(screen_id, config, api_helper)
         self.offset = offset
@@ -53,12 +54,12 @@ class DeviceListener:
                     await lounge_controller.connect()
                 except:
                     pass
-            # print(f"Connected to device {lounge_controller.screen_name}")
+            print(f"Connected to device {lounge_controller.screen_name}")
             try:
-                print("Subscribing to lounge")
+                #print("Subscribing to lounge")
                 sub = await lounge_controller.subscribe_monitored(self)
                 await sub
-                print("Subscription ended")
+                #print("Subscription ended")
             except:
                 pass
 
@@ -77,9 +78,10 @@ class DeviceListener:
         segments = []
         if state.videoId:
             segments = await self.api_helper.get_segments(state.videoId)
-            print(segments)
-        if state.state.value == 1 and segments:  # Playing and has segments to skip
-            await self.time_to_segment(segments, state.currentTime, time_start)
+        if state.state.value == 1:  # Playing
+            print(f"Playing {state.videoId} with {len(segments)} segments")
+            if segments:  # If there are segments
+                await self.time_to_segment(segments, state.currentTime, time_start)
 
     # Finds the next segment to skip to and skips to it
     async def time_to_segment(self, segments, position, time_start):
@@ -108,13 +110,14 @@ class DeviceListener:
             self.api_helper.mark_viewed_segments(UUID)
         )  # Don't wait for this to finish
 
+
     # Stops the connection to the device
     async def cancel(self):
         self.cancelled = True
         try:
             self.task.cancel()
         except Exception as e:
-            traceback.print_exc()
+            pass
 
 
 async def finish(devices):
@@ -141,7 +144,6 @@ def main(config, debug):
         loop.run_forever()
     except KeyboardInterrupt as e:
         print("Keyboard interrupt detected, cancelling tasks and exiting...")
-        traceback.print_exc()
         loop.run_until_complete(finish(devices))
     finally:
         loop.run_until_complete(web_session.close())
