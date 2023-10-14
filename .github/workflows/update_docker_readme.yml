@@ -18,12 +18,13 @@ jobs:
     steps:
           # Get the repository's code
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
           # Update description
       - name: Update repo description
-        uses: peter-evans/dockerhub-description@v2
+        uses: peter-evans/dockerhub-description@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
           repository: dmunozv04/isponsorblocktv
+          short-description: ${{ github.event.repository.description }}
