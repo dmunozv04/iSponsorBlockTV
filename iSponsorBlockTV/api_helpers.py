@@ -138,7 +138,7 @@ class ApiHelper:
                         segment_dict["start"] - segment_before_end < 1
                 ):  # Less than 1 second appart, combine them and skip them together
                     segment_dict["start"] = segment_before_start
-                    segment_dict["UUID"].append(segment_before_UUID)
+                    segment_dict["UUID"].extend(segment_before_UUID)
                     segments.pop()
                 segments.append(segment_dict)
         except Exception:
