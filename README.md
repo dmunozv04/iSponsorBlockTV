@@ -23,6 +23,7 @@ Open an issue/pull request if you have tested a device that isn't listed here.
 | Google TV          |   ✅    |
 | Roku               |   ❔    |
 | Fire TV            |   ❔    |
+| CCwGTV             |   ✅    |
 | Nintendo Switch    |   ✅    |
 | Xbox One/Series    |   ❔    |
 | Playstation 4/5    |   ✅    |
