@@ -24,7 +24,7 @@ Open an issue/pull request if you have tested a device that isn't listed here.
 | Fire TV            |   ❔    |
 | Nintendo Switch    |   ✅    |
 | Xbox One/Series    |   ❔    |
-| Playstation 4/5    |   ❔    |
+| Playstation 4/5    |   ✅    |
 
 ## Usage
 Run iSponsorBlockTV on a computer that has network access.
