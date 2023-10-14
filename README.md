@@ -9,7 +9,7 @@ Check the [wiki](https://github.com/dmunozv04/iSponsorBlockTV/wiki/Installation)
 Warning: docker armv7 builds have been deprecated. Amd64 and arm64 builds are still available.
 
 ## Compatibility
-Leyend: ✅ = Working, ❌ = Not working, ❔ = Not tested
+Legend: ✅ = Working, ❌ = Not working, ❔ = Not tested
 
 Open an issue/pull request if you have tested a device that isn't listed here.
 
