@@ -21,7 +21,7 @@ Open an issue/pull request if you have tested a device that isn't listed here.
 | Android TV         |   ✅    |
 | Chromecast         |   ❔    |
 | Google TV          |   ✅    |
-| Roku               |   ❔    |
+| Roku               |   ✅    |
 | Fire TV            |   ❔    |
 | CCwGTV             |   ✅    |
 | Nintendo Switch    |   ✅    |
