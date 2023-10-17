@@ -14,9 +14,9 @@ class DeviceListener:
         self.device_name = device_name
         self.cancelled = False
         self.lounge_controller = ytlounge.YtLoungeApi(
-            screen_id, 
-            config, 
-            api_helper, 
+            screen_id,
+            config,
+            api_helper,
             device_name)
 
     # Ensures that we have a valid auth token
@@ -84,7 +84,7 @@ class DeviceListener:
         if state.videoId:
             segments = await self.api_helper.get_segments(state.videoId)
         if state.state.value == 1:  # Playing
-            log.info(f"Playing {state.videoId} ({friendly_time(state.duration)}) " 
+            log.info(f"Playing {state.videoId} ({friendly_time(state.duration)}) "
                      + "with {len(segments)} skippable segments", self.device_name)
             if segments:  # If there are segments
                 await self.time_to_segment(segments, state.currentTime, time_start)
