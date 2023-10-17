@@ -82,7 +82,8 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         # Gets segments for the next video before it starts playing
         elif event_type == "autoplayUpNext":
             if len(args) > 0 and (vid_id := args[0]["videoId"]):  # if video id is not empty
-                log.info(f"Getting skippable segments for next video: {vid_id}", self.device_name)
+                log.info(f"Getting skippable segments for next video: {vid_id}",
+                          self.device_name)
                 create_task(self.api_helper.get_segments(vid_id))
 
         # #Used to know if an ad is skippable or not
@@ -90,7 +91,8 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             data = args[0]
             # Gets segments for the next video (after the ad) before it starts playing
             if vid_id := data["contentVideoId"]:
-                log.info(f"Getting skippable segments for next video: {vid_id}", self.device_name)
+                log.info(f"Getting skippable segments for next video: {vid_id}",
+                          self.device_name)
                 create_task(self.api_helper.get_segments(vid_id))
 
             if data["isSkippable"] == "true":  # YouTube uses strings for booleans

@@ -4,17 +4,20 @@ import time
 import logging
 from . import api_helpers, ytlounge
 from . import log_helpers as log
-import traceback
 
 
 class DeviceListener:
     def __init__(self, api_helper, config, screen_id, offset, device_name):
         self.task: asyncio.Task = None
         self.api_helper = api_helper
-        self.lounge_controller = ytlounge.YtLoungeApi(screen_id, config, api_helper, device_name)
         self.offset = offset
         self.device_name = device_name
         self.cancelled = False
+        self.lounge_controller = ytlounge.YtLoungeApi(
+            screen_id, 
+            config, 
+            api_helper, 
+            device_name)
 
     # Ensures that we have a valid auth token
     async def refresh_auth_loop(self):
@@ -81,7 +84,8 @@ class DeviceListener:
         if state.videoId:
             segments = await self.api_helper.get_segments(state.videoId)
         if state.state.value == 1:  # Playing
-            log.info(f"Playing {state.videoId} ({friendly_time(state.duration)}) with {len(segments)} skippable segments", self.device_name)
+            log.info(f"Playing {state.videoId} ({friendly_time(state.duration)}) " 
+                     + "with {len(segments)} skippable segments", self.device_name)
             if segments:  # If there are segments
                 await self.time_to_segment(segments, state.currentTime, time_start)
 
