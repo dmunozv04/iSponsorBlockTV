@@ -12,6 +12,7 @@
     "skip_count_tracking": true,
     "mute_ads": true,
     "skip_ads": true,
+    "device_name": "iSponsorBlockTV",
     "apikey": "",
     "channel_whitelist": [
         {"id": "",
@@ -19,3 +20,4 @@
         }
     ]
 }
+

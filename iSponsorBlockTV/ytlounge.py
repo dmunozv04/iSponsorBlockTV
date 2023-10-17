@@ -7,7 +7,7 @@ create_task = asyncio.create_task
 
 class YtLoungeApi(pyytlounge.YtLoungeApi):
     def __init__(self, screen_id, config=None, api_helper=None):
-        super().__init__("iSponsorBlockTV")
+        super().__init__(config.device_name if config else "iSponsorBlockTV")
         self.auth.screen_id = screen_id
         self.auth.lounge_id_token = None
         self.api_helper = api_helper

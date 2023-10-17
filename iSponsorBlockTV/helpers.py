@@ -38,6 +38,7 @@ class Config:
         self.skip_count_tracking = True
         self.mute_ads = False
         self.skip_ads = False
+        self.device_name = "iSponsorBlockTV"
         self.__load()
 
     def validate(self):
