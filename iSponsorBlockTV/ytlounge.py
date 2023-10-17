@@ -1,16 +1,18 @@
 import asyncio
 import aiohttp
 import pyytlounge
+from . import log_helpers as log
 
 create_task = asyncio.create_task
 
 
 class YtLoungeApi(pyytlounge.YtLoungeApi):
-    def __init__(self, screen_id, config=None, api_helper=None):
+    def __init__(self, screen_id, config=None, api_helper=None, device_name=None):
         super().__init__("iSponsorBlockTV")
         self.auth.screen_id = screen_id
         self.auth.lounge_id_token = None
         self.api_helper = api_helper
+        self.device_name = device_name
         self.volume_state = {}
         self.subscribe_task = None
         self.subscribe_task_watchdog = None
@@ -40,7 +42,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
 
     # Process a lounge subscription event
     def _process_event(self, event_id: int, event_type: str, args):
-        # print(f"YtLoungeApi.__process_event({event_id}, {event_type}, {args})")
+        # log.info(f"YtLoungeApi.__process_event({event_id}, {event_type}, {args})")
         # (Re)start the watchdog
         try:
             self.subscribe_task_watchdog.cancel()
@@ -53,7 +55,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             data = args[0]
             self.state.apply_state(data)
             self._update_state()
-            # print(data)
+            # log.info(data)
             # Unmute when the video starts playing
             if self.mute_ads and data["state"] == "1":
                 create_task(self.mute(False, override=True))
@@ -63,15 +65,15 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             self._update_state()
             # Unmute when the video starts playing
             if self.mute_ads and data.get("state", "0") == "1":
-                #print("Ad has ended, unmuting")
+                #log.info("Ad has ended, unmuting")
                 create_task(self.mute(False, override=True))
         elif self.mute_ads and event_type == "onAdStateChange":
             data = args[0]
             if data["adState"] == '0':  # Ad is not playing
-                #print("Ad has ended, unmuting")
+                #log.info("Ad has ended, unmuting")
                 create_task(self.mute(False, override=True))
             else:  # Seen multiple other adStates, assuming they are all ads
-                print("Ad has started, muting")
+                log.info("Ad has started, muting", self.device_name)
                 create_task(self.mute(True, override=True))
         # Manages volume, useful since YouTube wants to know the volume when unmuting (even if they already have it)
         elif event_type == "onVolumeChanged":
@@ -80,7 +82,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         # Gets segments for the next video before it starts playing
         elif event_type == "autoplayUpNext":
             if len(args) > 0 and (vid_id := args[0]["videoId"]):  # if video id is not empty
-                print(f"Getting segments for next video: {vid_id}")
+                log.info(f"Getting skippable segments for next video: {vid_id}", self.device_name)
                 create_task(self.api_helper.get_segments(vid_id))
 
         # #Used to know if an ad is skippable or not
@@ -88,7 +90,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             data = args[0]
             # Gets segments for the next video (after the ad) before it starts playing
             if vid_id := data["contentVideoId"]:
-                print(f"Getting segments for next video: {vid_id}")
+                log.info(f"Getting skippable segments for next video: {vid_id}", self.device_name)
                 create_task(self.api_helper.get_segments(vid_id))
 
             if data["isSkippable"] == "true":  # YouTube uses strings for booleans

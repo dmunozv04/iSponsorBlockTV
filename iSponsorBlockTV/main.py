@@ -3,15 +3,17 @@ import aiohttp
 import time
 import logging
 from . import api_helpers, ytlounge
+from . import log_helpers as log
 import traceback
 
 
 class DeviceListener:
-    def __init__(self, api_helper, config, screen_id, offset):
+    def __init__(self, api_helper, config, screen_id, offset, device_name):
         self.task: asyncio.Task = None
         self.api_helper = api_helper
-        self.lounge_controller = ytlounge.YtLoungeApi(screen_id, config, api_helper)
+        self.lounge_controller = ytlounge.YtLoungeApi(screen_id, config, api_helper, device_name)
         self.offset = offset
+        self.device_name = device_name
         self.cancelled = False
 
     # Ensures that we have a valid auth token
@@ -54,12 +56,12 @@ class DeviceListener:
                     await lounge_controller.connect()
                 except:
                     pass
-            print(f"Connected to device {lounge_controller.screen_name}")
+            log.info(f"Connected to {lounge_controller.screen_name}", self.device_name)
             try:
-                #print("Subscribing to lounge")
+                #log.info("Subscribing to lounge")
                 sub = await lounge_controller.subscribe_monitored(self)
                 await sub
-                #print("Subscription ended")
+                #log.info("Subscription ended")
             except:
                 pass
 
@@ -79,7 +81,7 @@ class DeviceListener:
         if state.videoId:
             segments = await self.api_helper.get_segments(state.videoId)
         if state.state.value == 1:  # Playing
-            print(f"Playing {state.videoId} with {len(segments)} segments")
+            log.info(f"Playing {state.videoId} ({friendly_time(state.duration)}) with {len(segments)} skippable segments", self.device_name)
             if segments:  # If there are segments
                 await self.time_to_segment(segments, state.currentTime, time_start)
 
@@ -104,8 +106,10 @@ class DeviceListener:
 
     # Skips to the next segment (waits for the time to pass)
     async def skip(self, time_to, position, UUID):
+        log.info(f"Next skip in {friendly_time(time_to)}", self.device_name)
         await asyncio.sleep(time_to)
         asyncio.create_task(self.lounge_controller.seek_to(position))
+        log.info(f"Skipped to {friendly_time(position)}", self.device_name)
         asyncio.create_task(
             self.api_helper.mark_viewed_segments(UUID)
         )  # Don't wait for this to finish
@@ -125,7 +129,13 @@ async def finish(devices):
         await i.cancel()
 
 
+def friendly_time(seconds):
+    minutes, seconds = divmod(seconds, 60)
+    return f"{int(minutes):02d}:{int(seconds):02d}"
+
+
 def main(config, debug):
+    print("Starting iSponsorBlockTV")
     loop = asyncio.get_event_loop_policy().get_event_loop()
     tasks = []  # Save the tasks so the interpreter doesn't garbage collect them
     devices = []  # Save the devices to close them later
@@ -136,14 +146,14 @@ def main(config, debug):
     web_session = aiohttp.ClientSession(loop=loop, connector=tcp_connector)
     api_helper = api_helpers.ApiHelper(config, web_session)
     for i in config.devices:
-        device = DeviceListener(api_helper, config, i.screen_id, i.offset)
+        device = DeviceListener(api_helper, config, i.screen_id, i.offset, i.name)
         devices.append(device)
         tasks.append(loop.create_task(device.loop()))
         tasks.append(loop.create_task(device.refresh_auth_loop()))
     try:
         loop.run_forever()
     except KeyboardInterrupt as e:
-        print("Keyboard interrupt detected, cancelling tasks and exiting...")
+        log.info("Keyboard interrupt detected, cancelling tasks and exiting...")
         loop.run_until_complete(finish(devices))
     finally:
         loop.run_until_complete(web_session.close())
