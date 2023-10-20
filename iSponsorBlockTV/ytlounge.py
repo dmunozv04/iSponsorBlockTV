@@ -40,7 +40,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
 
     # Process a lounge subscription event
     def _process_event(self, event_id: int, event_type: str, args):
-        # print(f"YtLoungeApi.__process_event({event_id}, {event_type}, {args})")
+        print(f"YtLoungeApi.__process_event({event_id}, {event_type}, {args})")
         # (Re)start the watchdog
         try:
             self.subscribe_task_watchdog.cancel()
@@ -97,6 +97,11 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                     create_task(self.mute(False, override=True))
                 elif self.mute_ads:
                     create_task(self.mute(True, override=True))
+        elif event_type == "onAutoplayModeChanged":
+            data = args[0]
+            print("Setting it")
+            print(data)
+            create_task(self.set_auto_play_mode(data["autoplayMode"] == "ENABLED"))
         else:
             super()._process_event(event_id, event_type, args)
 
@@ -117,3 +122,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             self.volume_state["muted"] = mute_str
             # YouTube wants the volume when unmuting, so we send it
             await super()._command("setVolume", {"volume": self.volume_state.get("volume", 100), "muted": mute_str})
+
+    async def set_auto_play_mode(self, enabled: bool):
+        print(enabled)
+        await super()._command("setAutoplayMode", {"autoplayMode": "ENABLED" if enabled else "DISABLED"})
