@@ -113,11 +113,17 @@ class ApiHelper:
         headers = {"Accept": "application/json"}
         url = constants.SponsorBlock_api + "skipSegments/" + vid_id_hashed
         async with self.web_session.get(url, headers=headers, params=params) as response:
-            response = await response.json()
-        for i in response:
+            response_json = await response.json()
+        if(response.status != 200):
+            print(f"Error getting segments. Code: {response.status} - {response.text}")
+            return ([], True)
+        for i in response_json:
             if str(i["videoID"]) == str(vid_id):
-                response = i
+                response_json = i
                 break
+        return self.process_segments(response)
+
+    def process_segments(response):
         segments = []
         ignore_ttl = True
         try:
