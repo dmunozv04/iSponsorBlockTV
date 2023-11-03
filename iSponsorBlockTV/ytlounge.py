@@ -78,10 +78,11 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             self.volume_state = args[0]
             pass
         # Gets segments for the next video before it starts playing
-        elif event_type == "autoplayUpNext":
-            if len(args) > 0 and (vid_id := args[0]["videoId"]):  # if video id is not empty
-                print(f"Getting segments for next video: {vid_id}")
-                create_task(self.api_helper.get_segments(vid_id))
+        # Comment "fix" since it doesn't seem to work
+        # elif event_type == "autoplayUpNext":
+        #     if len(args) > 0 and (vid_id := args[0]["videoId"]):  # if video id is not empty
+        #         print(f"Getting segments for next video: {vid_id}")
+        #         create_task(self.api_helper.get_segments(vid_id))
 
         # #Used to know if an ad is skippable or not
         elif event_type == "adPlaying":
