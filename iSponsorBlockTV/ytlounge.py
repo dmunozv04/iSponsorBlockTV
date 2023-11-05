@@ -4,10 +4,10 @@ import aiohttp
 import pyytlounge
 from .constants import youtube_client_blacklist
 
-
 # Temporary imports
 from pyytlounge.api import api_base
 from pyytlounge.wrapper import NotLinkedException, desync
+
 create_task = asyncio.create_task
 
 
@@ -30,7 +30,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         await asyncio.sleep(35)  # YouTube sends at least a message every 30 seconds (no-op or any other)
         try:
             self.subscribe_task.cancel()
-        except Exception as e:
+        except Exception:
             pass
 
     # Subscribe to the lounge and start the watchdog
@@ -46,7 +46,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
 
     # Process a lounge subscription event
     def _process_event(self, event_id: int, event_type: str, args):
-        #print(f"YtLoungeApi.__process_event({event_id}, {event_type}, {args})")
+        # print(f"YtLoungeApi.__process_event({event_id}, {event_type}, {args})")
         # (Re)start the watchdog
         try:
             self.subscribe_task_watchdog.cancel()
@@ -54,7 +54,8 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             pass
         finally:
             self.subscribe_task_watchdog = asyncio.create_task(self._watchdog())
-        # A bunch of events useful to detect ads playing, and the next video before it starts playing (that way we can get the segments)
+        # A bunch of events useful to detect ads playing, and the next video before it starts playing (that way we
+        # can get the segments)
         if event_type == "onStateChange":
             data = args[0]
             # print(data)
@@ -111,7 +112,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                     device_info = json.loads(device.get("deviceInfo", ""))
                     if device_info.get("clientName", "") in youtube_client_blacklist:
                         self._sid = None
-                        self._gsession = None # Force disconnect
+                        self._gsession = None  # Force disconnect
         # elif event_type == "onAutoplayModeChanged":
         #     data = args[0]
         #     create_task(self.set_auto_play_mode(data["autoplayMode"] == "ENABLED"))

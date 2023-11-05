@@ -3,8 +3,6 @@ import aiohttp
 import time
 import logging
 from . import api_helpers, ytlounge
-from .constants import youtube_client_blacklist
-import traceback
 
 
 class DeviceListener:
@@ -115,7 +113,7 @@ class DeviceListener:
         self.cancelled = True
         try:
             self.task.cancel()
-        except Exception as e:
+        except Exception:
             pass
 
 
@@ -141,7 +139,7 @@ def main(config, debug):
         tasks.append(loop.create_task(device.refresh_auth_loop()))
     try:
         loop.run_forever()
-    except KeyboardInterrupt as e:
+    except KeyboardInterrupt:
         print("Keyboard interrupt detected, cancelling tasks and exiting...")
         loop.run_until_complete(finish(devices))
     finally:
