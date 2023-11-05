@@ -3,6 +3,7 @@ import aiohttp
 import time
 import logging
 from . import api_helpers, ytlounge
+from .constants import youtube_client_blacklist
 import traceback
 
 
@@ -40,7 +41,6 @@ class DeviceListener:
             except:
                 # traceback.print_exc()
                 await asyncio.sleep(10)
-
         while not self.cancelled:
             while not (await self.is_available()) and not self.cancelled:
                 await asyncio.sleep(10)
@@ -49,17 +49,17 @@ class DeviceListener:
             except:
                 pass
             while not lounge_controller.connected() and not self.cancelled:
+                # Doesn't connect to the device if it's a kids profile (it's broken)
                 await asyncio.sleep(10)
                 try:
                     await lounge_controller.connect()
                 except:
                     pass
-            print(f"Connected to device {lounge_controller.screen_name}")
             try:
-                #print("Subscribing to lounge")
+                # print("Subscribing to lounge")
                 sub = await lounge_controller.subscribe_monitored(self)
                 await sub
-                #print("Subscription ended")
+                await asyncio.sleep(10)
             except:
                 pass
 
@@ -109,7 +109,6 @@ class DeviceListener:
         asyncio.create_task(
             self.api_helper.mark_viewed_segments(UUID)
         )  # Don't wait for this to finish
-
 
     # Stops the connection to the device
     async def cancel(self):
