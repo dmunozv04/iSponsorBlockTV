@@ -115,7 +115,8 @@ class ApiHelper:
         async with self.web_session.get(url, headers=headers, params=params) as response:
             response_json = await response.json()
         if(response.status != 200):
-            print(f"Error getting segments for video {vid_id}, hashed as {vid_id_hashed}. Code: {response.status} - {response.text()}")
+            response_text = await response.text()
+            print(f"Error getting segments for video {vid_id}, hashed as {vid_id_hashed}. Code: {response.status} - {response_text}")
             return ([], True)
         for i in response_json:
             if str(i["videoID"]) == str(vid_id):

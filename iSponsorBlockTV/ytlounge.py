@@ -46,7 +46,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
 
     # Process a lounge subscription event
     def _process_event(self, event_id: int, event_type: str, args):
-        print(f"YtLoungeApi.__process_event({event_id}, {event_type}, {args})")
+        #print(f"YtLoungeApi.__process_event({event_id}, {event_type}, {args})")
         # (Re)start the watchdog
         try:
             self.subscribe_task_watchdog.cancel()
