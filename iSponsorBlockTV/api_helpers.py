@@ -121,9 +121,9 @@ class ApiHelper:
             if str(i["videoID"]) == str(vid_id):
                 response_json = i
                 break
-        return self.process_segments(response)
+        return self.process_segments(response_json)
 
-    def process_segments(response):
+    def process_segments(self, response):
         segments = []
         ignore_ttl = True
         try:
