@@ -1,6 +1,7 @@
-import aiohttp
 import asyncio
 import copy
+
+import aiohttp
 # Textual imports (Textual is awesome!)
 from textual import on
 from textual.app import App, ComposeResult
@@ -12,6 +13,7 @@ from textual.widgets import Button, Footer, Header, Static, Label, Input, Select
     RadioSet, RadioButton
 from textual.widgets.selection_list import Selection
 from textual_slider import Slider
+
 # Local imports
 from . import api_helpers, ytlounge
 from .constants import skip_categories
@@ -457,7 +459,7 @@ class DevicesManager(Vertical):
     @on(Button.Pressed, "#element-remove")
     def remove_channel(self, event: Button.Pressed):
         channel_to_remove: Element = event.button.parent
-        self.config.channel_whitelist.remove(channel_to_remove.element_data)
+        self.config.devices.remove(channel_to_remove.element_data)
         channel_to_remove.remove()
 
     @on(Button.Pressed, "#add-device")
