@@ -9,12 +9,11 @@ COPY requirements.txt .
 RUN pip install --upgrade pip wheel && \
     pip install -r requirements.txt
 
-COPY requirements.txt .
 
 WORKDIR /app
 
 RUN python -m compileall .
 
-COPY . .
+COPY src .
 
 ENTRYPOINT ["python3", "-u", "main.py"]
