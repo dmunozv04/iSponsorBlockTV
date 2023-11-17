@@ -12,7 +12,7 @@ RUN pip install --upgrade pip wheel && \
 
 WORKDIR /app
 
-RUN python -m compileall .
+RUN python -m compileall
 
 COPY src .
 
