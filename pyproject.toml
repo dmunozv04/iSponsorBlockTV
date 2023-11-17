@@ -1,0 +1,30 @@
+[project]
+name = "iSponsorBlockTV"
+version = "2.0.3"
+authors = [
+    {"name" = "dmunozv04"}
+]
+description = "SponsorBlock client for all YouTube TV clients"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+    "Topic :: Home Automation"
+]
+dynamic = ["dependencies"]
+
+[tool.hatch.metadata.hooks.requirements_txt]
+files = ["requirements.txt"]
+
+[project.urls]
+"Homepage" = "https://github.com/dmunozv04/iSponsorBlockTV"
+"Bug Tracker" = "https://github.com/dmunozv04/iSponsorBlockTV/issues"
+
+[project.scripts]
+"iSponsorBlockTV" = "iSponsorBlockTV.__main__:main"
+
+[build-system]
+requires = ["hatchling", "hatch-requirements-txt"]
+build-backend = "hatchling.build"
