@@ -18,19 +18,20 @@ Open an issue/pull request if you have tested a device that isn't listed here.
 | Apple TV           |   ✅    |
 | Samsung TV (Tizen) |   ✅    |
 | LG TV (WebOS)      |   ✅    |
-| Android TV         |   ❔    |
+| Android TV         |   ✅    |
 | Chromecast         |   ❔    |
 | Google TV          |   ✅    |
-| Roku               |   ❔    |
-| Fire TV            |   ❔    |
+| Roku               |   ✅    |
+| Fire TV            |   ✅    |
 | CCwGTV             |   ✅    |
 | Nintendo Switch    |   ✅    |
-| Xbox One/Series    |   ❔    |
+| Xbox One/Series    |   ✅    |
 | Playstation 4/5    |   ✅    |
 
 ## Usage
 Run iSponsorBlockTV on a computer that has network access.
 Auto discovery will require the computer to be on the same network as the device during setup.
+The device can also be manually added to iSponsorBlockTV with a YouTube TV code. This code can be found in the settings page of your YouTube application.
 
 It connects to the device, watches its activity and skips any sponsor segment using the [SponsorBlock](https://sponsor.ajay.app/) API.
 It can also skip/mute YouTube ads.

@@ -43,7 +43,8 @@ class Config:
     def validate(self):
         if hasattr(self, "atvs"):
             print(
-                "The atvs config option is deprecated and has stopped working. Please read this for more information on how to upgrade to V2: \nhttps://github.com/dmunozv04/iSponsorBlockTV/wiki/Migrate-from-V1-to-V2",
+                "The atvs config option is deprecated and has stopped working. Please read this for more information "
+                "on how to upgrade to V2: \nhttps://github.com/dmunozv04/iSponsorBlockTV/wiki/Migrate-from-V1-to-V2",
             )
             print("Exiting in 10 seconds...")
             time.sleep(10)

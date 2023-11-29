@@ -1,0 +1,9 @@
+# Ignore files
+.dockerignore
+.gitignore
+.deepsource.toml
+.github
+
+Dockerfile
+docker-compose.yml
+README.md

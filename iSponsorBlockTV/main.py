@@ -3,15 +3,16 @@ import aiohttp
 import time
 import logging
 from . import api_helpers, ytlounge
-import traceback
 
 
 class DeviceListener:
-    def __init__(self, api_helper, config, screen_id, offset):
+    def __init__(self, api_helper, config, device):
         self.task: asyncio.Task = None
         self.api_helper = api_helper
-        self.lounge_controller = ytlounge.YtLoungeApi(screen_id, config, api_helper)
-        self.offset = offset
+        self.lounge_controller = ytlounge.YtLoungeApi(
+            device.screen_id, config, api_helper)
+        self.offset = device.offset
+        self.name = device.name
         self.cancelled = False
 
     # Ensures that we have a valid auth token
@@ -40,7 +41,6 @@ class DeviceListener:
             except:
                 # traceback.print_exc()
                 await asyncio.sleep(10)
-
         while not self.cancelled:
             while not (await self.is_available()) and not self.cancelled:
                 await asyncio.sleep(10)
@@ -49,17 +49,18 @@ class DeviceListener:
             except:
                 pass
             while not lounge_controller.connected() and not self.cancelled:
+                # Doesn't connect to the device if it's a kids profile (it's broken)
                 await asyncio.sleep(10)
                 try:
                     await lounge_controller.connect()
                 except:
                     pass
-            print(f"Connected to device {lounge_controller.screen_name}")
+            print(f"Connected to device {lounge_controller.screen_name} ({self.name})")
             try:
-                #print("Subscribing to lounge")
+                # print("Subscribing to lounge")
                 sub = await lounge_controller.subscribe_monitored(self)
                 await sub
-                #print("Subscription ended")
+                await asyncio.sleep(10)
             except:
                 pass
 
@@ -110,13 +111,12 @@ class DeviceListener:
             self.api_helper.mark_viewed_segments(UUID)
             )
 
-
     # Stops the connection to the device
     async def cancel(self):
         self.cancelled = True
         try:
             self.task.cancel()
-        except Exception as e:
+        except Exception:
             pass
 
 
@@ -136,13 +136,13 @@ def main(config, debug):
     web_session = aiohttp.ClientSession(loop=loop, connector=tcp_connector)
     api_helper = api_helpers.ApiHelper(config, web_session)
     for i in config.devices:
-        device = DeviceListener(api_helper, config, i.screen_id, i.offset)
+        device = DeviceListener(api_helper, config, i)
         devices.append(device)
         tasks.append(loop.create_task(device.loop()))
         tasks.append(loop.create_task(device.refresh_auth_loop()))
     try:
         loop.run_forever()
-    except KeyboardInterrupt as e:
+    except KeyboardInterrupt:
         print("Keyboard interrupt detected, cancelling tasks and exiting...")
         loop.run_until_complete(finish(devices))
     finally:
