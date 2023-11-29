@@ -5,6 +5,8 @@ import os
 import sys
 import time
 
+from appdirs import user_data_dir
+
 from . import config_setup, main, setup_wizard
 
 
@@ -102,8 +104,10 @@ class Config:
 
 
 def app_start():
+    #If env has a data dir use that, otherwise use the default
+    default_data_dir = os.getenv("iSPBTV_data_dir") or user_data_dir("iSponsorBlockTV", "dmunozv04")
     parser = argparse.ArgumentParser(description="iSponsorblockTV")
-    parser.add_argument("--data-dir", "-d", default="data", help="data directory")
+    parser.add_argument("--data-dir", "-d", default=default_data_dir, help="data directory")
     parser.add_argument("--setup", "-s", action="store_true", help="setup the program graphically")
     parser.add_argument("--setup-cli", "-sc", action="store_true", help="setup the program in the command line")
     parser.add_argument("--debug", action="store_true", help="debug mode")
