@@ -19,7 +19,7 @@ Open an issue/pull request if you have tested a device that isn't listed here.
 | Samsung TV (Tizen) |   ✅    |
 | LG TV (WebOS)      |   ✅    |
 | Android TV         |   ✅    |
-| Chromecast         |   ❔    |
+| Chromecast         |   ✅    |
 | Google TV          |   ✅    |
 | Roku               |   ✅    |
 | Fire TV            |   ✅    |
