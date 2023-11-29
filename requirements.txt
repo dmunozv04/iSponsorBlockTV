@@ -1,5 +1,4 @@
-appdirs==1.4.4
-aiohttp==3.8.6
+aiohttp==3.9.0
 argparse==1.4.0
 async-cache==1.1.1
 pyytlounge==1.6.3

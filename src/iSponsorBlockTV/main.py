@@ -6,11 +6,13 @@ from . import api_helpers, ytlounge
 
 
 class DeviceListener:
-    def __init__(self, api_helper, config, screen_id, offset):
+    def __init__(self, api_helper, config, device):
         self.task: asyncio.Task = None
         self.api_helper = api_helper
-        self.lounge_controller = ytlounge.YtLoungeApi(screen_id, config, api_helper)
-        self.offset = offset
+        self.lounge_controller = ytlounge.YtLoungeApi(
+            device.screen_id, config, api_helper)
+        self.offset = device.offset
+        self.name = device.name
         self.cancelled = False
 
     # Ensures that we have a valid auth token
@@ -53,6 +55,7 @@ class DeviceListener:
                     await lounge_controller.connect()
                 except:
                     pass
+            print(f"Connected to device {lounge_controller.screen_name} ({self.name})")
             try:
                 # print("Subscribing to lounge")
                 sub = await lounge_controller.subscribe_monitored(self)
@@ -103,10 +106,10 @@ class DeviceListener:
     # Skips to the next segment (waits for the time to pass)
     async def skip(self, time_to, position, UUID):
         await asyncio.sleep(time_to)
-        asyncio.create_task(self.lounge_controller.seek_to(position))
-        asyncio.create_task(
+        await asyncio.gather(
+            self.lounge_controller.seek_to(position),
             self.api_helper.mark_viewed_segments(UUID)
-        )  # Don't wait for this to finish
+            )
 
     # Stops the connection to the device
     async def cancel(self):
@@ -133,7 +136,7 @@ def main(config, debug):
     web_session = aiohttp.ClientSession(loop=loop, connector=tcp_connector)
     api_helper = api_helpers.ApiHelper(config, web_session)
     for i in config.devices:
-        device = DeviceListener(api_helper, config, i.screen_id, i.offset)
+        device = DeviceListener(api_helper, config, i)
         devices.append(device)
         tasks.append(loop.create_task(device.loop()))
         tasks.append(loop.create_task(device.refresh_auth_loop()))

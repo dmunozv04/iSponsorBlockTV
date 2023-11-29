@@ -481,7 +481,7 @@ class ApiKeyManager(Vertical):
     def compose(self) -> ComposeResult:
         yield Label("YouTube Api Key", classes="title")
         yield Label(
-            "You can get a YouTube Api Key from the [link=https://console.developers.google.com/apis/credentials]Google Cloud Console[/link]")
+            "You can get a YouTube Data API v3 Key from the [link=https://console.developers.google.com/apis/credentials]Google Cloud Console[/link]. This key is only required if you're whitelisting channels.")
         with Grid(id="api-key-grid"):
             yield Input(placeholder="YouTube Api Key", id="api-key-input", password=True, value=self.config.apikey)
             yield Button("Show key", id="api-key-view")
@@ -559,9 +559,9 @@ class AdSkipMuteManager(Vertical):
             "This feature allows you to automatically mute and/or skip native YouTube ads. Skipping ads only works if that ad shows the 'Skip Ad' button, if it doesn't then it will only be able to be muted.",
             classes="subtitle", id="skip-count-tracking-subtitle")
         with Horizontal(id="ad-skip-mute-container"):
-            yield Checkbox(value=self.config.mute_ads, id="mute-ads-switch",
-                           label="Enable skipping ads")
             yield Checkbox(value=self.config.skip_ads, id="skip-ads-switch",
+                           label="Enable skipping ads")
+            yield Checkbox(value=self.config.mute_ads, id="mute-ads-switch",
                            label="Enable muting ads")
 
     @on(Checkbox.Changed, "#mute-ads-switch")
