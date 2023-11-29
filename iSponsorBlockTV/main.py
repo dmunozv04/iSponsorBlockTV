@@ -106,10 +106,10 @@ class DeviceListener:
     # Skips to the next segment (waits for the time to pass)
     async def skip(self, time_to, position, UUID):
         await asyncio.sleep(time_to)
-        asyncio.create_task(self.lounge_controller.seek_to(position))
-        asyncio.create_task(
+        await asyncio.gather(
+            self.lounge_controller.seek_to(position),
             self.api_helper.mark_viewed_segments(UUID)
-        )  # Don't wait for this to finish
+            )
 
     # Stops the connection to the device
     async def cancel(self):
