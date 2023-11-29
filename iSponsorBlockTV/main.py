@@ -9,7 +9,8 @@ class DeviceListener:
     def __init__(self, api_helper, config, device):
         self.task: asyncio.Task = None
         self.api_helper = api_helper
-        self.lounge_controller = ytlounge.YtLoungeApi(device.screen_id, config, api_helper)
+        self.lounge_controller = ytlounge.YtLoungeApi(
+            device.screen_id, config, api_helper)
         self.offset = device.offset
         self.name = device.name
         self.cancelled = False
