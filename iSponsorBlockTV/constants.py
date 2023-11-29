@@ -17,3 +17,5 @@ skip_categories = (
     ('Preview', 'preview'),
     ('Filler', 'filler'),
 )
+
+youtube_client_blacklist = ["TVHTML5_FOR_KIDS"]

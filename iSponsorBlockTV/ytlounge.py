@@ -1,6 +1,12 @@
 import asyncio
+import json
 import aiohttp
 import pyytlounge
+from .constants import youtube_client_blacklist
+
+# Temporary imports
+from pyytlounge.api import api_base
+from pyytlounge.wrapper import NotLinkedException, desync
 
 create_task = asyncio.create_task
 
@@ -24,7 +30,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         await asyncio.sleep(35)  # YouTube sends at least a message every 30 seconds (no-op or any other)
         try:
             self.subscribe_task.cancel()
-        except Exception as e:
+        except Exception:
             pass
 
     # Subscribe to the lounge and start the watchdog
@@ -48,11 +54,10 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             pass
         finally:
             self.subscribe_task_watchdog = asyncio.create_task(self._watchdog())
-        # A bunch of events useful to detect ads playing, and the next video before it starts playing (that way we can get the segments)
+        # A bunch of events useful to detect ads playing, and the next video before it starts playing (that way we
+        # can get the segments)
         if event_type == "onStateChange":
             data = args[0]
-            self.state.apply_state(data)
-            self._update_state()
             # print(data)
             # Unmute when the video starts playing
             if self.mute_ads and data["state"] == "1":
@@ -63,12 +68,12 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             self._update_state()
             # Unmute when the video starts playing
             if self.mute_ads and data.get("state", "0") == "1":
-                #print("Ad has ended, unmuting")
+                # print("Ad has ended, unmuting")
                 create_task(self.mute(False, override=True))
         elif self.mute_ads and event_type == "onAdStateChange":
             data = args[0]
             if data["adState"] == '0':  # Ad is not playing
-                #print("Ad has ended, unmuting")
+                # print("Ad has ended, unmuting")
                 create_task(self.mute(False, override=True))
             else:  # Seen multiple other adStates, assuming they are all ads
                 print("Ad has started, muting")
@@ -78,10 +83,11 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             self.volume_state = args[0]
             pass
         # Gets segments for the next video before it starts playing
-        elif event_type == "autoplayUpNext":
-            if len(args) > 0 and (vid_id := args[0]["videoId"]):  # if video id is not empty
-                print(f"Getting segments for next video: {vid_id}")
-                create_task(self.api_helper.get_segments(vid_id))
+        # Comment "fix" since it doesn't seem to work
+        # elif event_type == "autoplayUpNext":
+        #     if len(args) > 0 and (vid_id := args[0]["videoId"]):  # if video id is not empty
+        #         print(f"Getting segments for next video: {vid_id}")
+        #         create_task(self.api_helper.get_segments(vid_id))
 
         # #Used to know if an ad is skippable or not
         elif event_type == "adPlaying":
@@ -97,8 +103,20 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                     create_task(self.mute(False, override=True))
                 elif self.mute_ads:
                     create_task(self.mute(True, override=True))
-        else:
-            super()._process_event(event_id, event_type, args)
+
+        elif event_type == "loungeStatus":
+            data = args[0]
+            devices = json.loads(data["devices"])
+            for device in devices:
+                if device["type"] == "LOUNGE_SCREEN":
+                    device_info = json.loads(device.get("deviceInfo", ""))
+                    if device_info.get("clientName", "") in youtube_client_blacklist:
+                        self._sid = None
+                        self._gsession = None  # Force disconnect
+        # elif event_type == "onAutoplayModeChanged":
+        #     data = args[0]
+        #     create_task(self.set_auto_play_mode(data["autoplayMode"] == "ENABLED"))
+        super()._process_event(event_id, event_type, args)
 
     # Set the volume to a specific value (0-100)
     async def set_volume(self, volume: int) -> None:
@@ -117,3 +135,51 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             self.volume_state["muted"] = mute_str
             # YouTube wants the volume when unmuting, so we send it
             await super()._command("setVolume", {"volume": self.volume_state.get("volume", 100), "muted": mute_str})
+
+    async def set_auto_play_mode(self, enabled: bool):
+        await super()._command("setAutoplayMode", {"autoplayMode": "ENABLED" if enabled else "DISABLED"})
+
+    # Here just temporarily, will be removed once the PR is merged on YTlounge
+    async def connect(self) -> bool:
+        """Attempt to connect using the previously set tokens"""
+        if not self.linked():
+            raise NotLinkedException("Not linked")
+
+        connect_body = {
+            "app": "web",
+            "mdx-version": "3",
+            "name": self.device_name,
+            "id": self.auth.screen_id,
+            "device": "REMOTE_CONTROL",
+            "capabilities": "que,dsdtr,atp",
+            "method": "setPlaylist",
+            "magnaKey": "cloudPairedDevice",
+            "ui": "false",
+            "deviceContext": "user_agent=dunno&window_width_points=&window_height_points=&os_name=android&ms=",
+            "theme": "cl",
+            "loungeIdToken": self.auth.lounge_id_token,
+        }
+        connect_url = (
+            f"{api_base}/bc/bind?RID=1&VER=8&CVER=1&auth_failure_option=send_error"
+        )
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url=connect_url, data=connect_body) as resp:
+                try:
+                    text = await resp.text()
+                    if resp.status == 401:
+                        self.auth.lounge_id_token = None
+                        return False
+
+                    if resp.status != 200:
+                        self._logger.warning(
+                            "Unknown reply to connect %i %s", resp.status, resp.reason
+                        )
+                        return False
+                    lines = text.splitlines()
+                    async for events in self._parse_event_chunks(desync(lines)):
+                        self._process_events(events)
+                    self._command_offset = 1
+                    return self.connected()
+                except Exception as ex:
+                    self._logger.exception(ex, resp.status, resp.reason)
+                    return False

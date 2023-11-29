@@ -1,8 +1,7 @@
-from cache import AsyncTTL, AsyncLRU
+from cache import AsyncLRU
 from .conditional_ttl_cache import AsyncConditionalTTL
 from . import constants, dial_client
 from hashlib import sha256
-from asyncio import create_task
 from aiohttp import ClientSession
 import html
 
@@ -39,17 +38,17 @@ class ApiHelper:
             return
 
         for i in data["items"]:
-            if (i["id"]["kind"] != "youtube#video"):
+            if i["id"]["kind"] != "youtube#video":
                 continue
             title_api = html.unescape(i["snippet"]["title"])
             artist_api = html.unescape(i["snippet"]["channelTitle"])
             if title_api == title and artist_api == artist:
-                return (i["id"]["videoId"], i["snippet"]["channelId"])
+                return i["id"]["videoId"], i["snippet"]["channelId"]
         return
 
     @AsyncLRU(maxsize=100)
     async def is_whitelisted(self, vid_id):
-        if (self.apikey and self.channel_whitelist):
+        if self.apikey and self.channel_whitelist:
             channel_id = await self.__get_channel_id(vid_id)
             # check if channel id is in whitelist
             for i in self.channel_whitelist:
@@ -66,7 +65,7 @@ class ApiHelper:
         if "error" in data:
             return
         data = data["items"][0]
-        if (data["kind"] != "youtube#video"):
+        if data["kind"] != "youtube#video":
             return
         return data["snippet"]["channelId"]
 
@@ -113,11 +112,21 @@ class ApiHelper:
         headers = {"Accept": "application/json"}
         url = constants.SponsorBlock_api + "skipSegments/" + vid_id_hashed
         async with self.web_session.get(url, headers=headers, params=params) as response:
-            response = await response.json()
-        for i in response:
+            response_json = await response.json()
+        if response.status != 200:
+            response_text = await response.text()
+            print(
+                f"Error getting segments for video {vid_id}, hashed as {vid_id_hashed}. "
+                f"Code: {response.status} - {response_text}")
+            return ([], True)
+        for i in response_json:
             if str(i["videoID"]) == str(vid_id):
-                response = i
+                response_json = i
                 break
+        return self.process_segments(response_json)
+
+    @staticmethod
+    def process_segments(response):
         segments = []
         ignore_ttl = True
         try:
@@ -146,7 +155,8 @@ class ApiHelper:
         return (segments, ignore_ttl)
 
     async def mark_viewed_segments(self, UUID):
-        """Marks the segments as viewed in the SponsorBlock API, if skip_count_tracking is enabled. Lets the contributor know that someone skipped the segment (thanks)"""
+        """Marks the segments as viewed in the SponsorBlock API, if skip_count_tracking is enabled.
+        Lets the contributor know that someone skipped the segment (thanks)"""
         if self.skip_count_tracking:
             for i in UUID:
                 url = constants.SponsorBlock_api + "viewedVideoSponsorTime/"
