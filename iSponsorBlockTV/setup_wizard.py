@@ -559,9 +559,9 @@ class AdSkipMuteManager(Vertical):
             "This feature allows you to automatically mute and/or skip native YouTube ads. Skipping ads only works if that ad shows the 'Skip Ad' button, if it doesn't then it will only be able to be muted.",
             classes="subtitle", id="skip-count-tracking-subtitle")
         with Horizontal(id="ad-skip-mute-container"):
-            yield Checkbox(value=self.config.mute_ads, id="mute-ads-switch",
-                           label="Enable skipping ads")
             yield Checkbox(value=self.config.skip_ads, id="skip-ads-switch",
+                           label="Enable skipping ads")
+            yield Checkbox(value=self.config.mute_ads, id="mute-ads-switch",
                            label="Enable muting ads")
 
     @on(Checkbox.Changed, "#mute-ads-switch")
