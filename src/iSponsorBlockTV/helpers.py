@@ -8,6 +8,7 @@ import time
 from appdirs import user_data_dir
 
 from . import config_setup, main, setup_wizard
+from .constants import config_file_blacklist_keys
 
 
 class Device:
@@ -68,7 +69,8 @@ class Config:
             with open(self.config_file, "r") as f:
                 config = json.load(f)
                 for i in config:
-                    setattr(self, i, config[i])
+                    if i not in config_file_blacklist_keys:
+                        setattr(self, i, config[i])
         except FileNotFoundError:
             print("Could not load config file")
             # Create data directory if it doesn't exist (if we're not running in docker)
@@ -93,9 +95,12 @@ class Config:
             config_dict = self.__dict__
             # Don't save the config file name
             config_file = self.config_file
+            data_dir = self.data_dir
             del config_dict["config_file"]
+            del config_dict["data_dir"]
             json.dump(config_dict, f, indent=4)
             self.config_file = config_file
+            self.data_dir = data_dir
 
     def __eq__(self, other):
         if isinstance(other, Config):

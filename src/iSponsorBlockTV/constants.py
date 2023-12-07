@@ -19,3 +19,6 @@ skip_categories = (
 )
 
 youtube_client_blacklist = ["TVHTML5_FOR_KIDS"]
+
+
+config_file_blacklist_keys = ["config_file", "data_dir"]
