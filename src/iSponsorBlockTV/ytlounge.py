@@ -108,7 +108,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             devices = json.loads(data["devices"])
             for device in devices:
                 if device["type"] == "LOUNGE_SCREEN":
-                    device_info = json.loads(device.get("deviceInfo", ""))
+                    device_info = json.loads(device.get("deviceInfo", "{}"))
                     if device_info.get("clientName", "") in youtube_client_blacklist:
                         self._sid = None
                         self._gsession = None  # Force disconnect
