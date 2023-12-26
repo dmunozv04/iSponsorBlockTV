@@ -2,18 +2,33 @@ import asyncio
 import aiohttp
 import time
 import logging
-from . import api_helpers, ytlounge
+import logging
+import rich
+from rich.logging import RichHandler
+from signal import signal, SIGINT, SIGTERM
+
+from . import api_helpers, ytlounge, logging_helpers
 
 
 class DeviceListener:
-    def __init__(self, api_helper, config, device):
+    def __init__(self, api_helper, config, device, log_name_len, debug: bool):
         self.task: asyncio.Task = None
         self.api_helper = api_helper
-        self.lounge_controller = ytlounge.YtLoungeApi(
-            device.screen_id, config, api_helper)
         self.offset = device.offset
         self.name = device.name
         self.cancelled = False
+        self.logger = logging.getLogger(f'iSponsorBlockTV-{device.screen_id}')
+        if debug:
+            self.logger.setLevel(logging.DEBUG)
+        else:
+            self.logger.setLevel(logging.INFO)
+        rh = logging_helpers.LogHandler(device.name, log_name_len ,level=logging.DEBUG)
+        rh.add_filter_string(device.screen_id)
+        self.logger.addHandler(rh)
+        self.logger.info(f"Starting device")
+        self.lounge_controller = ytlounge.YtLoungeApi(
+            device.screen_id, config, api_helper, self.logger)
+
 
     # Ensures that we have a valid auth token
     async def refresh_auth_loop(self):
@@ -37,6 +52,7 @@ class DeviceListener:
         lounge_controller = self.lounge_controller
         while not lounge_controller.linked():
             try:
+                self.logger.debug("Refreshing auth")
                 await lounge_controller.refresh_auth()
             except:
                 # traceback.print_exc()
@@ -55,18 +71,16 @@ class DeviceListener:
                     await lounge_controller.connect()
                 except:
                     pass
-            print(f"Connected to device {lounge_controller.screen_name} ({self.name})")
+            self.logger.info(f"Connected to device {lounge_controller.screen_name} ({self.name})")
             try:
                 # print("Subscribing to lounge")
                 sub = await lounge_controller.subscribe_monitored(self)
                 await sub
-                await asyncio.sleep(10)
             except:
                 pass
 
     # Method called on playback state change
     async def __call__(self, state):
-        logging.debug("Playstatus update" + str(state))
         try:
             self.task.cancel()
         except:
@@ -80,7 +94,7 @@ class DeviceListener:
         if state.videoId:
             segments = await self.api_helper.get_segments(state.videoId)
         if state.state.value == 1:  # Playing
-            print(f"Playing {state.videoId} with {len(segments)} segments")
+            self.logger.info(f"Playing video {state.videoId} with {len(segments)} segments")
             if segments:  # If there are segments
                 await self.time_to_segment(segments, state.currentTime, time_start)
 
@@ -106,10 +120,9 @@ class DeviceListener:
     # Skips to the next segment (waits for the time to pass)
     async def skip(self, time_to, position, UUID):
         await asyncio.sleep(time_to)
-        await asyncio.gather(
-            self.lounge_controller.seek_to(position),
-            self.api_helper.mark_viewed_segments(UUID)
-            )
+        self.logger.info(f"Skipping segment: seeking to {position}")
+        asyncio.create_task(self.api_helper.mark_viewed_segments(UUID))
+        asyncio.create_task(self.lounge_controller.seek_to(position))
 
     # Stops the connection to the device
     async def cancel(self):
@@ -135,11 +148,15 @@ def main(config, debug):
     tcp_connector = aiohttp.TCPConnector(ttl_dns_cache=300)
     web_session = aiohttp.ClientSession(loop=loop, connector=tcp_connector)
     api_helper = api_helpers.ApiHelper(config, web_session)
+    longest_name_len = len(list(sorted([i.name for i in config.devices]))[-1])
     for i in config.devices:
-        device = DeviceListener(api_helper, config, i)
+        device = DeviceListener(api_helper, config, i, longest_name_len, debug)
         devices.append(device)
         tasks.append(loop.create_task(device.loop()))
         tasks.append(loop.create_task(device.refresh_auth_loop()))
+    
+    signal(SIGINT, lambda s, f: loop.create_task(finish(devices)))
+    rich.reconfigure(color_system="standard")
     try:
         loop.run_forever()
     except KeyboardInterrupt:

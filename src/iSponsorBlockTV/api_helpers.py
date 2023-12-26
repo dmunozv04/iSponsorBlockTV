@@ -99,7 +99,6 @@ class ApiHelper:
     @AsyncConditionalTTL(time_to_live=300, maxsize=10)  # 5 minutes for non-locked segments
     async def get_segments(self, vid_id):
         if await self.is_whitelisted(vid_id):
-            print("Video is whitelisted")
             return ([], True)  # Return empty list and True to indicate that the cache should last forever
         vid_id_hashed = sha256(vid_id.encode("utf-8")).hexdigest()[
                         :4
