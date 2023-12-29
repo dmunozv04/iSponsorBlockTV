@@ -36,7 +36,7 @@ class Config:
 
         self.devices = []
         self.apikey = ""
-        self.skip_categories = []
+        self.skip_categories = []  # These are the categories on the config file
         self.channel_whitelist = []
         self.skip_count_tracking = True
         self.mute_ads = False
@@ -61,7 +61,7 @@ class Config:
         if not self.apikey and self.channel_whitelist:
             raise ValueError("No youtube API key found and channel whitelist is not empty")
         if not self.skip_categories:
-            self.categories = ["sponsor"]
+            self.skip_categories = ["sponsor"]
             print("No categories found, using default: sponsor")
 
     def __load(self):
@@ -109,7 +109,7 @@ class Config:
 
 
 def app_start():
-    #If env has a data dir use that, otherwise use the default
+    # If env has a data dir use that, otherwise use the default
     default_data_dir = os.getenv("iSPBTV_data_dir") or user_data_dir("iSponsorBlockTV", "dmunozv04")
     parser = argparse.ArgumentParser(description="iSponsorblockTV")
     parser.add_argument("--data-dir", "-d", default=default_data_dir, help="data directory")

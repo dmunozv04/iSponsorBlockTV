@@ -3,6 +3,7 @@ import aiohttp
 import time
 import logging
 import rich
+from typing import Optional
 from signal import signal, SIGINT, SIGTERM
 
 from . import api_helpers, ytlounge, logging_helpers
@@ -10,7 +11,7 @@ from . import api_helpers, ytlounge, logging_helpers
 
 class DeviceListener:
     def __init__(self, api_helper, config, device, log_name_len, debug: bool):
-        self.task: asyncio.Task = None
+        self.task: Optional[asyncio.Task] = None
         self.api_helper = api_helper
         self.offset = device.offset
         self.name = device.name
@@ -52,7 +53,6 @@ class DeviceListener:
                 self.logger.debug("Refreshing auth")
                 await lounge_controller.refresh_auth()
             except:
-                # traceback.print_exc()
                 await asyncio.sleep(10)
         while not self.cancelled:
             while not (await self.is_available()) and not self.cancelled:
@@ -68,7 +68,7 @@ class DeviceListener:
                     await lounge_controller.connect()
                 except:
                     pass
-            self.logger.info(f"Connected to device {lounge_controller.screen_name} ({self.name})")
+            self.logger.info("Connected to device %s (%s)", lounge_controller.screen_name, self.name)
             try:
                 # print("Subscribing to lounge")
                 sub = await lounge_controller.subscribe_monitored(self)
@@ -115,11 +115,11 @@ class DeviceListener:
             await self.skip(time_to_next, next_segment["end"], next_segment["UUID"])
 
     # Skips to the next segment (waits for the time to pass)
-    async def skip(self, time_to, position, UUID):
+    async def skip(self, time_to, position, uuids):
         await asyncio.sleep(time_to)
-        self.logger.info(f"Skipping segment: seeking to {position}")
-        asyncio.create_task(self.api_helper.mark_viewed_segments(UUID))
-        asyncio.create_task(self.lounge_controller.seek_to(position))
+        self.logger.info("Skipping segment: seeking to %s", position)
+        await asyncio.create_task(self.api_helper.mark_viewed_segments(uuids))
+        await asyncio.create_task(self.lounge_controller.seek_to(position))
 
     # Stops the connection to the device
     async def cancel(self):

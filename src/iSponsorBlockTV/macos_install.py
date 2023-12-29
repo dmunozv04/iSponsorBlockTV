@@ -40,7 +40,8 @@ def main():
         create_plist(correct_path)
         run_setup(correct_path + "/config.json")
         print(
-            "Launch daemon installed. Please restart the computer to enable it or use:\n launchctl load ~/Library/LaunchAgents/com.dmunozv04.iSponsorBlockTV.plist"
+            'Launch daemon installed. Please restart the computer to enable it or use:\n launchctl load '
+            '~/Library/LaunchAgents/com.dmunozv04.iSponsorBlockTV.plist'
         )
     else:
         if not os.path.exists(correct_path):
@@ -48,6 +49,6 @@ def main():
         print(
             "Please move the program to the correct path: "
             + correct_path
-            + "opeing now on finder..."
+            + "opening now on finder..."
         )
         os.system("open -R " + correct_path)

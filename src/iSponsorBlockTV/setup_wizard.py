@@ -80,7 +80,9 @@ class Device(Element):
         if "name" in self.element_data and self.element_data["name"]:
             self.element_name = self.element_data["name"]
         else:
-            self.element_name = f"Unnamed device with id {self.element_data['screen_id'][:5]}...{self.element_data['screen_id'][-5:]}"
+            self.element_name = (f"Unnamed device with id "
+                                 f"{self.element_data['screen_id'][:5]}..."
+                                 f"{self.element_data['screen_id'][-5:]}")
 
 
 class Channel(Element):
@@ -112,7 +114,8 @@ class MigrationScreen(ModalWithClickExit):
     def compose(self) -> ComposeResult:
         yield Grid(
             Label(
-                "Welcome to the new configurator! You seem to have the legacy 'atvs' entry on your config file, do you want to remove it?\n(The app won't start with it present)",
+                "Welcome to the new configurator! You seem to have the legacy 'atvs' entry on your config file, "
+                "do you want to remove it?\n(The app won't start with it present)",
                 id="question", classes="button-100"),
             Button("Remove and save", variant="primary", id="migrate-remove-save", classes="button-100"),
             Button("Don't remove", variant="error", id="migrate-no-change", classes="button-100"),
@@ -196,7 +199,9 @@ class AddDevice(ModalWithClickExit):
                     yield Label(id="add-device-info")
                 with Container(id="add-device-dial-container"):
                     yield Label(
-                        "Make sure your device is on the same network as this computer\nIf it isn't showing up, try restarting the app.\nIf running in docker, make sure to use `--network=host`\nTo refresh the list, close and open the dialog again",
+                        "Make sure your device is on the same network as this computer\nIf it isn't showing up, "
+                        "try restarting the app.\nIf running in docker, make sure to use `--network=host`\nTo refresh "
+                        "the list, close and open the dialog again",
                         classes="subtitle")
                     yield SelectionList(("Searching for devices...", "", False), id="dial-devices-list", disabled=True)
                     yield Button("Add selected devices", id="add-device-dial-add-button", variant="success",
@@ -223,7 +228,6 @@ class AddDevice(ModalWithClickExit):
 
     @on(Button.Pressed, "#add-device-switch-buttons > *")
     def handle_switch_buttons(self, event: Button.Pressed) -> None:
-        button_ = event.button.id
         self.query_one("#add-device-switcher").current = event.button.id.replace("-button", "-container")
 
     @on(Input.Changed, "#pairing-code-input")
@@ -304,7 +308,8 @@ class AddChannel(ModalWithClickExit):
                                      classes="button-100")
                     else:
                         yield Label(
-                            "[#ff0000]No api key set, cannot search for channels. You can add it the config section below",
+                            "[#ff0000]No api key set, cannot search for channels. You can add it the config section "
+                            "below",
                             id="add-channel-search-no-key", classes="subtitle")
                 with Vertical(id="add-channel-id-container"):
                     yield Input(placeholder="Enter channel ID (example: UCuAXFkgsw1L7xaCfnd5JJOw)",
@@ -406,9 +411,9 @@ class EditDevice(ModalWithClickExit):
                 yield Slider(name="Device offset", id="device-offset-slider", min=0, max=2000, step=100, value=offset)
 
     def on_slider_changed(self, event: Slider.Changed) -> None:
-        input = self.query_one("#device-offset-input")
-        with input.prevent(Input.Changed):
-            input.value = str(event.slider.value)
+        offset_input = self.query_one("#device-offset-offset_input")
+        with offset_input.prevent(Input.Changed):
+            offset_input.value = str(event.slider.value)
 
     def on_input_changed(self, event: Input.Changed):
         if event.input.id == "device-offset-input":
@@ -430,7 +435,8 @@ class EditDevice(ModalWithClickExit):
 
 
 class DevicesManager(Vertical):
-    """Manager for devices, allows to add, edit and remove devices."""
+    """Manager for devices, allows adding, edit and removing devices."""
+
     def __init__(self, config, **kwargs) -> None:
         super().__init__(**kwargs)
         self.config = config
@@ -452,7 +458,8 @@ class DevicesManager(Vertical):
                 self.mount(device_widget)
             device_widget.focus(scroll_visible=True)
 
-    def edit_device(self, device_widget: Element) -> None:
+    @staticmethod
+    def edit_device(device_widget: Element) -> None:
         device_widget.process_values_from_data()
         device_widget.query_one("#element-name").label = device_widget.element_name
 
@@ -474,6 +481,7 @@ class DevicesManager(Vertical):
 
 class ApiKeyManager(Vertical):
     """Manager for the YouTube Api Key."""
+
     def __init__(self, config, **kwargs) -> None:
         super().__init__(**kwargs)
         self.config = config
@@ -481,7 +489,9 @@ class ApiKeyManager(Vertical):
     def compose(self) -> ComposeResult:
         yield Label("YouTube Api Key", classes="title")
         yield Label(
-            "You can get a YouTube Data API v3 Key from the [link=https://console.developers.google.com/apis/credentials]Google Cloud Console[/link]. This key is only required if you're whitelisting channels.")
+            "You can get a YouTube Data API v3 Key from the ["
+            "link=https://console.developers.google.com/apis/credentials]Google Cloud Console[/link]. This key is "
+            "only required if you're whitelisting channels.")
         with Grid(id="api-key-grid"):
             yield Input(placeholder="YouTube Api Key", id="api-key-input", password=True, value=self.config.apikey)
             yield Button("Show key", id="api-key-view")
@@ -489,10 +499,6 @@ class ApiKeyManager(Vertical):
     @on(Input.Changed, "#api-key-input")
     def changed_api_key(self, event: Input.Changed):
         self.config.apikey = event.input.value
-        # try:  # ChannelWhitelist might not be mounted
-        #     self.app.query_one("#warning-no-key").display = not self.config.apikey
-        # except:
-        #     pass
 
     @on(Button.Pressed, "#api-key-view")
     def pressed_api_key_view(self, event: Button.Pressed):
@@ -505,7 +511,8 @@ class ApiKeyManager(Vertical):
 
 
 class SkipCategoriesManager(Vertical):
-    """Manager for skip categories, allows to select which categories to skip."""
+    """Manager for skip categories, allows selecting which categories to skip."""
+
     def __init__(self, config, **kwargs) -> None:
         super().__init__(**kwargs)
         self.config = config
@@ -530,6 +537,7 @@ class SkipCategoriesManager(Vertical):
 
 class SkipCountTrackingManager(Vertical):
     """Manager for skip count tracking, allows to enable/disable skip count tracking."""
+
     def __init__(self, config, **kwargs) -> None:
         super().__init__(**kwargs)
         self.config = config
@@ -537,7 +545,10 @@ class SkipCountTrackingManager(Vertical):
     def compose(self) -> ComposeResult:
         yield Label("Skip count tracking", classes="title")
         yield Label(
-            "This feature tracks which segments you have skipped to let users know how much their submission has helped others and used as a metric along with upvotes to ensure that spam doesn't get into the database. The program sends a message to the sponsor block server each time you skip a segment. Hopefully most people don't change this setting so that the view numbers are accurate. :)",
+            "This feature tracks which segments you have skipped to let users know how much their submission has "
+            "helped others and used as a metric along with upvotes to ensure that spam doesn't get into the database. "
+            "The program sends a message to the sponsor block server each time you skip a segment. Hopefully most "
+            "people don't change this setting so that the view numbers are accurate. :)",
             classes="subtitle", id="skip-count-tracking-subtitle")
         yield Checkbox(value=self.config.skip_count_tracking, id="skip-count-tracking-switch",
                        label="Enable skip count tracking")
@@ -549,6 +560,7 @@ class SkipCountTrackingManager(Vertical):
 
 class AdSkipMuteManager(Vertical):
     """Manager for ad skip/mute, allows to enable/disable ad skip/mute."""
+
     def __init__(self, config, **kwargs) -> None:
         super().__init__(**kwargs)
         self.config = config
@@ -556,7 +568,8 @@ class AdSkipMuteManager(Vertical):
     def compose(self) -> ComposeResult:
         yield Label("Skip/Mute ads", classes="title")
         yield Label(
-            "This feature allows you to automatically mute and/or skip native YouTube ads. Skipping ads only works if that ad shows the 'Skip Ad' button, if it doesn't then it will only be able to be muted.",
+            "This feature allows you to automatically mute and/or skip native YouTube ads. Skipping ads only works if "
+            "that ad shows the 'Skip Ad' button, if it doesn't then it will only be able to be muted.",
             classes="subtitle", id="skip-count-tracking-subtitle")
         with Horizontal(id="ad-skip-mute-container"):
             yield Checkbox(value=self.config.skip_ads, id="skip-ads-switch",
@@ -574,7 +587,8 @@ class AdSkipMuteManager(Vertical):
 
 
 class ChannelWhitelistManager(Vertical):
-    """Manager for channel whitelist, allows to add/remove channels from the whitelist."""
+    """Manager for channel whitelist, allows adding/removing channels from the whitelist."""
+
     def __init__(self, config, **kwargs) -> None:
         super().__init__(**kwargs)
         self.config = config
@@ -582,7 +596,8 @@ class ChannelWhitelistManager(Vertical):
     def compose(self) -> ComposeResult:
         yield Label("Channel Whitelist", classes="title")
         yield Label(
-            "This feature allows to whitelist channels from being skipped. This feature is automatically disabled when no channels have been specified.",
+            "This feature allows to whitelist channels from being skipped. This feature is automatically disabled "
+            "when no channels have been specified.",
             classes="subtitle", id="channel-whitelist-subtitle")
         yield Label(":warning: [#FF0000]You need to set your YouTube Api Key in order to use this feature",
                     id="warning-no-key")
@@ -593,6 +608,7 @@ class ChannelWhitelistManager(Vertical):
 
     def on_mount(self) -> None:
         self.app.query_one("#warning-no-key").display = (not self.config.apikey) and bool(self.config.channel_whitelist)
+
     def new_channel(self, channel: tuple) -> None:
         if channel:
             channel_dict = {
@@ -619,7 +635,7 @@ class ChannelWhitelistManager(Vertical):
         self.app.push_screen(AddChannel(self.config), callback=self.new_channel)
 
 
-class iSponsorBlockTVSetupMainScreen(Screen):
+class ISponsorBlockTVSetupMainScreen(Screen):
     """Making this a separate screen to avoid a bug: https://github.com/Textualize/textual/issues/3221"""
     TITLE = "iSponsorBlockTV"
     SUB_TITLE = "Setup Wizard"
@@ -668,15 +684,15 @@ class iSponsorBlockTVSetupMainScreen(Screen):
 
     @on(Input.Changed, "#api-key-input")
     def changed_api_key(self, event: Input.Changed):
-        print("HIIII")
         try:  # ChannelWhitelist might not be mounted
             # Show if no api key is set and at least one channel is in the whitelist
             self.app.query_one("#warning-no-key").display = (not event.input.value) and self.config.channel_whitelist
         except:
             pass
 
-class iSponsorBlockTVSetup(App):
-    CSS_PATH = "setup-wizard-style.tcss" # tcss is the recommended extension for textual css files
+
+class ISponsorBlockTVSetup(App):
+    CSS_PATH = "setup-wizard-style.tcss"  # tcss is the recommended extension for textual css files
     # Bindings for the whole app here, so they are available in all screens
     BINDINGS = [
         ("q,ctrl+c", "exit_modal", "Exit"),
@@ -686,7 +702,7 @@ class iSponsorBlockTVSetup(App):
     def __init__(self, config, **kwargs) -> None:
         super().__init__(**kwargs)
         self.config = config
-        self.main_screen = iSponsorBlockTVSetupMainScreen(config=self.config)
+        self.main_screen = ISponsorBlockTVSetupMainScreen(config=self.config)
 
     def on_mount(self) -> None:
         self.push_screen(self.main_screen)
@@ -699,5 +715,5 @@ class iSponsorBlockTVSetup(App):
 
 
 def main(config):
-    app = iSponsorBlockTVSetup(config)
+    app = ISponsorBlockTVSetup(config)
     app.run()

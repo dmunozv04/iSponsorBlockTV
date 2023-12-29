@@ -1,3 +1,7 @@
+from cache.key import KEY
+from cache.lru import LRU
+import datetime
+
 """MIT License
 
 Copyright (c) 2020 Rajat Singh
@@ -20,10 +24,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE."""
 '''Modified code from https://github.com/iamsinghrajat/async-cache'''
-
-from cache.key import KEY
-from cache.lru import LRU
-import datetime
 
 
 class AsyncConditionalTTL:

@@ -1,7 +1,7 @@
 import asyncio
 import json
-import aiohttp
 import pyytlounge
+
 from .constants import youtube_client_blacklist
 
 create_task = asyncio.create_task
@@ -83,11 +83,10 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             self.volume_state = args[0]
             pass
         # Gets segments for the next video before it starts playing
-        # Comment "fix" since it doesn't seem to work
-        # elif event_type == "autoplayUpNext":
-        #     if len(args) > 0 and (vid_id := args[0]["videoId"]):  # if video id is not empty
-        #         print(f"Getting segments for next video: {vid_id}")
-        #         create_task(self.api_helper.get_segments(vid_id))
+        elif event_type == "autoplayUpNext":
+            if len(args) > 0 and (vid_id := args[0]["videoId"]):  # if video id is not empty
+                print(f"Getting segments for next video: {vid_id}")
+                create_task(self.api_helper.get_segments(vid_id))
 
         # #Used to know if an ad is skippable or not
         elif event_type == "adPlaying":
@@ -113,9 +112,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                     if device_info.get("clientName", "") in youtube_client_blacklist:
                         self._sid = None
                         self._gsession = None  # Force disconnect
-        # elif event_type == "onAutoplayModeChanged":
-        #     data = args[0]
-        #     create_task(self.set_auto_play_mode(data["autoplayMode"] == "ENABLED"))
+
         elif event_type == "onSubtitlesTrackChanged":
             if self.shorts_disconnected:
                 data = args[0]
@@ -124,7 +121,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 create_task(self.play_video(video_id_saved))
         elif event_type == "loungeScreenDisconnected":
             data = args[0]
-            if data["reason"] == "disconnectedByUserScreenInitiated": # Short playing?
+            if data["reason"] == "disconnectedByUserScreenInitiated":  # Short playing?
                 self.shorts_disconnected = True
 
         super()._process_event(event_id, event_type, args)
