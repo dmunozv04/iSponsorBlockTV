@@ -2,9 +2,7 @@ import asyncio
 import aiohttp
 import time
 import logging
-import logging
 import rich
-from rich.logging import RichHandler
 from signal import signal, SIGINT, SIGTERM
 
 from . import api_helpers, ytlounge, logging_helpers
@@ -22,13 +20,12 @@ class DeviceListener:
             self.logger.setLevel(logging.DEBUG)
         else:
             self.logger.setLevel(logging.INFO)
-        rh = logging_helpers.LogHandler(device.name, log_name_len ,level=logging.DEBUG)
+        rh = logging_helpers.LogHandler(device.name, log_name_len, level=logging.DEBUG)
         rh.add_filter_string(device.screen_id)
         self.logger.addHandler(rh)
         self.logger.info(f"Starting device")
         self.lounge_controller = ytlounge.YtLoungeApi(
             device.screen_id, config, api_helper, self.logger)
-
 
     # Ensures that we have a valid auth token
     async def refresh_auth_loop(self):
@@ -154,13 +151,10 @@ def main(config, debug):
         devices.append(device)
         tasks.append(loop.create_task(device.loop()))
         tasks.append(loop.create_task(device.refresh_auth_loop()))
-    
-    signal(SIGINT, lambda s, f: loop.create_task(finish(devices)))
+    signal(SIGINT, lambda s, f: loop.stop())
+    signal(SIGTERM, lambda s, f: loop.stop())
     rich.reconfigure(color_system="standard")
-    try:
-        loop.run_forever()
-    except KeyboardInterrupt:
-        print("Keyboard interrupt detected, cancelling tasks and exiting...")
-        loop.run_until_complete(finish(devices))
-    finally:
-        loop.run_until_complete(web_session.close())
+    loop.run_forever()
+    print("Cancelling tasks and exiting...")
+    loop.run_until_complete(finish(devices))
+    loop.run_until_complete(web_session.close())
