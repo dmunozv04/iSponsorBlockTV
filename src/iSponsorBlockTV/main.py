@@ -1,12 +1,13 @@
 import asyncio
-import aiohttp
-import time
 import logging
-import rich
+import time
+from signal import SIGINT, SIGTERM, signal
 from typing import Optional
-from signal import signal, SIGINT, SIGTERM
 
-from . import api_helpers, ytlounge, logging_helpers
+import aiohttp
+import rich
+
+from . import api_helpers, logging_helpers, ytlounge
 
 
 class DeviceListener:
@@ -16,7 +17,7 @@ class DeviceListener:
         self.offset = device.offset
         self.name = device.name
         self.cancelled = False
-        self.logger = logging.getLogger(f'iSponsorBlockTV-{device.screen_id}')
+        self.logger = logging.getLogger(f"iSponsorBlockTV-{device.screen_id}")
         if debug:
             self.logger.setLevel(logging.DEBUG)
         else:
@@ -26,7 +27,8 @@ class DeviceListener:
         self.logger.addHandler(rh)
         self.logger.info(f"Starting device")
         self.lounge_controller = ytlounge.YtLoungeApi(
-            device.screen_id, config, api_helper, self.logger)
+            device.screen_id, config, api_helper, self.logger
+        )
 
     # Ensures that we have a valid auth token
     async def refresh_auth_loop(self):
@@ -68,7 +70,9 @@ class DeviceListener:
                     await lounge_controller.connect()
                 except:
                     pass
-            self.logger.info("Connected to device %s (%s)", lounge_controller.screen_name, self.name)
+            self.logger.info(
+                "Connected to device %s (%s)", lounge_controller.screen_name, self.name
+            )
             try:
                 # print("Subscribing to lounge")
                 sub = await lounge_controller.subscribe_monitored(self)
@@ -91,7 +95,9 @@ class DeviceListener:
         if state.videoId:
             segments = await self.api_helper.get_segments(state.videoId)
         if state.state.value == 1:  # Playing
-            self.logger.info(f"Playing video {state.videoId} with {len(segments)} segments")
+            self.logger.info(
+                f"Playing video {state.videoId} with {len(segments)} segments"
+            )
             if segments:  # If there are segments
                 await self.time_to_segment(segments, state.currentTime, time_start)
 
@@ -100,18 +106,20 @@ class DeviceListener:
         start_next_segment = None
         next_segment = None
         for segment in segments:
-            if position < 2 and (
-                    segment["start"] <= position < segment["end"]
-            ):
+            if position < 2 and (segment["start"] <= position < segment["end"]):
                 next_segment = segment
-                start_next_segment = position  # different variable so segment doesn't change
+                start_next_segment = (
+                    position  # different variable so segment doesn't change
+                )
                 break
             if segment["start"] > position:
                 next_segment = segment
                 start_next_segment = next_segment["start"]
                 break
         if start_next_segment:
-            time_to_next = start_next_segment - position - (time.time() - time_start) - self.offset
+            time_to_next = (
+                start_next_segment - position - (time.time() - time_start) - self.offset
+            )
             await self.skip(time_to_next, next_segment["end"], next_segment["UUID"])
 
     # Skips to the next segment (waits for the time to pass)

@@ -1,6 +1,8 @@
-import plistlib
 import os
+import plistlib
+
 from . import config_setup
+
 """Not updated to V2 yet, should still work. Here be dragons"""
 default_plist = {
     "Label": "com.dmunozv04iSponsorBlockTV",
@@ -40,8 +42,9 @@ def main():
         create_plist(correct_path)
         run_setup(correct_path + "/config.json")
         print(
-            'Launch daemon installed. Please restart the computer to enable it or use:\n launchctl load '
-            '~/Library/LaunchAgents/com.dmunozv04.iSponsorBlockTV.plist'
+            "Launch daemon installed. Please restart the computer to enable it or"
+            " use:\n launchctl load"
+            " ~/Library/LaunchAgents/com.dmunozv04.iSponsorBlockTV.plist"
         )
     else:
         if not os.path.exists(correct_path):

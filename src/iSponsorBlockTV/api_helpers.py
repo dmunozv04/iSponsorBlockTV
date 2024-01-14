@@ -1,9 +1,11 @@
-from cache import AsyncLRU
-from .conditional_ttl_cache import AsyncConditionalTTL
-from . import constants, dial_client
-from hashlib import sha256
-from aiohttp import ClientSession
 import html
+from hashlib import sha256
+
+from aiohttp import ClientSession
+from cache import AsyncLRU
+
+from . import constants, dial_client
+from .conditional_ttl_cache import AsyncConditionalTTL
 
 
 def list_to_tuple(function):
@@ -72,7 +74,13 @@ class ApiHelper:
     @AsyncLRU(maxsize=10)
     async def search_channels(self, channel):
         channels = []
-        params = {"q": channel, "key": self.apikey, "part": "snippet", "type": "channel", "maxResults": "5"}
+        params = {
+            "q": channel,
+            "key": self.apikey,
+            "part": "snippet",
+            "type": "channel",
+            "maxResults": "5",
+        }
         url = constants.Youtube_api + "search"
         async with self.web_session.get(url, params=params) as resp:
             data = await resp.json()
@@ -81,7 +89,11 @@ class ApiHelper:
 
         for i in data["items"]:
             # Get channel subscription number
-            params = {"id": i["snippet"]["channelId"], "key": self.apikey, "part": "statistics"}
+            params = {
+                "id": i["snippet"]["channelId"],
+                "key": self.apikey,
+                "part": "statistics",
+            }
             url = constants.Youtube_api + "channels"
             async with self.web_session.get(url, params=params) as resp:
                 channel_data = await resp.json()
@@ -89,20 +101,29 @@ class ApiHelper:
             if channel_data["items"][0]["statistics"]["hiddenSubscriberCount"]:
                 sub_count = "Hidden"
             else:
-                sub_count = int(channel_data["items"][0]["statistics"]["subscriberCount"])
+                sub_count = int(
+                    channel_data["items"][0]["statistics"]["subscriberCount"]
+                )
                 sub_count = format(sub_count, "_")
 
-            channels.append((i["snippet"]["channelId"], i["snippet"]["channelTitle"], sub_count))
+            channels.append(
+                (i["snippet"]["channelId"], i["snippet"]["channelTitle"], sub_count)
+            )
         return channels
 
     @list_to_tuple  # Convert list to tuple so it can be used as a key in the cache
-    @AsyncConditionalTTL(time_to_live=300, maxsize=10)  # 5 minutes for non-locked segments
+    @AsyncConditionalTTL(
+        time_to_live=300, maxsize=10
+    )  # 5 minutes for non-locked segments
     async def get_segments(self, vid_id):
         if await self.is_whitelisted(vid_id):
-            return [], True  # Return empty list and True to indicate that the cache should last forever
+            return (
+                [],
+                True,
+            )  # Return empty list and True to indicate that the cache should last forever
         vid_id_hashed = sha256(vid_id.encode("utf-8")).hexdigest()[
-                        :4
-                        ]  # Hashes video id and gets the first 4 characters
+            :4
+        ]  # Hashes video id and gets the first 4 characters
         params = {
             "category": self.skip_categories,
             "actionType": constants.SponsorBlock_actiontype,
@@ -110,13 +131,16 @@ class ApiHelper:
         }
         headers = {"Accept": "application/json"}
         url = constants.SponsorBlock_api + "skipSegments/" + vid_id_hashed
-        async with self.web_session.get(url, headers=headers, params=params) as response:
+        async with self.web_session.get(
+            url, headers=headers, params=params
+        ) as response:
             response_json = await response.json()
         if response.status != 200:
             response_text = await response.text()
             print(
-                f"Error getting segments for video {vid_id}, hashed as {vid_id_hashed}. "
-                f"Code: {response.status} - {response_text}")
+                f"Error getting segments for video {vid_id}, hashed as {vid_id_hashed}."
+                f" Code: {response.status} - {response_text}"
+            )
             return [], True
         for i in response_json:
             if str(i["videoID"]) == str(vid_id):
@@ -130,7 +154,9 @@ class ApiHelper:
         ignore_ttl = True
         try:
             for i in response["segments"]:
-                ignore_ttl = ignore_ttl and i["locked"] == 1  # If all segments are locked, ignore ttl
+                ignore_ttl = (
+                    ignore_ttl and i["locked"] == 1
+                )  # If all segments are locked, ignore ttl
                 segment = i["segment"]
                 UUID = i["UUID"]
                 segment_dict = {"start": segment[0], "end": segment[1], "UUID": [UUID]}
@@ -143,7 +169,7 @@ class ApiHelper:
                 except Exception:
                     segment_before_end = -10
                 if (
-                        segment_dict["start"] - segment_before_end < 1
+                    segment_dict["start"] - segment_before_end < 1
                 ):  # Less than 1 second apart, combine them and skip them together
                     segment_dict["start"] = segment_before_start
                     segment_dict["UUID"].extend(segment_before_UUID)

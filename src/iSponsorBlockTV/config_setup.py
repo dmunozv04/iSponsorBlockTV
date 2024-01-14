@@ -1,13 +1,19 @@
 import asyncio
+
 import aiohttp
+
 from . import api_helpers, ytlounge
 
 
 async def pair_device():
     try:
         lounge_controller = ytlounge.YtLoungeApi("iSponsorBlockTV")
-        pairing_code = input("Enter pairing code (found in Settings - Link with TV code): ")
-        pairing_code = int(pairing_code.replace("-", "").replace(" ", ""))  # remove dashes and spaces
+        pairing_code = input(
+            "Enter pairing code (found in Settings - Link with TV code): "
+        )
+        pairing_code = int(
+            pairing_code.replace("-", "").replace(" ", "")
+        )  # remove dashes and spaces
         print("Pairing...")
         paired = await lounge_controller.pair(pairing_code)
         if not paired:
@@ -32,9 +38,17 @@ def main(config, debug: bool) -> None:
     asyncio.set_event_loop(loop)
     if hasattr(config, "atvs"):
         print(
-            "The atvs config option is deprecated and has stopped working. Please read this for more information on "
-            "how to upgrade to V2: \nhttps://github.com/dmunozv04/iSponsorBlockTV/wiki/Migrate-from-V1-to-V2")
-        if input("Do you want to remove the legacy 'atvs' entry (the app won't start with it present)? (y/n) ") == "y":
+            "The atvs config option is deprecated and has stopped working. Please read"
+            " this for more information on how to upgrade to V2:"
+            " \nhttps://github.com/dmunozv04/iSponsorBlockTV/wiki/Migrate-from-V1-to-V2"
+        )
+        if (
+            input(
+                "Do you want to remove the legacy 'atvs' entry (the app won't start"
+                " with it present)? (y/n) "
+            )
+            == "y"
+        ):
             del config["atvs"]
     devices = config.devices
     while not input(f"Paired with {len(devices)} Device(s). Add more? (y/n) ") == "n":
@@ -50,9 +64,15 @@ def main(config, debug: bool) -> None:
         if input("API key already specified. Change it? (y/n) ") == "y":
             apikey = input("Enter your API key: ")
     else:
-        if input("API key only needed for the channel whitelist function. Add it? (y/n) ") == "y":
+        if (
+            input(
+                "API key only needed for the channel whitelist function. Add it? (y/n) "
+            )
+            == "y"
+        ):
             print(
-                "Get youtube apikey here: https://developers.google.com/youtube/registering_an_application"
+                "Get youtube apikey here:"
+                " https://developers.google.com/youtube/registering_an_application"
             )
             apikey = input("Enter your API key: ")
     config.apikey = apikey
@@ -61,35 +81,48 @@ def main(config, debug: bool) -> None:
     if skip_categories:
         if input("Skip categories already specified. Change them? (y/n) ") == "y":
             categories = input(
-                "Enter skip categories (space or comma sepparated) Options: [sponsor selfpromo exclusive_access "
-                "interaction poi_highlight intro outro preview filler music_offtopic]:\n"
+                "Enter skip categories (space or comma sepparated) Options: [sponsor"
+                " selfpromo exclusive_access interaction poi_highlight intro outro"
+                " preview filler music_offtopic]:\n"
             )
             skip_categories = categories.replace(",", " ").split(" ")
-            skip_categories = [x for x in skip_categories if x != '']  # Remove empty strings
+            skip_categories = [
+                x for x in skip_categories if x != ""
+            ]  # Remove empty strings
     else:
         categories = input(
-            "Enter skip categories (space or comma sepparated) Options: [sponsor, selfpromo, exclusive_access, "
-            "interaction, poi_highlight, intro, outro, preview, filler, music_offtopic:\n"
+            "Enter skip categories (space or comma sepparated) Options: [sponsor,"
+            " selfpromo, exclusive_access, interaction, poi_highlight, intro, outro,"
+            " preview, filler, music_offtopic:\n"
         )
         skip_categories = categories.replace(",", " ").split(" ")
-        skip_categories = [x for x in skip_categories if x != '']  # Remove empty strings
+        skip_categories = [
+            x for x in skip_categories if x != ""
+        ]  # Remove empty strings
     config.skip_categories = skip_categories
 
     channel_whitelist = config.channel_whitelist
-    if input("Do you want to whitelist any channels from being ad-blocked? (y/n) ") == "y":
+    if (
+        input("Do you want to whitelist any channels from being ad-blocked? (y/n) ")
+        == "y"
+    ):
         if not apikey:
             print(
-                "WARNING: You need to specify an API key to use this function, otherwise the program will fail to "
-                "start.\nYou can add one by re-running this setup wizard.")
+                "WARNING: You need to specify an API key to use this function,"
+                " otherwise the program will fail to start.\nYou can add one by"
+                " re-running this setup wizard."
+            )
         web_session = aiohttp.ClientSession()
         api_helper = api_helpers.ApiHelper(config, web_session)
         while True:
             channel_info = {}
-            channel = input("Enter a channel name or \"/exit\" to exit: ")
+            channel = input('Enter a channel name or "/exit" to exit: ')
             if channel == "/exit":
                 break
 
-            task = loop.create_task(api_helper.search_channels(channel, apikey, web_session))
+            task = loop.create_task(
+                api_helper.search_channels(channel, apikey, web_session)
+            )
             loop.run_until_complete(task)
             results = task.result()
             if len(results) == 0:
@@ -123,7 +156,12 @@ def main(config, debug: bool) -> None:
 
     config.channel_whitelist = channel_whitelist
 
-    config.skip_count_tracking = not input(
-        "Do you want to report skipped segments to sponsorblock. Only the segment UUID will be sent? (y/n) ") == "n"
+    config.skip_count_tracking = (
+        not input(
+            "Do you want to report skipped segments to sponsorblock. Only the segment"
+            " UUID will be sent? (y/n) "
+        )
+        == "n"
+    )
     print("Config finished")
     config.save()

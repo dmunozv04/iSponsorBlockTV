@@ -1,5 +1,6 @@
 import asyncio
 import json
+
 import pyytlounge
 
 from .constants import youtube_client_blacklist
@@ -25,7 +26,9 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
 
     # Ensures that we still are subscribed to the lounge
     async def _watchdog(self):
-        await asyncio.sleep(35)  # YouTube sends at least a message every 30 seconds (no-op or any other)
+        await asyncio.sleep(
+            35
+        )  # YouTube sends at least a message every 30 seconds (no-op or any other)
         try:
             self.subscribe_task.cancel()
         except Exception:
@@ -68,14 +71,18 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 create_task(self.mute(False, override=True))
         elif event_type == "onAdStateChange":
             data = args[0]
-            if data["adState"] == '0':  # Ad is not playing
+            if data["adState"] == "0":  # Ad is not playing
                 # print("Ad has ended, unmuting")
                 create_task(self.mute(False, override=True))
-            elif self.skip_ads and data["isSkipEnabled"] == "true":  # YouTube uses strings for booleans
+            elif (
+                self.skip_ads and data["isSkipEnabled"] == "true"
+            ):  # YouTube uses strings for booleans
                 self._logger.info("Ad can be skipped, skipping")
                 create_task(self.skip_ad())
                 create_task(self.mute(False, override=True))
-            elif self.mute_ads:  # Seen multiple other adStates, assuming they are all ads
+            elif (
+                self.mute_ads
+            ):  # Seen multiple other adStates, assuming they are all ads
                 self._logger.info("Ad has started, muting")
                 create_task(self.mute(True, override=True))
         # Manages volume, useful since YouTube wants to know the volume when unmuting (even if they already have it)
@@ -84,7 +91,9 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             pass
         # Gets segments for the next video before it starts playing
         elif event_type == "autoplayUpNext":
-            if len(args) > 0 and (vid_id := args[0]["videoId"]):  # if video id is not empty
+            if len(args) > 0 and (
+                vid_id := args[0]["videoId"]
+            ):  # if video id is not empty
                 print(f"Getting segments for next video: {vid_id}")
                 create_task(self.api_helper.get_segments(vid_id))
 
@@ -95,11 +104,15 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             if vid_id := data["contentVideoId"]:
                 self._logger.info(f"Getting segments for next video: {vid_id}")
                 create_task(self.api_helper.get_segments(vid_id))
-            elif self.skip_ads and data["isSkipEnabled"] == "true":  # YouTube uses strings for booleans
+            elif (
+                self.skip_ads and data["isSkipEnabled"] == "true"
+            ):  # YouTube uses strings for booleans
                 self._logger.info("Ad can be skipped, skipping")
                 create_task(self.skip_ad())
                 create_task(self.mute(False, override=True))
-            elif self.mute_ads:  # Seen multiple other adStates, assuming they are all ads
+            elif (
+                self.mute_ads
+            ):  # Seen multiple other adStates, assuming they are all ads
                 self._logger.info("Ad has started, muting")
                 create_task(self.mute(True, override=True))
 
@@ -142,10 +155,15 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         if override or not (self.volume_state.get("muted", "false") == mute_str):
             self.volume_state["muted"] = mute_str
             # YouTube wants the volume when unmuting, so we send it
-            await super()._command("setVolume", {"volume": self.volume_state.get("volume", 100), "muted": mute_str})
+            await super()._command(
+                "setVolume",
+                {"volume": self.volume_state.get("volume", 100), "muted": mute_str},
+            )
 
     async def set_auto_play_mode(self, enabled: bool):
-        await super()._command("setAutoplayMode", {"autoplayMode": "ENABLED" if enabled else "DISABLED"})
+        await super()._command(
+            "setAutoplayMode", {"autoplayMode": "ENABLED" if enabled else "DISABLED"}
+        )
 
     async def play_video(self, video_id: str) -> bool:
         return await self._command("setPlaylist", {"videoId": video_id})
