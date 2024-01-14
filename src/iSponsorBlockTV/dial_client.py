@@ -1,4 +1,4 @@
-"""Send out a M-SEARCH request and listening for responses."""
+"""Send out an M-SEARCH request and listening for responses."""
 import asyncio
 import socket
 
@@ -6,15 +6,21 @@ import ssdp
 import xmltodict
 from ssdp import network
 
-"""Redistribution and use of the DIAL DIscovery And Launch protocol specification (the “DIAL Specification”),
-with or without modification, are permitted provided that the following conditions are met: ● Redistributions of the
-DIAL Specification must retain the above copyright notice, this list of conditions and the following disclaimer. ●
-Redistributions of implementations of the DIAL Specification in source code form must retain the above copyright
-notice, this list of conditions and the following disclaimer. ● Redistributions of implementations of the DIAL
-Specification in binary form must include the above copyright notice. ● The DIAL mark, the NETFLIX mark and the names
-of contributors to the DIAL Specification may not be used to endorse or promote specifications, software, products,
-or any other materials derived from the DIAL Specification without specific prior written permission. The DIAL mark
-is owned by Netflix and information on licensing the DIAL mark is available at www.dial-multiscreen.org."""
+"""Redistribution and use of the DIAL DIscovery And Launch protocol 
+specification (the “DIAL Specification”), with or without modification, 
+are permitted provided that the following conditions are met: ● 
+Redistributions of the DIAL Specification must retain the above copyright 
+notice, this list of conditions and the following disclaimer. ● 
+Redistributions of implementations of the DIAL Specification in source code 
+form must retain the above copyright notice, this list of conditions and the 
+following disclaimer. ● Redistributions of implementations of the DIAL 
+Specification in binary form must include the above copyright notice. ● The 
+DIAL mark, the NETFLIX mark and the names of contributors to the DIAL 
+Specification may not be used to endorse or promote specifications, software, 
+products, or any other materials derived from the DIAL Specification without 
+specific prior written permission. The DIAL mark is owned by Netflix and 
+information on licensing the DIAL mark is available at 
+www.dial-multiscreen.org."""
 
 """
 MIT License
@@ -38,7 +44,8 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE."""
-"""Modified code from https://github.com/codingjoe/ssdp/blob/main/ssdp/__main__.py"""
+"""Modified code from 
+https://github.com/codingjoe/ssdp/blob/main/ssdp/__main__.py"""
 
 
 def get_ip():
