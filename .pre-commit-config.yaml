@@ -29,6 +29,8 @@ repos:
     rev: 23.1.0
     hooks:
       - id: black
+        language_version: '3.11'
+        args: ["--preview"]
   - repo: https://github.com/hadialqattan/pycln  # removes unused imports
     rev: v2.3.0
     hooks:
