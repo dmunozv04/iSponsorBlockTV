@@ -72,4 +72,5 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=ghcr.io/dmunozv04/isponsorblocktv:buildcache
-          cache-to: type=registry,ref=ghcr.io/dmunozv04/isponsorblocktv:buildcache,mode=max
+          # Only cache if it's not a pull request
+          cache-to: ${{ github.event_name != 'pull_request' && 'type=registry,ref=ghcr.io/dmunozv04/isponsorblocktv:buildcache,mode=max' || '' }}

@@ -49,14 +49,12 @@ def main(config, debug: bool) -> None:
     if apikey:
         if input("API key already specified. Change it? (y/n) ") == "y":
             apikey = input("Enter your API key: ")
-            config["apikey"] = apikey
     else:
         if input("API key only needed for the channel whitelist function. Add it? (y/n) ") == "y":
             print(
                 "Get youtube apikey here: https://developers.google.com/youtube/registering_an_application"
             )
             apikey = input("Enter your API key: ")
-            config["apikey"] = apikey
     config.apikey = apikey
 
     skip_categories = config.skip_categories
