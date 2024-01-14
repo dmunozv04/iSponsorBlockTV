@@ -145,7 +145,7 @@ def main(config, debug: bool) -> None:
                 channel_info["name"] = input("Enter the channel name: ")
                 channel_whitelist.append(channel_info)
                 continue
-            elif choice == "6":
+            if choice == "6":
                 continue
 
             channel_info["id"] = results[int(choice)][0]
