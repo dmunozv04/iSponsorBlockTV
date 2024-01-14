@@ -7,7 +7,7 @@ assignees: ''
 
 ---
 
-Before opening an issue make sure that there are no duplicates and that you are on the latest version. 
+Before opening an issue make sure that there are no duplicates and that you are on the latest version.
 **Describe the bug**
 A clear and concise description of what the bug is.
 

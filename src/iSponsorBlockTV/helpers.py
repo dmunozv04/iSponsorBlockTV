@@ -59,7 +59,9 @@ class Config:
             sys.exit()
         self.devices = [Device(i) for i in self.devices]
         if not self.apikey and self.channel_whitelist:
-            raise ValueError("No youtube API key found and channel whitelist is not empty")
+            raise ValueError(
+                "No youtube API key found and channel whitelist is not empty"
+            )
         if not self.skip_categories:
             self.skip_categories = ["sponsor"]
             print("No categories found, using default: sponsor")
@@ -79,11 +81,15 @@ class Config:
                     print("Creating data directory")
                     os.makedirs(self.data_dir)
                 else:  # Running in docker without mounting the data dir
-                    print("Running in docker without mounting the data dir, check the wiki for more information: "
-                          "https://github.com/dmunozv04/iSponsorBlockTV/wiki/Installation#Docker")
-                    print("This image has recently been updated to v2, and requires changes.",
-                          "Please read this for more information on how to upgrade to V2:",
-                          "https://github.com/dmunozv04/iSponsorBlockTV/wiki/Migrate-from-V1-to-V2")
+                    print(
+                        "Running in docker without mounting the data dir, check the wiki for more information: "
+                        "https://github.com/dmunozv04/iSponsorBlockTV/wiki/Installation#Docker"
+                    )
+                    print(
+                        "This image has recently been updated to v2, and requires changes.",
+                        "Please read this for more information on how to upgrade to V2:",
+                        "https://github.com/dmunozv04/iSponsorBlockTV/wiki/Migrate-from-V1-to-V2",
+                    )
                     print("Exiting in 10 seconds...")
                     time.sleep(10)
                     sys.exit()
@@ -110,11 +116,22 @@ class Config:
 
 def app_start():
     # If env has a data dir use that, otherwise use the default
-    default_data_dir = os.getenv("iSPBTV_data_dir") or user_data_dir("iSponsorBlockTV", "dmunozv04")
+    default_data_dir = os.getenv("iSPBTV_data_dir") or user_data_dir(
+        "iSponsorBlockTV", "dmunozv04"
+    )
     parser = argparse.ArgumentParser(description="iSponsorblockTV")
-    parser.add_argument("--data-dir", "-d", default=default_data_dir, help="data directory")
-    parser.add_argument("--setup", "-s", action="store_true", help="setup the program graphically")
-    parser.add_argument("--setup-cli", "-sc", action="store_true", help="setup the program in the command line")
+    parser.add_argument(
+        "--data-dir", "-d", default=default_data_dir, help="data directory"
+    )
+    parser.add_argument(
+        "--setup", "-s", action="store_true", help="setup the program graphically"
+    )
+    parser.add_argument(
+        "--setup-cli",
+        "-sc",
+        action="store_true",
+        help="setup the program in the command line",
+    )
     parser.add_argument("--debug", action="store_true", help="debug mode")
     args = parser.parse_args()
 
