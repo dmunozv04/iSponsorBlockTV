@@ -129,8 +129,8 @@ def main(config, debug: bool) -> None:
                 print("No channels found")
                 continue
 
-            for i in range(len(results)):
-                print(f"{i}: {results[i][1]} - Subs: {results[i][2]}")
+            for i, item in enumerate(results):
+                print(f"{i}: {item[1]} - Subs: {item[2]}")
             print("5: Enter a custom channel ID")
             print("6: Go back")
 
