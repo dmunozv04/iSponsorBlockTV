@@ -108,7 +108,7 @@ class Device(Element):
             self.element_name = self.element_data["name"]
         else:
             self.element_name = (
-                f"Unnamed device with id "
+                "Unnamed device with id "
                 f"{self.element_data['screen_id'][:5]}..."
                 f"{self.element_data['screen_id'][-5:]}"
             )
@@ -148,8 +148,11 @@ class MigrationScreen(ModalWithClickExit):
     def compose(self) -> ComposeResult:
         yield Grid(
             Label(
-                "Welcome to the new configurator! You seem to have the legacy 'atvs' entry on your config file, "
-                "do you want to remove it?\n(The app won't start with it present)",
+                (
+                    "Welcome to the new configurator! You seem to have the legacy"
+                    " 'atvs' entry on your config file, do you want to remove it?\n(The"
+                    " app won't start with it present)"
+                ),
                 id="question",
                 classes="button-100",
             ),
@@ -255,7 +258,9 @@ class AddDevice(ModalWithClickExit):
             ):
                 with Container(id="add-device-pin-container"):
                     yield Input(
-                        placeholder="Pairing Code (found in Settings - Link with TV code)",
+                        placeholder=(
+                            "Pairing Code (found in Settings - Link with TV code)"
+                        ),
                         id="pairing-code-input",
                         validators=[
                             Function(
@@ -276,9 +281,13 @@ class AddDevice(ModalWithClickExit):
                     yield Label(id="add-device-info")
                 with Container(id="add-device-dial-container"):
                     yield Label(
-                        "Make sure your device is on the same network as this computer\nIf it isn't showing up, "
-                        "try restarting the app.\nIf running in docker, make sure to use `--network=host`\nTo refresh "
-                        "the list, close and open the dialog again",
+                        (
+                            "Make sure your device is on the same network as this"
+                            " computer\nIf it isn't showing up, try restarting the"
+                            " app.\nIf running in docker, make sure to use"
+                            " `--network=host`\nTo refresh the list, close and open the"
+                            " dialog again"
+                        ),
                         classes="subtitle",
                     )
                     yield SelectionList(
@@ -320,9 +329,9 @@ class AddDevice(ModalWithClickExit):
 
     @on(Input.Changed, "#pairing-code-input")
     def changed_pairing_code(self, event: Input.Changed):
-        self.query_one(
-            "#add-device-pin-add-button"
-        ).disabled = not event.validation_result.is_valid
+        self.query_one("#add-device-pin-add-button").disabled = (
+            not event.validation_result.is_valid
+        )
 
     @on(Input.Submitted, "#pairing-code-input")
     @on(Button.Pressed, "#add-device-pin-add-button")
@@ -367,9 +376,9 @@ class AddDevice(ModalWithClickExit):
 
     @on(SelectionList.SelectedChanged, "#dial-devices-list")
     def changed_device_list(self, event: SelectionList.SelectedChanged):
-        self.query_one(
-            "#add-device-dial-add-button"
-        ).disabled = not event.selection_list.selected
+        self.query_one("#add-device-dial-add-button").disabled = (
+            not event.selection_list.selected
+        )
 
 
 class AddChannel(ModalWithClickExit):
@@ -387,7 +396,10 @@ class AddChannel(ModalWithClickExit):
         with Container(id="add-channel-container"):
             yield Label("Add Channel", classes="title")
             yield Label(
-                "Select a method to add a channel. Adding via search only works if a YouTube api key has been set",
+                (
+                    "Select a method to add a channel. Adding via search only works if"
+                    " a YouTube api key has been set"
+                ),
                 id="add-channel-label",
                 classes="subtitle",
             )
@@ -429,18 +441,25 @@ class AddChannel(ModalWithClickExit):
                         )
                     else:
                         yield Label(
-                            "[#ff0000]No api key set, cannot search for channels. You can add it the config section "
-                            "below",
+                            (
+                                "[#ff0000]No api key set, cannot search for channels."
+                                " You can add it the config section below"
+                            ),
                             id="add-channel-search-no-key",
                             classes="subtitle",
                         )
                 with Vertical(id="add-channel-id-container"):
                     yield Input(
-                        placeholder="Enter channel ID (example: UCuAXFkgsw1L7xaCfnd5JJOw)",
+                        placeholder=(
+                            "Enter channel ID (example: UCuAXFkgsw1L7xaCfnd5JJOw)"
+                        ),
                         id="channel-id-input",
                     )
                     yield Input(
-                        placeholder="Enter channel name (only used to display in the config file)",
+                        placeholder=(
+                            "Enter channel name (only used to display in the config"
+                            " file)"
+                        ),
                         id="channel-name-input-id",
                     )
                     yield Button(
@@ -643,9 +662,10 @@ class ApiKeyManager(Vertical):
     def compose(self) -> ComposeResult:
         yield Label("YouTube Api Key", classes="title")
         yield Label(
-            "You can get a YouTube Data API v3 Key from the ["
-            "link=https://console.developers.google.com/apis/credentials]Google Cloud Console[/link]. This key is "
-            "only required if you're whitelisting channels."
+            "You can get a YouTube Data API v3 Key from the"
+            " [link=https://console.developers.google.com/apis/credentials]Google Cloud"
+            " Console[/link]. This key is only required if you're whitelisting"
+            " channels."
         )
         with Grid(id="api-key-grid"):
             yield Input(
@@ -705,10 +725,14 @@ class SkipCountTrackingManager(Vertical):
     def compose(self) -> ComposeResult:
         yield Label("Skip count tracking", classes="title")
         yield Label(
-            "This feature tracks which segments you have skipped to let users know how much their submission has "
-            "helped others and used as a metric along with upvotes to ensure that spam doesn't get into the database. "
-            "The program sends a message to the sponsor block server each time you skip a segment. Hopefully most "
-            "people don't change this setting so that the view numbers are accurate. :)",
+            (
+                "This feature tracks which segments you have skipped to let users know"
+                " how much their submission has helped others and used as a metric"
+                " along with upvotes to ensure that spam doesn't get into the database."
+                " The program sends a message to the sponsor block server each time you"
+                " skip a segment. Hopefully most people don't change this setting so"
+                " that the view numbers are accurate. :)"
+            ),
             classes="subtitle",
             id="skip-count-tracking-subtitle",
         )
@@ -733,8 +757,11 @@ class AdSkipMuteManager(Vertical):
     def compose(self) -> ComposeResult:
         yield Label("Skip/Mute ads", classes="title")
         yield Label(
-            "This feature allows you to automatically mute and/or skip native YouTube ads. Skipping ads only works if "
-            "that ad shows the 'Skip Ad' button, if it doesn't then it will only be able to be muted.",
+            (
+                "This feature allows you to automatically mute and/or skip native"
+                " YouTube ads. Skipping ads only works if that ad shows the 'Skip Ad'"
+                " button, if it doesn't then it will only be able to be muted."
+            ),
             classes="subtitle",
             id="skip-count-tracking-subtitle",
         )
@@ -769,13 +796,19 @@ class ChannelWhitelistManager(Vertical):
     def compose(self) -> ComposeResult:
         yield Label("Channel Whitelist", classes="title")
         yield Label(
-            "This feature allows to whitelist channels from being skipped. This feature is automatically disabled "
-            "when no channels have been specified.",
+            (
+                "This feature allows to whitelist channels from being skipped. This"
+                " feature is automatically disabled when no channels have been"
+                " specified."
+            ),
             classes="subtitle",
             id="channel-whitelist-subtitle",
         )
         yield Label(
-            ":warning: [#FF0000]You need to set your YouTube Api Key in order to use this feature",
+            (
+                ":warning: [#FF0000]You need to set your YouTube Api Key in order to"
+                " use this feature"
+            ),
             id="warning-no-key",
         )
         with Horizontal(id="add-channel-button-container"):
@@ -885,7 +918,9 @@ class ISponsorBlockTVSetupMainScreen(Screen):
 
 
 class ISponsorBlockTVSetup(App):
-    CSS_PATH = "setup-wizard-style.tcss"  # tcss is the recommended extension for textual css files
+    CSS_PATH = (  # tcss is the recommended extension for textual css files
+        "setup-wizard-style.tcss"
+    )
     # Bindings for the whole app here, so they are available in all screens
     BINDINGS = [("q,ctrl+c", "exit_modal", "Exit"), ("s", "save", "Save")]
 

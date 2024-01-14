@@ -138,8 +138,8 @@ class ApiHelper:
         if response.status != 200:
             response_text = await response.text()
             print(
-                f"Error getting segments for video {vid_id}, hashed as {vid_id_hashed}. "
-                f"Code: {response.status} - {response_text}"
+                f"Error getting segments for video {vid_id}, hashed as {vid_id_hashed}."
+                f" Code: {response.status} - {response_text}"
             )
             return [], True
         for i in response_json:

@@ -46,8 +46,12 @@ class Config:
     def validate(self):
         if hasattr(self, "atvs"):
             print(
-                "The atvs config option is deprecated and has stopped working. Please read this for more information "
-                "on how to upgrade to V2: \nhttps://github.com/dmunozv04/iSponsorBlockTV/wiki/Migrate-from-V1-to-V2",
+                (
+                    "The atvs config option is deprecated and has stopped working."
+                    " Please read this for more information "
+                    "on how to upgrade to V2:"
+                    " \nhttps://github.com/dmunozv04/iSponsorBlockTV/wiki/Migrate-from-V1-to-V2"
+                ),
             )
             print("Exiting in 10 seconds...")
             time.sleep(10)
@@ -82,12 +86,19 @@ class Config:
                     os.makedirs(self.data_dir)
                 else:  # Running in docker without mounting the data dir
                     print(
-                        "Running in docker without mounting the data dir, check the wiki for more information: "
+                        "Running in docker without mounting the data dir, check the"
+                        " wiki for more information: "
                         "https://github.com/dmunozv04/iSponsorBlockTV/wiki/Installation#Docker"
                     )
                     print(
-                        "This image has recently been updated to v2, and requires changes.",
-                        "Please read this for more information on how to upgrade to V2:",
+                        (
+                            "This image has recently been updated to v2, and requires"
+                            " changes."
+                        ),
+                        (
+                            "Please read this for more information on how to upgrade"
+                            " to V2:"
+                        ),
                         "https://github.com/dmunozv04/iSponsorBlockTV/wiki/Migrate-from-V1-to-V2",
                     )
                     print("Exiting in 10 seconds...")

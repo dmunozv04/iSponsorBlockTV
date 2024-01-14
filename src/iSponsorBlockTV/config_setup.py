@@ -38,12 +38,14 @@ def main(config, debug: bool) -> None:
     asyncio.set_event_loop(loop)
     if hasattr(config, "atvs"):
         print(
-            "The atvs config option is deprecated and has stopped working. Please read this for more information on "
-            "how to upgrade to V2: \nhttps://github.com/dmunozv04/iSponsorBlockTV/wiki/Migrate-from-V1-to-V2"
+            "The atvs config option is deprecated and has stopped working. Please read"
+            " this for more information on how to upgrade to V2:"
+            " \nhttps://github.com/dmunozv04/iSponsorBlockTV/wiki/Migrate-from-V1-to-V2"
         )
         if (
             input(
-                "Do you want to remove the legacy 'atvs' entry (the app won't start with it present)? (y/n) "
+                "Do you want to remove the legacy 'atvs' entry (the app won't start"
+                " with it present)? (y/n) "
             )
             == "y"
         ):
@@ -69,7 +71,8 @@ def main(config, debug: bool) -> None:
             == "y"
         ):
             print(
-                "Get youtube apikey here: https://developers.google.com/youtube/registering_an_application"
+                "Get youtube apikey here:"
+                " https://developers.google.com/youtube/registering_an_application"
             )
             apikey = input("Enter your API key: ")
     config.apikey = apikey
@@ -78,8 +81,9 @@ def main(config, debug: bool) -> None:
     if skip_categories:
         if input("Skip categories already specified. Change them? (y/n) ") == "y":
             categories = input(
-                "Enter skip categories (space or comma sepparated) Options: [sponsor selfpromo exclusive_access "
-                "interaction poi_highlight intro outro preview filler music_offtopic]:\n"
+                "Enter skip categories (space or comma sepparated) Options: [sponsor"
+                " selfpromo exclusive_access interaction poi_highlight intro outro"
+                " preview filler music_offtopic]:\n"
             )
             skip_categories = categories.replace(",", " ").split(" ")
             skip_categories = [
@@ -87,8 +91,9 @@ def main(config, debug: bool) -> None:
             ]  # Remove empty strings
     else:
         categories = input(
-            "Enter skip categories (space or comma sepparated) Options: [sponsor, selfpromo, exclusive_access, "
-            "interaction, poi_highlight, intro, outro, preview, filler, music_offtopic:\n"
+            "Enter skip categories (space or comma sepparated) Options: [sponsor,"
+            " selfpromo, exclusive_access, interaction, poi_highlight, intro, outro,"
+            " preview, filler, music_offtopic:\n"
         )
         skip_categories = categories.replace(",", " ").split(" ")
         skip_categories = [
@@ -103,8 +108,9 @@ def main(config, debug: bool) -> None:
     ):
         if not apikey:
             print(
-                "WARNING: You need to specify an API key to use this function, otherwise the program will fail to "
-                "start.\nYou can add one by re-running this setup wizard."
+                "WARNING: You need to specify an API key to use this function,"
+                " otherwise the program will fail to start.\nYou can add one by"
+                " re-running this setup wizard."
             )
         web_session = aiohttp.ClientSession()
         api_helper = api_helpers.ApiHelper(config, web_session)
@@ -152,7 +158,8 @@ def main(config, debug: bool) -> None:
 
     config.skip_count_tracking = (
         not input(
-            "Do you want to report skipped segments to sponsorblock. Only the segment UUID will be sent? (y/n) "
+            "Do you want to report skipped segments to sponsorblock. Only the segment"
+            " UUID will be sent? (y/n) "
         )
         == "n"
     )
