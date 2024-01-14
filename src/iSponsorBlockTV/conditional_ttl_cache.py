@@ -41,13 +41,11 @@ class AsyncConditionalTTL:
         def __contains__(self, key):
             if key not in self.keys():
                 return False
-            else:
-                key_expiration = super().__getitem__(key)[1]
-                if key_expiration and key_expiration < datetime.datetime.now():
-                    del self[key]
-                    return False
-                else:
-                    return True
+            key_expiration = super().__getitem__(key)[1]
+            if key_expiration and key_expiration < datetime.datetime.now():
+                del self[key]
+                return False
+            return True
 
         def __getitem__(self, key):
             value = super().__getitem__(key)[0]
