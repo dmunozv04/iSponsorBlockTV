@@ -8,7 +8,7 @@ COPY src .
 RUN python3 -m compileall -b -f . && \
     find . -name "*.py" -type f -delete
 
-FROM python:3.11-alpine3.19 
+FROM python:3.11-alpine3.19
 
 ENV PIP_NO_CACHE_DIR=off iSPBTV_docker=True iSPBTV_data_dir=data TERM=xterm-256color COLORTERM=truecolor
 
