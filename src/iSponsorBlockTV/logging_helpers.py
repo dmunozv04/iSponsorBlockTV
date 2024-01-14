@@ -1,10 +1,10 @@
 import logging
 
 from rich.logging import RichHandler
-from rich.text import Text
 from rich.style import Style
+from rich.text import Text
 
-'''
+"""
 Copyright (c) 2020 Will McGugan
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -25,7 +25,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 Modified code from rich (https://github.com/textualize/rich)
-'''
+"""
 
 
 class LogHandler(RichHandler):
@@ -40,7 +40,8 @@ class LogHandler(RichHandler):
             show_path=False,
             time_format="[%x %X]",
             omit_repeated_times=True,
-            level_width=None)
+            level_width=None,
+        )
 
     def add_filter_string(self, s):
         self.filter_strings.append(s)
@@ -56,14 +57,17 @@ class LogHandler(RichHandler):
 
 
 class LogRender:
-    def __init__(self, device_name,
-                 log_name_len,
-                 show_time=True,
-                 show_level=False,
-                 show_path=True,
-                 time_format="[%x %X]",
-                 omit_repeated_times=True,
-                 level_width=8):
+    def __init__(
+        self,
+        device_name,
+        log_name_len,
+        show_time=True,
+        show_level=False,
+        show_path=True,
+        time_format="[%x %X]",
+        omit_repeated_times=True,
+        level_width=8,
+    ):
         self.filter_strings = []
         self.log_name_len = log_name_len
         self.device_name = device_name
@@ -76,15 +80,15 @@ class LogRender:
         self._last_time = None
 
     def __call__(
-            self,
-            console,
-            renderables,
-            log_time,
-            time_format=None,
-            level="",
-            path=None,
-            line_no=None,
-            link_path=None,
+        self,
+        console,
+        renderables,
+        log_time,
+        time_format=None,
+        level="",
+        path=None,
+        line_no=None,
+        link_path=None,
     ):
         from rich.containers import Renderables
         from rich.table import Table
@@ -95,7 +99,9 @@ class LogRender:
             output.add_column(style="log.time")
         if self.show_level:
             output.add_column(style="log.level", width=self.level_width)
-        output.add_column(width=self.log_name_len, style=Style(color="yellow"), overflow="fold")
+        output.add_column(
+            width=self.log_name_len, style=Style(color="yellow"), overflow="fold"
+        )
         output.add_column(ratio=1, style="log.message", overflow="fold")
         if self.show_path and path:
             output.add_column(style="log.path")
@@ -134,7 +140,9 @@ class LogRender:
 
 
 class LogFormatter(logging.Formatter):
-    def __init__(self, fmt=None, datefmt=None, style="%", validate=True, filter_strings=None):
+    def __init__(
+        self, fmt=None, datefmt=None, style="%", validate=True, filter_strings=None
+    ):
         super().__init__(fmt, datefmt, style, validate)
         self.filter_strings = filter_strings or []
 
