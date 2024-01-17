@@ -72,7 +72,7 @@ class Config:
 
     def __load(self):
         try:
-            with open(self.config_file, "r") as f:
+            with open(self.config_file, "r", encoding="utf-8") as f:
                 config = json.load(f)
                 for i in config:
                     if i not in config_file_blacklist_keys:
@@ -108,7 +108,7 @@ class Config:
                 print("Blank config file created")
 
     def save(self):
-        with open(self.config_file, "w") as f:
+        with open(self.config_file, "w", encoding="utf-8") as f:
             config_dict = self.__dict__
             # Don't save the config file name
             config_file = self.config_file
