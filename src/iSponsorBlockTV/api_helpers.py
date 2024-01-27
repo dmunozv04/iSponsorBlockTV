@@ -166,11 +166,12 @@ class ApiHelper:
                     segment_before_start = segments[-1]["start"]
                     segment_before_UUID = segments[-1]["UUID"]
 
-                except Exception:
+                except IndexError:
                     segment_before_end = -10
                 if (
                     segment_dict["start"] - segment_before_end < 1
                 ):  # Less than 1 second apart, combine them and skip them together
+                    segment_dict["end"] = max(segment_dict["end"], segment_before_end)
                     segment_dict["start"] = segment_before_start
                     segment_dict["UUID"].extend(segment_before_UUID)
                     segments.pop()
