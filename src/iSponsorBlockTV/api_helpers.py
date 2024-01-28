@@ -153,9 +153,9 @@ class ApiHelper:
         segments = []
         ignore_ttl = True
         try:
-            response_segments = response["segments"]            
+            response_segments = response["segments"]
             # sort by end
-            response_segments = sorted(response_segments, key = lambda x: x["segment"][1])
+            response_segments = sorted(response_segments, key=lambda x: x["segment"][1])
             # extend ends of overlapping segments to make one big segment
             for i in response_segments:
                 for j in response_segments:
@@ -163,7 +163,7 @@ class ApiHelper:
                         i["segment"][1] = j["segment"][1]
 
             # sort by start
-            response_segments = sorted(response_segments, key = lambda x: x["segment"][0])
+            response_segments = sorted(response_segments, key=lambda x: x["segment"][0])
             # extend starts of overlapping segments to make one big segment
             for i in response_segments:
                 for j in response_segments:
