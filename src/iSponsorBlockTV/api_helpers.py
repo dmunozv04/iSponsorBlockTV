@@ -153,7 +153,24 @@ class ApiHelper:
         segments = []
         ignore_ttl = True
         try:
-            for i in response["segments"]:
+            response_segments = response["segments"]            
+            # sort by end
+            response_segments = sorted(response_segments, key = lambda x: x["segment"][1])
+            # extend ends of overlapping segments to make one big segment
+            for i in response_segments:
+                for j in response_segments:
+                    if j["segment"][0] <= i["segment"][1] <= j["segment"][1]:
+                        i["segment"][1] = j["segment"][1]
+
+            # sort by start
+            response_segments = sorted(response_segments, key = lambda x: x["segment"][0])
+            # extend starts of overlapping segments to make one big segment
+            for i in response_segments:
+                for j in response_segments:
+                    if j["segment"][0] <= i["segment"][0] <= j["segment"][1]:
+                        i["segment"][0] = j["segment"][0]
+
+            for i in response_segments:
                 ignore_ttl = (
                     ignore_ttl and i["locked"] == 1
                 )  # If all segments are locked, ignore ttl
