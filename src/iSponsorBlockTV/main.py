@@ -5,7 +5,6 @@ from signal import SIGINT, SIGTERM, signal
 from typing import Optional
 
 import aiohttp
-import rich
 
 from . import api_helpers, ytlounge
 
@@ -155,15 +154,13 @@ def main(config, debug):
     tcp_connector = aiohttp.TCPConnector(ttl_dns_cache=300)
     web_session = aiohttp.ClientSession(loop=loop, connector=tcp_connector)
     api_helper = api_helpers.ApiHelper(config, web_session)
-    longest_name_len = len(list(sorted([i.name for i in config.devices]))[-1])
     for i in config.devices:
-        device = DeviceListener(api_helper, config, i, longest_name_len, debug)
+        device = DeviceListener(api_helper, config, i, debug)
         devices.append(device)
         tasks.append(loop.create_task(device.loop()))
         tasks.append(loop.create_task(device.refresh_auth_loop()))
     signal(SIGINT, lambda s, f: loop.stop())
     signal(SIGTERM, lambda s, f: loop.stop())
-    rich.reconfigure(color_system="standard")
     loop.run_forever()
     print("Cancelling tasks and exiting...")
     loop.run_until_complete(finish(devices))
