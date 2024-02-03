@@ -23,8 +23,9 @@ class DeviceListener:
         else:
             self.logger.setLevel(logging.INFO)
         sh = logging.StreamHandler()
-        sh.setFormatter(logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+        sh.setFormatter(
+            logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        )
         self.logger.addHandler(sh)
         self.logger.info(f"Starting device")
         self.lounge_controller = ytlounge.YtLoungeApi(
