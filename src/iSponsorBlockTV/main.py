@@ -7,7 +7,7 @@ from typing import Optional
 import aiohttp
 import rich
 
-from . import api_helpers, logging_helpers, ytlounge
+from . import api_helpers, ytlounge
 
 
 class DeviceListener:
@@ -22,9 +22,10 @@ class DeviceListener:
             self.logger.setLevel(logging.DEBUG)
         else:
             self.logger.setLevel(logging.INFO)
-        rh = logging_helpers.LogHandler(device.name, log_name_len, level=logging.DEBUG)
-        rh.add_filter_string(device.screen_id)
-        self.logger.addHandler(rh)
+        sh = logging.StreamHandler()
+        sh.setFormatter(logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+        self.logger.addHandler(sh)
         self.logger.info(f"Starting device")
         self.lounge_controller = ytlounge.YtLoungeApi(
             device.screen_id, config, api_helper, self.logger
@@ -74,7 +75,7 @@ class DeviceListener:
                 "Connected to device %s (%s)", lounge_controller.screen_name, self.name
             )
             try:
-                # print("Subscribing to lounge")
+                self.logger.info("Subscribing to lounge")
                 sub = await lounge_controller.subscribe_monitored(self)
                 await sub
             except:

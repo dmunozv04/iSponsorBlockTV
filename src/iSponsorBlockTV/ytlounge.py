@@ -67,23 +67,23 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             data = args[0]
             # Unmute when the video starts playing
             if self.mute_ads and data.get("state", "0") == "1":
-                # print("Ad has ended, unmuting")
+                self.logger.info("Ad has ended, unmuting")
                 create_task(self.mute(False, override=True))
         elif event_type == "onAdStateChange":
             data = args[0]
             if data["adState"] == "0":  # Ad is not playing
-                # print("Ad has ended, unmuting")
+                self.logger.info("Ad has ended, unmuting")
                 create_task(self.mute(False, override=True))
             elif (
                 self.skip_ads and data["isSkipEnabled"] == "true"
             ):  # YouTube uses strings for booleans
-                self._logger.info("Ad can be skipped, skipping")
+                self.logger.info("Ad can be skipped, skipping")
                 create_task(self.skip_ad())
                 create_task(self.mute(False, override=True))
             elif (
                 self.mute_ads
             ):  # Seen multiple other adStates, assuming they are all ads
-                self._logger.info("Ad has started, muting")
+                self.logger.info("Ad has started, muting")
                 create_task(self.mute(True, override=True))
         # Manages volume, useful since YouTube wants to know the volume when unmuting (even if they already have it)
         elif event_type == "onVolumeChanged":
@@ -94,7 +94,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             if len(args) > 0 and (
                 vid_id := args[0]["videoId"]
             ):  # if video id is not empty
-                print(f"Getting segments for next video: {vid_id}")
+                self.logger.info(f"Getting segments for next video: {vid_id}")
                 create_task(self.api_helper.get_segments(vid_id))
 
         # #Used to know if an ad is skippable or not
@@ -102,18 +102,18 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             data = args[0]
             # Gets segments for the next video (after the ad) before it starts playing
             if vid_id := data["contentVideoId"]:
-                self._logger.info(f"Getting segments for next video: {vid_id}")
+                self.logger.info(f"Getting segments for next video: {vid_id}")
                 create_task(self.api_helper.get_segments(vid_id))
             elif (
                 self.skip_ads and data["isSkipEnabled"] == "true"
             ):  # YouTube uses strings for booleans
-                self._logger.info("Ad can be skipped, skipping")
+                self.logger.info("Ad can be skipped, skipping")
                 create_task(self.skip_ad())
                 create_task(self.mute(False, override=True))
             elif (
                 self.mute_ads
             ):  # Seen multiple other adStates, assuming they are all ads
-                self._logger.info("Ad has started, muting")
+                self.logger.info("Ad has started, muting")
                 create_task(self.mute(True, override=True))
 
         elif event_type == "loungeStatus":
