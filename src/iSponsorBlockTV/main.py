@@ -11,7 +11,7 @@ from . import api_helpers, ytlounge
 
 
 class DeviceListener:
-    def __init__(self, api_helper, config, device, log_name_len, debug: bool):
+    def __init__(self, api_helper, config, device, debug: bool):
         self.task: Optional[asyncio.Task] = None
         self.api_helper = api_helper
         self.offset = device.offset
