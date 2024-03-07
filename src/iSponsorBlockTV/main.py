@@ -5,13 +5,12 @@ from signal import SIGINT, SIGTERM, signal
 from typing import Optional
 
 import aiohttp
-import rich
 
-from . import api_helpers, logging_helpers, ytlounge
+from . import api_helpers, ytlounge
 
 
 class DeviceListener:
-    def __init__(self, api_helper, config, device, log_name_len, debug: bool):
+    def __init__(self, api_helper, config, device, debug: bool):
         self.task: Optional[asyncio.Task] = None
         self.api_helper = api_helper
         self.offset = device.offset
@@ -22,9 +21,11 @@ class DeviceListener:
             self.logger.setLevel(logging.DEBUG)
         else:
             self.logger.setLevel(logging.INFO)
-        rh = logging_helpers.LogHandler(device.name, log_name_len, level=logging.DEBUG)
-        rh.add_filter_string(device.screen_id)
-        self.logger.addHandler(rh)
+        sh = logging.StreamHandler()
+        sh.setFormatter(
+            logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        )
+        self.logger.addHandler(sh)
         self.logger.info(f"Starting device")
         self.lounge_controller = ytlounge.YtLoungeApi(
             device.screen_id, config, api_helper, self.logger
@@ -74,7 +75,7 @@ class DeviceListener:
                 "Connected to device %s (%s)", lounge_controller.screen_name, self.name
             )
             try:
-                # print("Subscribing to lounge")
+                self.logger.info("Subscribing to lounge")
                 sub = await lounge_controller.subscribe_monitored(self)
                 await sub
             except:
@@ -153,15 +154,13 @@ def main(config, debug):
     tcp_connector = aiohttp.TCPConnector(ttl_dns_cache=300)
     web_session = aiohttp.ClientSession(loop=loop, connector=tcp_connector)
     api_helper = api_helpers.ApiHelper(config, web_session)
-    longest_name_len = len(list(sorted([i.name for i in config.devices]))[-1])
     for i in config.devices:
-        device = DeviceListener(api_helper, config, i, longest_name_len, debug)
+        device = DeviceListener(api_helper, config, i, debug)
         devices.append(device)
         tasks.append(loop.create_task(device.loop()))
         tasks.append(loop.create_task(device.refresh_auth_loop()))
     signal(SIGINT, lambda s, f: loop.stop())
     signal(SIGTERM, lambda s, f: loop.stop())
-    rich.reconfigure(color_system="standard")
     loop.run_forever()
     print("Cancelling tasks and exiting...")
     loop.run_until_complete(finish(devices))

@@ -102,7 +102,6 @@ class Device(Element):
     """A device element."""
 
     def process_values_from_data(self):
-        print("HIIII")
         print(self.element_data)
         if "name" in self.element_data and self.element_data["name"]:
             self.element_name = self.element_data["name"]
