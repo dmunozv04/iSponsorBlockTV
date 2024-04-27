@@ -10,13 +10,14 @@ from . import api_helpers, ytlounge
 
 
 class DeviceListener:
-    def __init__(self, api_helper, config, device, debug: bool):
+    def __init__(self, api_helper, config, device, debug: bool, web_session):
         self.task: Optional[asyncio.Task] = None
         self.api_helper = api_helper
         self.offset = device.offset
         self.name = device.name
         self.cancelled = False
         self.logger = logging.getLogger(f"iSponsorBlockTV-{device.screen_id}")
+        self.web_session = web_session
         if debug:
             self.logger.setLevel(logging.DEBUG)
         else:
@@ -28,7 +29,7 @@ class DeviceListener:
         self.logger.addHandler(sh)
         self.logger.info(f"Starting device")
         self.lounge_controller = ytlounge.YtLoungeApi(
-            device.screen_id, config, api_helper, self.logger
+            device.screen_id, config, api_helper, self.logger, self.web_session
         )
 
     # Ensures that we have a valid auth token
@@ -155,7 +156,7 @@ def main(config, debug):
     web_session = aiohttp.ClientSession(loop=loop, connector=tcp_connector)
     api_helper = api_helpers.ApiHelper(config, web_session)
     for i in config.devices:
-        device = DeviceListener(api_helper, config, i, debug)
+        device = DeviceListener(api_helper, config, i, debug, web_session)
         devices.append(device)
         tasks.append(loop.create_task(device.loop()))
         tasks.append(loop.create_task(device.refresh_auth_loop()))
@@ -165,3 +166,5 @@ def main(config, debug):
     print("Cancelling tasks and exiting...")
     loop.run_until_complete(finish(devices))
     loop.run_until_complete(web_session.close())
+    loop.run_until_complete(tcp_connector.close())
+    loop.close()
