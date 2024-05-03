@@ -5,14 +5,16 @@ import aiohttp
 from . import api_helpers, ytlounge
 
 # Constants for user input prompts
-ATVS_REMOVAL_PROMPT = ( 
+ATVS_REMOVAL_PROMPT = (
     "Do you want to remove the legacy 'atvs' entry (the app won't start"
     " with it present)? (y/n) "
 )
 PAIRING_CODE_PROMPT = "Enter pairing code (found in Settings - Link with TV code): "
 ADD_MORE_DEVICES_PROMPT = "Paired with {num_devices} Device(s). Add more? (y/n) "
 CHANGE_API_KEY_PROMPT = "API key already specified. Change it? (y/n) "
-ADD_API_KEY_PROMPT = "API key only needed for the channel whitelist function. Add it? (y/n) "
+ADD_API_KEY_PROMPT = (
+    "API key only needed for the channel whitelist function. Add it? (y/n) "
+)
 ENTER_API_KEY_PROMPT = "Enter your API key: "
 CHANGE_SKIP_CATEGORIES_PROMPT = "Skip categories already specified. Change them? (y/n) "
 ENTER_SKIP_CATEGORIES_PROMPT = (
@@ -20,7 +22,9 @@ ENTER_SKIP_CATEGORIES_PROMPT = (
     " selfpromo, exclusive_access, interaction, poi_highlight, intro, outro,"
     " preview, filler, music_offtopic]:\n"
 )
-WHITELIST_CHANNELS_PROMPT = "Do you want to whitelist any channels from being ad-blocked? (y/n) "
+WHITELIST_CHANNELS_PROMPT = (
+    "Do you want to whitelist any channels from being ad-blocked? (y/n) "
+)
 SEARCH_CHANNEL_PROMPT = 'Enter a channel name or "/exit" to exit: '
 SELECT_CHANNEL_PROMPT = "Select one option of the above [0-6]: "
 ENTER_CHANNEL_ID_PROMPT = "Enter a channel ID: "
@@ -38,6 +42,7 @@ def get_yn_input(prompt):
         if choice.lower() in ["y", "n"]:
             return choice.lower()
         print("Invalid input. Please enter 'y' or 'n'.")
+
 
 async def pair_device():
     try:
@@ -181,6 +186,6 @@ def main(config, debug: bool) -> None:
 
     choice = get_yn_input(SKIP_ADS_PROMPT)
     config.skip_ads = choice == "y"
-    
+
     print("Config finished")
     config.save()
