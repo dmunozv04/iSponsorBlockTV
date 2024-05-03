@@ -4,13 +4,45 @@ import aiohttp
 
 from . import api_helpers, ytlounge
 
+# Constants for user input prompts
+ATVS_REMOVAL_PROMPT = ( 
+    "Do you want to remove the legacy 'atvs' entry (the app won't start"
+    " with it present)? (y/n) "
+)
+PAIRING_CODE_PROMPT = "Enter pairing code (found in Settings - Link with TV code): "
+ADD_MORE_DEVICES_PROMPT = "Paired with {num_devices} Device(s). Add more? (y/n) "
+CHANGE_API_KEY_PROMPT = "API key already specified. Change it? (y/n) "
+ADD_API_KEY_PROMPT = "API key only needed for the channel whitelist function. Add it? (y/n) "
+ENTER_API_KEY_PROMPT = "Enter your API key: "
+CHANGE_SKIP_CATEGORIES_PROMPT = "Skip categories already specified. Change them? (y/n) "
+ENTER_SKIP_CATEGORIES_PROMPT = (
+    "Enter skip categories (space or comma sepparated) Options: [sponsor,"
+    " selfpromo, exclusive_access, interaction, poi_highlight, intro, outro,"
+    " preview, filler, music_offtopic]:\n"
+)
+WHITELIST_CHANNELS_PROMPT = "Do you want to whitelist any channels from being ad-blocked? (y/n) "
+SEARCH_CHANNEL_PROMPT = 'Enter a channel name or "/exit" to exit: '
+SELECT_CHANNEL_PROMPT = "Select one option of the above [0-6]: "
+ENTER_CHANNEL_ID_PROMPT = "Enter a channel ID: "
+ENTER_CUSTOM_CHANNEL_NAME_PROMPT = "Enter the channel name: "
+REPORT_SKIPPED_SEGMENTS_PROMPT = (
+    "Do you want to report skipped segments to sponsorblock. Only the segment"
+    " UUID will be sent? (y/n) "
+)
+MUTE_ADS_PROMPT = "Do you want to mute native YouTube ads automatically? (y/n) "
+SKIP_ADS_PROMPT = "Do you want to skip native YouTube ads automatically? (y/n) "
+
+
+def get_yn_input(prompt):
+    while choice := input(prompt):
+        if choice.lower() in ["y", "n"]:
+            return choice.lower()
+        print("Invalid input. Please enter 'y' or 'n'.")
 
 async def pair_device():
     try:
         lounge_controller = ytlounge.YtLoungeApi("iSponsorBlockTV")
-        pairing_code = input(
-            "Enter pairing code (found in Settings - Link with TV code): "
-        )
+        pairing_code = input(PAIRING_CODE_PROMPT)
         pairing_code = int(
             pairing_code.replace("-", "").replace(" ", "")
         )  # remove dashes and spaces
@@ -42,59 +74,47 @@ def main(config, debug: bool) -> None:
             " this for more information on how to upgrade to V2:"
             " \nhttps://github.com/dmunozv04/iSponsorBlockTV/wiki/Migrate-from-V1-to-V2"
         )
-        if (
-            input(
-                "Do you want to remove the legacy 'atvs' entry (the app won't start"
-                " with it present)? (y/n) "
-            )
-            == "y"
-        ):
+        choice = get_yn_input(ATVS_REMOVAL_PROMPT)
+        if choice == "y":
             del config["atvs"]
+
     devices = config.devices
-    while not input(f"Paired with {len(devices)} Device(s). Add more? (y/n) ") == "n":
+    choice = get_yn_input(ADD_MORE_DEVICES_PROMPT.format(num_devices=len(devices)))
+    while choice == "y":
         task = loop.create_task(pair_device())
         loop.run_until_complete(task)
         device = task.result()
         if device:
             devices.append(device)
+        choice = get_yn_input(ADD_MORE_DEVICES_PROMPT.format(num_devices=len(devices)))
     config.devices = devices
 
     apikey = config.apikey
     if apikey:
-        if input("API key already specified. Change it? (y/n) ") == "y":
-            apikey = input("Enter your API key: ")
+        choice = get_yn_input(CHANGE_API_KEY_PROMPT)
+        if choice == "y":
+            apikey = input(ENTER_API_KEY_PROMPT)
     else:
-        if (
-            input(
-                "API key only needed for the channel whitelist function. Add it? (y/n) "
-            )
-            == "y"
-        ):
+        choice = get_yn_input(ADD_API_KEY_PROMPT)
+        if choice == "y":
             print(
                 "Get youtube apikey here:"
                 " https://developers.google.com/youtube/registering_an_application"
             )
-            apikey = input("Enter your API key: ")
+            apikey = input(ENTER_API_KEY_PROMPT)
     config.apikey = apikey
 
     skip_categories = config.skip_categories
     if skip_categories:
-        if input("Skip categories already specified. Change them? (y/n) ") == "y":
-            categories = input(
-                "Enter skip categories (space or comma sepparated) Options: [sponsor"
-                " selfpromo exclusive_access interaction poi_highlight intro outro"
-                " preview filler music_offtopic]:\n"
-            )
+        choice = get_yn_input(CHANGE_SKIP_CATEGORIES_PROMPT)
+        if choice == "y":
+            categories = input(ENTER_SKIP_CATEGORIES_PROMPT)
             skip_categories = categories.replace(",", " ").split(" ")
             skip_categories = [
                 x for x in skip_categories if x != ""
             ]  # Remove empty strings
     else:
-        categories = input(
-            "Enter skip categories (space or comma sepparated) Options: [sponsor,"
-            " selfpromo, exclusive_access, interaction, poi_highlight, intro, outro,"
-            " preview, filler, music_offtopic:\n"
-        )
+        categories = input(ENTER_SKIP_CATEGORIES_PROMPT)
         skip_categories = categories.replace(",", " ").split(" ")
         skip_categories = [
             x for x in skip_categories if x != ""
@@ -102,10 +122,8 @@ def main(config, debug: bool) -> None:
     config.skip_categories = skip_categories
 
     channel_whitelist = config.channel_whitelist
-    if (
-        input("Do you want to whitelist any channels from being ad-blocked? (y/n) ")
-        == "y"
-    ):
+    choice = get_yn_input(WHITELIST_CHANNELS_PROMPT)
+    if choice == "y":
         if not apikey:
             print(
                 "WARNING: You need to specify an API key to use this function,"
@@ -116,7 +134,7 @@ def main(config, debug: bool) -> None:
         api_helper = api_helpers.ApiHelper(config, web_session)
         while True:
             channel_info = {}
-            channel = input('Enter a channel name or "/exit" to exit: ')
+            channel = input(SEARCH_CHANNEL_PROMPT)
             if channel == "/exit":
                 break
 
@@ -134,15 +152,14 @@ def main(config, debug: bool) -> None:
             print("5: Enter a custom channel ID")
             print("6: Go back")
 
-            choice = -1
-            choice = input("Select one option of the above [0-6]: ")
-            while choice not in [str(x) for x in range(7)]:
+            while choice := input(SELECT_CHANNEL_PROMPT):
+                if choice in [str(x) for x in range(7)]:
+                    break
                 print("Invalid choice")
-                choice = input("Select one option of the above [0-6]: ")
 
             if choice == "5":
-                channel_info["id"] = input("Enter a channel ID: ")
-                channel_info["name"] = input("Enter the channel name: ")
+                channel_info["id"] = input(ENTER_CHANNEL_ID_PROMPT)
+                channel_info["name"] = input(ENTER_CUSTOM_CHANNEL_NAME_PROMPT)
                 channel_whitelist.append(channel_info)
                 continue
             if choice == "6":
@@ -156,12 +173,14 @@ def main(config, debug: bool) -> None:
 
     config.channel_whitelist = channel_whitelist
 
-    config.skip_count_tracking = (
-        not input(
-            "Do you want to report skipped segments to sponsorblock. Only the segment"
-            " UUID will be sent? (y/n) "
-        )
-        == "n"
-    )
+    choice = get_yn_input(REPORT_SKIPPED_SEGMENTS_PROMPT)
+    config.skip_count_tracking = choice == "y"
+
+    choice = get_yn_input(MUTE_ADS_PROMPT)
+    config.mute_ads = choice == "y"
+
+    choice = get_yn_input(SKIP_ADS_PROMPT)
+    config.skip_ads = choice == "y"
+    
     print("Config finished")
     config.save()
