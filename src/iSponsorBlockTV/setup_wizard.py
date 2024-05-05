@@ -235,7 +235,7 @@ class AddDevice(ModalWithClickExit):
         super().__init__(**kwargs)
         self.config = config
         self.web_session = aiohttp.ClientSession()
-        self.api_helper = api_helpers.ApiHelper(config, web_session)
+        self.api_helper = api_helpers.ApiHelper(config, self.web_session)
         self.devices_discovered_dial = []
 
     def compose(self) -> ComposeResult:
