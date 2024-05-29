@@ -1,8 +1,8 @@
-from aiohttp import ClientSession
 import asyncio
 import json
 
 import pyytlounge
+from aiohttp import ClientSession
 
 from .constants import youtube_client_blacklist
 
@@ -10,8 +10,14 @@ create_task = asyncio.create_task
 
 
 class YtLoungeApi(pyytlounge.YtLoungeApi):
-    def __init__(self, screen_id, config=None, api_helper=None, logger=None,
-                 web_session: ClientSession = None):
+    def __init__(
+        self,
+        screen_id,
+        config=None,
+        api_helper=None,
+        logger=None,
+        web_session: ClientSession = None,
+    ):
         super().__init__("iSponsorBlockTV", logger=logger)
         if web_session is not None:
             self.session = web_session  # And use the one we passed
@@ -79,13 +85,13 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 self.logger.info("Ad has ended, unmuting")
                 create_task(self.mute(False, override=True))
             elif (
-                    self.skip_ads and data["isSkipEnabled"] == "true"
+                self.skip_ads and data["isSkipEnabled"] == "true"
             ):  # YouTube uses strings for booleans
                 self.logger.info("Ad can be skipped, skipping")
                 create_task(self.skip_ad())
                 create_task(self.mute(False, override=True))
             elif (
-                    self.mute_ads
+                self.mute_ads
             ):  # Seen multiple other adStates, assuming they are all ads
                 self.logger.info("Ad has started, muting")
                 create_task(self.mute(True, override=True))
@@ -96,7 +102,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         # Gets segments for the next video before it starts playing
         elif event_type == "autoplayUpNext":
             if len(args) > 0 and (
-                    vid_id := args[0]["videoId"]
+                vid_id := args[0]["videoId"]
             ):  # if video id is not empty
                 self.logger.info(f"Getting segments for next video: {vid_id}")
                 create_task(self.api_helper.get_segments(vid_id))
@@ -109,13 +115,13 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 self.logger.info(f"Getting segments for next video: {vid_id}")
                 create_task(self.api_helper.get_segments(vid_id))
             elif (
-                    self.skip_ads and data["isSkipEnabled"] == "true"
+                self.skip_ads and data["isSkipEnabled"] == "true"
             ):  # YouTube uses strings for booleans
                 self.logger.info("Ad can be skipped, skipping")
                 create_task(self.skip_ad())
                 create_task(self.mute(False, override=True))
             elif (
-                    self.mute_ads
+                self.mute_ads
             ):  # Seen multiple other adStates, assuming they are all ads
                 self.logger.info("Ad has started, muting")
                 create_task(self.mute(True, override=True))
@@ -126,8 +132,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             for device in devices:
                 if device["type"] == "LOUNGE_SCREEN":
                     device_info = json.loads(device.get("deviceInfo", "{}"))
-                    if device_info.get("clientName",
-                                       "") in youtube_client_blacklist:
+                    if device_info.get("clientName", "") in youtube_client_blacklist:
                         self._sid = None
                         self._gsession = None  # Force disconnect
 
@@ -139,8 +144,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 create_task(self.play_video(video_id_saved))
         elif event_type == "loungeScreenDisconnected":
             data = args[0]
-            if data[
-                "reason"] == "disconnectedByUserScreenInitiated":  # Short playing?
+            if data["reason"] == "disconnectedByUserScreenInitiated":  # Short playing?
                 self.shorts_disconnected = True
 
         super()._process_event(event_id, event_type, args)
@@ -158,20 +162,17 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             mute_str = "true"
         else:
             mute_str = "false"
-        if override or not (
-                self.volume_state.get("muted", "false") == mute_str):
+        if override or not (self.volume_state.get("muted", "false") == mute_str):
             self.volume_state["muted"] = mute_str
             # YouTube wants the volume when unmuting, so we send it
             await super()._command(
                 "setVolume",
-                {"volume": self.volume_state.get("volume", 100),
-                 "muted": mute_str},
+                {"volume": self.volume_state.get("volume", 100), "muted": mute_str},
             )
 
     async def set_auto_play_mode(self, enabled: bool):
         await super()._command(
-            "setAutoplayMode",
-            {"autoplayMode": "ENABLED" if enabled else "DISABLED"}
+            "setAutoplayMode", {"autoplayMode": "ENABLED" if enabled else "DISABLED"}
         )
 
     async def play_video(self, video_id: str) -> bool:

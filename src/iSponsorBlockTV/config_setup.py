@@ -7,8 +7,9 @@ from . import api_helpers, ytlounge
 
 async def pair_device(web_session):
     try:
-        lounge_controller = ytlounge.YtLoungeApi("iSponsorBlockTV",
-                                                 web_session=web_session)
+        lounge_controller = ytlounge.YtLoungeApi(
+            "iSponsorBlockTV", web_session=web_session
+        )
         pairing_code = input(
             "Enter pairing code (found in Settings - Link with TV code): "
         )
@@ -45,16 +46,15 @@ def main(config, debug: bool) -> None:
             " \nhttps://github.com/dmunozv04/iSponsorBlockTV/wiki/Migrate-from-V1-to-V2"
         )
         if (
-                input(
-                    "Do you want to remove the legacy 'atvs' entry (the app won't start"
-                    " with it present)? (y/n) "
-                )
-                == "y"
+            input(
+                "Do you want to remove the legacy 'atvs' entry (the app won't start"
+                " with it present)? (y/n) "
+            )
+            == "y"
         ):
             del config["atvs"]
     devices = config.devices
-    while not input(
-            f"Paired with {len(devices)} Device(s). Add more? (y/n) ") == "n":
+    while not input(f"Paired with {len(devices)} Device(s). Add more? (y/n) ") == "n":
         task = loop.create_task(pair_device(web_session))
         loop.run_until_complete(task)
         device = task.result()
@@ -68,10 +68,10 @@ def main(config, debug: bool) -> None:
             apikey = input("Enter your API key: ")
     else:
         if (
-                input(
-                    "API key only needed for the channel whitelist function. Add it? (y/n) "
-                )
-                == "y"
+            input(
+                "API key only needed for the channel whitelist function. Add it? (y/n) "
+            )
+            == "y"
         ):
             print(
                 "Get youtube apikey here:"
@@ -82,8 +82,7 @@ def main(config, debug: bool) -> None:
 
     skip_categories = config.skip_categories
     if skip_categories:
-        if input(
-                "Skip categories already specified. Change them? (y/n) ") == "y":
+        if input("Skip categories already specified. Change them? (y/n) ") == "y":
             categories = input(
                 "Enter skip categories (space or comma sepparated) Options: [sponsor"
                 " selfpromo exclusive_access interaction poi_highlight intro outro"
@@ -107,9 +106,8 @@ def main(config, debug: bool) -> None:
 
     channel_whitelist = config.channel_whitelist
     if (
-            input(
-                "Do you want to whitelist any channels from being ad-blocked? (y/n) ")
-            == "y"
+        input("Do you want to whitelist any channels from being ad-blocked? (y/n) ")
+        == "y"
     ):
         if not apikey:
             print(
@@ -164,7 +162,7 @@ def main(config, debug: bool) -> None:
             "Do you want to report skipped segments to sponsorblock. Only the segment"
             " UUID will be sent? (y/n) "
         )
-            == "n"
+        == "n"
     )
     print("Config finished")
     config.save()
