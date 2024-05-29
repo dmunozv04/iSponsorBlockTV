@@ -2,6 +2,7 @@ import asyncio
 import json
 
 import pyytlounge
+from aiohttp import ClientSession
 
 from .constants import youtube_client_blacklist
 
@@ -9,8 +10,17 @@ create_task = asyncio.create_task
 
 
 class YtLoungeApi(pyytlounge.YtLoungeApi):
-    def __init__(self, screen_id, config=None, api_helper=None, logger=None):
+    def __init__(
+        self,
+        screen_id,
+        config=None,
+        api_helper=None,
+        logger=None,
+        web_session: ClientSession = None,
+    ):
         super().__init__("iSponsorBlockTV", logger=logger)
+        if web_session is not None:
+            self.session = web_session  # And use the one we passed
         self.auth.screen_id = screen_id
         self.auth.lounge_id_token = None
         self.api_helper = api_helper

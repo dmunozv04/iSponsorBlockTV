@@ -5,9 +5,11 @@ import aiohttp
 from . import api_helpers, ytlounge
 
 
-async def pair_device():
+async def pair_device(web_session):
     try:
-        lounge_controller = ytlounge.YtLoungeApi("iSponsorBlockTV")
+        lounge_controller = ytlounge.YtLoungeApi(
+            "iSponsorBlockTV", web_session=web_session
+        )
         pairing_code = input(
             "Enter pairing code (found in Settings - Link with TV code): "
         )
@@ -33,6 +35,7 @@ async def pair_device():
 def main(config, debug: bool) -> None:
     print("Welcome to the iSponsorBlockTV cli setup wizard")
     loop = asyncio.get_event_loop_policy().get_event_loop()
+    web_session = aiohttp.ClientSession()
     if debug:
         loop.set_debug(True)
     asyncio.set_event_loop(loop)
@@ -52,7 +55,7 @@ def main(config, debug: bool) -> None:
             del config["atvs"]
     devices = config.devices
     while not input(f"Paired with {len(devices)} Device(s). Add more? (y/n) ") == "n":
-        task = loop.create_task(pair_device())
+        task = loop.create_task(pair_device(web_session))
         loop.run_until_complete(task)
         device = task.result()
         if device:
@@ -112,7 +115,6 @@ def main(config, debug: bool) -> None:
                 " otherwise the program will fail to start.\nYou can add one by"
                 " re-running this setup wizard."
             )
-        web_session = aiohttp.ClientSession()
         api_helper = api_helpers.ApiHelper(config, web_session)
         while True:
             channel_info = {}
@@ -152,7 +154,6 @@ def main(config, debug: bool) -> None:
             channel_info["name"] = results[int(choice)][1]
             channel_whitelist.append(channel_info)
         # Close web session asynchronously
-        loop.run_until_complete(web_session.close())
 
     config.channel_whitelist = channel_whitelist
 
@@ -165,3 +166,4 @@ def main(config, debug: bool) -> None:
     )
     print("Config finished")
     config.save()
+    loop.run_until_complete(web_session.close())
