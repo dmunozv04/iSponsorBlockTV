@@ -858,9 +858,7 @@ class AutoPlayManager(Vertical):
     def compose(self) -> ComposeResult:
         yield Label("Autoplay", classes="title")
         yield Label(
-            (
-                "This feature allows you to enable/disable autoplay"
-            ),
+            "This feature allows you to enable/disable autoplay",
             classes="subtitle",
             id="autoplay-subtitle",
         )
