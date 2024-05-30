@@ -848,6 +848,34 @@ class ChannelWhitelistManager(Vertical):
         self.app.push_screen(AddChannel(self.config), callback=self.new_channel)
 
 
+class AutoPlayManager(Vertical):
+    """Manager for autoplay, allows enabling/disabling autoplay."""
+
+    def __init__(self, config, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.config = config
+
+    def compose(self) -> ComposeResult:
+        yield Label("Autoplay", classes="title")
+        yield Label(
+            (
+                "This feature allows you to enable/disable autoplay"
+            ),
+            classes="subtitle",
+            id="autoplay-subtitle",
+        )
+        with Horizontal(id="autoplay-container"):
+            yield Checkbox(
+                value=self.config.auto_play,
+                id="autoplay-switch",
+                label="Enable autoplay",
+            )
+
+    @on(Checkbox.Changed, "#autoplay-switch")
+    def changed_skip(self, event: Checkbox.Changed):
+        self.config.auto_play = event.checkbox.value
+
+
 class ISponsorBlockTVSetupMainScreen(Screen):
     """Making this a separate screen to avoid a bug: https://github.com/Textualize/textual/issues/3221"""
 
@@ -883,6 +911,9 @@ class ISponsorBlockTVSetupMainScreen(Screen):
             )
             yield ApiKeyManager(
                 config=self.config, id="api-key-manager", classes="container"
+            )
+            yield AutoPlayManager(
+                config=self.config, id="autoplay-manager", classes="container"
             )
 
     def on_mount(self) -> None:

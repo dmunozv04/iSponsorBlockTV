@@ -41,6 +41,7 @@ class Config:
         self.skip_count_tracking = True
         self.mute_ads = False
         self.skip_ads = False
+        self.auto_play = True
         self.__load()
 
     def validate(self):

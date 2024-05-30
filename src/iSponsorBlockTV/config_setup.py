@@ -163,5 +163,12 @@ def main(config, debug: bool) -> None:
         )
         == "n"
     )
+
+    config.auto_play = (
+        not input(
+            "Do you want to enable autoplay? (y/n) "
+        )
+        == "n"
+    )
     print("Config finished")
     config.save()

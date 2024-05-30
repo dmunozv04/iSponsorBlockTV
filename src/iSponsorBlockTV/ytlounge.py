@@ -20,9 +20,11 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         self.callback = None
         self.logger = logger
         self.shorts_disconnected = False
+        self.auto_play = True
         if config:
             self.mute_ads = config.mute_ads
             self.skip_ads = config.skip_ads
+            self.auto_play = config.auto_play
 
     # Ensures that we still are subscribed to the lounge
     async def _watchdog(self):
@@ -136,6 +138,8 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             data = args[0]
             if data["reason"] == "disconnectedByUserScreenInitiated":  # Short playing?
                 self.shorts_disconnected = True
+        elif event_type == "onAutoplayModeChanged":
+            create_task(self.set_auto_play_mode(self.auto_play))
 
         super()._process_event(event_id, event_type, args)
 
