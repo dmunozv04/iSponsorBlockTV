@@ -27,6 +27,7 @@ class ApiHelper:
         self.skip_count_tracking = config.skip_count_tracking
         self.web_session = web_session
         self.num_devices = len(config.devices)
+        self.minimum_skip_length = config.minimum_skip_length
 
     # Not used anymore, maybe it can stay here a little longer
     @AsyncLRU(maxsize=10)
@@ -147,10 +148,10 @@ class ApiHelper:
             if str(i["videoID"]) == str(vid_id):
                 response_json = i
                 break
-        return self.process_segments(response_json)
+        return self.process_segments(self, response_json)
 
     @staticmethod
-    def process_segments(response):
+    def process_segments(self, response):
         segments = []
         ignore_ttl = True
         try:
@@ -192,7 +193,9 @@ class ApiHelper:
                     segment_dict["start"] = segment_before_start
                     segment_dict["UUID"].extend(segment_before_UUID)
                     segments.pop()
-                segments.append(segment_dict)
+                # Only add segments greater than minimum skip length
+                if segment_dict["end"]-segment_dict["start"] > self.minimum_skip_length:
+                    segments.append(segment_dict)
         except BaseException:
             pass
         return segments, ignore_ttl

@@ -182,6 +182,26 @@ def main(config, debug: bool) -> None:
 
     config.channel_whitelist = channel_whitelist
 
+    # Ask for minimum skip length. Confirm input is an integer
+    while True:
+        try:
+            minimum_skip_length = int(input('Enter minimum length of segment to skip in seconds: '))
+            break
+        except ValueError:
+            print('You entered a non integer value, try again.')
+            continue
+    config.minimum_skip_length = minimum_skip_length
+
+    # Ask for minimum skip length. Confirm input is an integer
+    while True:
+        try:
+            minimum_skip_length = int(input('Enter minimum length of segment to skip in seconds: '))
+            break
+        except ValueError:
+            print('You entered a non integer value, try again.')
+            continue
+    config.minimum_skip_length = minimum_skip_length
+
     choice = get_yn_input(REPORT_SKIPPED_SEGMENTS_PROMPT)
     config.skip_count_tracking = choice != "n"
 
