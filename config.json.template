@@ -12,6 +12,7 @@
     "skip_count_tracking": true,
     "mute_ads": true,
     "skip_ads": true,
+    "minimum_skip_length": 1,
     "apikey": "",
     "channel_whitelist": [
         {"id": "",

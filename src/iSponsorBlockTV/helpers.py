@@ -41,6 +41,7 @@ class Config:
         self.skip_count_tracking = True
         self.mute_ads = False
         self.skip_ads = False
+        self.minimum_skip_length = 1
         self.__load()
 
     def validate(self):

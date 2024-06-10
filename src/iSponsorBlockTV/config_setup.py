@@ -157,6 +157,16 @@ def main(config, debug: bool) -> None:
 
     config.channel_whitelist = channel_whitelist
 
+    # Ask for minimum skip length. Confirm input is an integer
+    while True:
+        try:
+            minimum_skip_length = int(input('Enter minimum length of segment to skip in seconds: '))
+            break
+        except ValueError:
+            print('You entered a non integer value, try again.')
+            continue
+    config.minimum_skip_length = minimum_skip_length
+
     config.skip_count_tracking = (
         not input(
             "Do you want to report skipped segments to sponsorblock. Only the segment"
