@@ -185,17 +185,21 @@ def main(config, debug: bool) -> None:
     # Ask for minimum skip length. Confirm input is an integer
     while True:
         try:
-            minimum_skip_length = int(input('Enter minimum length of segment to skip in seconds: '))
+            minimum_skip_length = int(
+                input("Enter minimum length of segment to skip in seconds: ")
+            )
             break
         except ValueError:
-            print('You entered a non integer value, try again.')
+            print("You entered a non integer value, try again.")
             continue
     config.minimum_skip_length = minimum_skip_length
 
     # Ask for minimum skip length. Confirm input is an integer
     while True:
         try:
-            minimum_skip_length = int(input('Enter minimum length of segment to skip in seconds: '))
+            minimum_skip_length = int(
+                input("Enter minimum length of segment to skip in seconds: ")
+            )
             break
         except ValueError:
             print('You entered a non integer value, try again.')
