@@ -193,7 +193,10 @@ class ApiHelper:
                     segment_dict["UUID"].extend(segment_before_UUID)
                     segments.pop()
                 # Only add segments greater than minimum skip length
-                if segment_dict["end"]-segment_dict["start"] > self.minimum_skip_length:
+                if (
+                    segment_dict["end"] - segment_dict["start"]
+                    > self.minimum_skip_length
+                ):
                     segments.append(segment_dict)
         except Exception:
             pass
