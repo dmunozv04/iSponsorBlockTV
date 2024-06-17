@@ -52,13 +52,13 @@ class DeviceListener:
     # Main subscription loop
     async def loop(self):
         lounge_controller = self.lounge_controller
-        while not lounge_controller.linked():
-            try:
-                self.logger.debug("Refreshing auth")
-                await lounge_controller.refresh_auth()
-            except:
-                await asyncio.sleep(10)
         while not self.cancelled:
+            while not lounge_controller.linked():
+                try:
+                    self.logger.debug("Refreshing auth")
+                    await lounge_controller.refresh_auth()
+                except:
+                    await asyncio.sleep(10)
             while not (await self.is_available()) and not self.cancelled:
                 await asyncio.sleep(10)
             try:
