@@ -148,10 +148,10 @@ class ApiHelper:
             if str(i["videoID"]) == str(vid_id):
                 response_json = i
                 break
-        return self.process_segments(self, response_json)
+        return self.process_segments(response_json, minimum_skip_length)
 
     @staticmethod
-    def process_segments(self, response):
+    def process_segments(response, minimum_skip_length):
         segments = []
         ignore_ttl = True
         try:
@@ -194,7 +194,7 @@ class ApiHelper:
                     segment_dict["UUID"].extend(segment_before_UUID)
                     segments.pop()
                 # Only add segments greater than minimum skip length
-                if segment_dict["end"]-segment_dict["start"] > self.minimum_skip_length:
+                if segment_dict["end"]-segment_dict["start"] > minimum_skip_length:
                     segments.append(segment_dict)
         except BaseException:
             pass
