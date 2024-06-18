@@ -148,7 +148,7 @@ class ApiHelper:
             if str(i["videoID"]) == str(vid_id):
                 response_json = i
                 break
-        return self.process_segments(response_json, minimum_skip_length)
+        return self.process_segments(response_json, self.minimum_skip_length)
 
     @staticmethod
     def process_segments(response, minimum_skip_length):
