@@ -363,3 +363,9 @@ MigrationScreen {
     width: 1fr;
     content-align: center middle;
 }
+
+/* Autoplay */
+#autoplay-container{
+    padding: 1;
+    height: auto;
+}
