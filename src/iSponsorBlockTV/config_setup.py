@@ -7,23 +7,23 @@ from . import api_helpers, ytlounge
 # Constants for user input prompts
 ATVS_REMOVAL_PROMPT = (
     "Do you want to remove the legacy 'atvs' entry (the app won't start"
-    " with it present)? (y/n) "
+    " with it present)? (y/N) "
 )
 PAIRING_CODE_PROMPT = "Enter pairing code (found in Settings - Link with TV code): "
-ADD_MORE_DEVICES_PROMPT = "Paired with {num_devices} Device(s). Add more? (y/n) "
-CHANGE_API_KEY_PROMPT = "API key already specified. Change it? (y/n) "
+ADD_MORE_DEVICES_PROMPT = "Paired with {num_devices} Device(s). Add more? (y/N) "
+CHANGE_API_KEY_PROMPT = "API key already specified. Change it? (y/N) "
 ADD_API_KEY_PROMPT = (
-    "API key only needed for the channel whitelist function. Add it? (y/n) "
+    "API key only needed for the channel whitelist function. Add it? (y/N) "
 )
 ENTER_API_KEY_PROMPT = "Enter your API key: "
-CHANGE_SKIP_CATEGORIES_PROMPT = "Skip categories already specified. Change them? (y/n) "
+CHANGE_SKIP_CATEGORIES_PROMPT = "Skip categories already specified. Change them? (y/N) "
 ENTER_SKIP_CATEGORIES_PROMPT = (
     "Enter skip categories (space or comma sepparated) Options: [sponsor,"
     " selfpromo, exclusive_access, interaction, poi_highlight, intro, outro,"
     " preview, filler, music_offtopic]:\n"
 )
 WHITELIST_CHANNELS_PROMPT = (
-    "Do you want to whitelist any channels from being ad-blocked? (y/n) "
+    "Do you want to whitelist any channels from being ad-blocked? (y/N) "
 )
 SEARCH_CHANNEL_PROMPT = 'Enter a channel name or "/exit" to exit: '
 SELECT_CHANNEL_PROMPT = "Select one option of the above [0-6]: "
@@ -31,11 +31,11 @@ ENTER_CHANNEL_ID_PROMPT = "Enter a channel ID: "
 ENTER_CUSTOM_CHANNEL_NAME_PROMPT = "Enter the channel name: "
 REPORT_SKIPPED_SEGMENTS_PROMPT = (
     "Do you want to report skipped segments to sponsorblock. Only the segment"
-    " UUID will be sent? (y/n) "
+    " UUID will be sent? (Y/n) "
 )
-MUTE_ADS_PROMPT = "Do you want to mute native YouTube ads automatically? (y/n) "
-SKIP_ADS_PROMPT = "Do you want to skip native YouTube ads automatically? (y/n) "
-AUTOPLAY_PROMPT = "Do you want to enable autoplay? (y/n) "
+MUTE_ADS_PROMPT = "Do you want to mute native YouTube ads automatically? (y/N) "
+SKIP_ADS_PROMPT = "Do you want to skip native YouTube ads automatically? (y/N) "
+AUTOPLAY_PROMPT = "Do you want to enable autoplay? (Y/n) "
 
 
 def get_yn_input(prompt):
@@ -179,7 +179,7 @@ def main(config, debug: bool) -> None:
     config.channel_whitelist = channel_whitelist
 
     choice = get_yn_input(REPORT_SKIPPED_SEGMENTS_PROMPT)
-    config.skip_count_tracking = choice == "y"
+    config.skip_count_tracking = choice != "n"
 
     choice = get_yn_input(MUTE_ADS_PROMPT)
     config.mute_ads = choice == "y"
@@ -188,7 +188,7 @@ def main(config, debug: bool) -> None:
     config.skip_ads = choice == "y"
 
     choice = get_yn_input(AUTOPLAY_PROMPT)
-    config.auto_play = choice == "y"
+    config.auto_play = choice != "n"
 
     print("Config finished")
     config.save()
