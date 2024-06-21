@@ -2,6 +2,7 @@ import asyncio
 import json
 
 import pyytlounge
+from aiohttp import ClientSession
 
 from .constants import youtube_client_blacklist
 
@@ -9,8 +10,17 @@ create_task = asyncio.create_task
 
 
 class YtLoungeApi(pyytlounge.YtLoungeApi):
-    def __init__(self, screen_id, config=None, api_helper=None, logger=None):
+    def __init__(
+        self,
+        screen_id,
+        config=None,
+        api_helper=None,
+        logger=None,
+        web_session: ClientSession = None,
+    ):
         super().__init__("iSponsorBlockTV", logger=logger)
+        if web_session is not None:
+            self.session = web_session  # And use the one we passed
         self.auth.screen_id = screen_id
         self.auth.lounge_id_token = None
         self.api_helper = api_helper
@@ -20,9 +30,11 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         self.callback = None
         self.logger = logger
         self.shorts_disconnected = False
+        self.auto_play = True
         if config:
             self.mute_ads = config.mute_ads
             self.skip_ads = config.skip_ads
+            self.auto_play = config.auto_play
 
     # Ensures that we still are subscribed to the lounge
     async def _watchdog(self):
@@ -136,6 +148,8 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             data = args[0]
             if data["reason"] == "disconnectedByUserScreenInitiated":  # Short playing?
                 self.shorts_disconnected = True
+        elif event_type == "onAutoplayModeChanged":
+            create_task(self.set_auto_play_mode(self.auto_play))
 
         super()._process_event(event_id, event_type, args)
 

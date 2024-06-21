@@ -35,7 +35,7 @@ REPORT_SKIPPED_SEGMENTS_PROMPT = (
 )
 MUTE_ADS_PROMPT = "Do you want to mute native YouTube ads automatically? (y/n) "
 SKIP_ADS_PROMPT = "Do you want to skip native YouTube ads automatically? (y/n) "
-
+AUTOPLAY_PROMPT = "Do you want to enable autoplay? (y/n) "
 
 def get_yn_input(prompt):
     while choice := input(prompt):
@@ -70,6 +70,7 @@ async def pair_device():
 def main(config, debug: bool) -> None:
     print("Welcome to the iSponsorBlockTV cli setup wizard")
     loop = asyncio.get_event_loop_policy().get_event_loop()
+    web_session = aiohttp.ClientSession()
     if debug:
         loop.set_debug(True)
     asyncio.set_event_loop(loop)
@@ -135,7 +136,6 @@ def main(config, debug: bool) -> None:
                 " otherwise the program will fail to start.\nYou can add one by"
                 " re-running this setup wizard."
             )
-        web_session = aiohttp.ClientSession()
         api_helper = api_helpers.ApiHelper(config, web_session)
         while True:
             channel_info = {}
@@ -174,7 +174,6 @@ def main(config, debug: bool) -> None:
             channel_info["name"] = results[int(choice)][1]
             channel_whitelist.append(channel_info)
         # Close web session asynchronously
-        loop.run_until_complete(web_session.close())
 
     config.channel_whitelist = channel_whitelist
 
@@ -186,6 +185,10 @@ def main(config, debug: bool) -> None:
 
     choice = get_yn_input(SKIP_ADS_PROMPT)
     config.skip_ads = choice == "y"
+    
+    choice = get_yn_input(AUTOPLAY_PROMPT)
+    config.auto_play = choice == "y"
 
     print("Config finished")
     config.save()
+    loop.run_until_complete(web_session.close())
