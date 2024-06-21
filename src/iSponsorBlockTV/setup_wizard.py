@@ -234,8 +234,8 @@ class AddDevice(ModalWithClickExit):
     def __init__(self, config, **kwargs) -> None:
         super().__init__(**kwargs)
         self.config = config
-        web_session = aiohttp.ClientSession()
-        self.api_helper = api_helpers.ApiHelper(config, web_session)
+        self.web_session = aiohttp.ClientSession()
+        self.api_helper = api_helpers.ApiHelper(config, self.web_session)
         self.devices_discovered_dial = []
 
     def compose(self) -> ComposeResult:
@@ -336,7 +336,9 @@ class AddDevice(ModalWithClickExit):
     @on(Button.Pressed, "#add-device-pin-add-button")
     async def handle_add_device_pin(self) -> None:
         self.query_one("#add-device-pin-add-button").disabled = True
-        lounge_controller = ytlounge.YtLoungeApi("iSponsorBlockTV")
+        lounge_controller = ytlounge.YtLoungeApi(
+            "iSponsorBlockTV", web_session=self.web_session
+        )
         pairing_code = self.query_one("#pairing-code-input").value
         pairing_code = int(
             pairing_code.replace("-", "").replace(" ", "")
@@ -858,9 +860,7 @@ class AutoPlayManager(Vertical):
     def compose(self) -> ComposeResult:
         yield Label("Autoplay", classes="title")
         yield Label(
-            (
-                "This feature allows you to enable/disable autoplay"
-            ),
+            "This feature allows you to enable/disable autoplay",
             classes="subtitle",
             id="autoplay-subtitle",
         )
