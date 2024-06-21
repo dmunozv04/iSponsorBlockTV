@@ -864,11 +864,12 @@ class AutoPlayManager(Vertical):
             classes="subtitle",
             id="autoplay-subtitle",
         )
-        yield Checkbox(
-            value=self.config.auto_play,
-            id="autoplay-switch",
-            label="Enable autoplay",
-        )
+        with Horizontal(id="autoplay-container"):
+            yield Checkbox(
+                value=self.config.auto_play,
+                id="autoplay-switch",
+                label="Enable autoplay",
+            )
 
     @on(Checkbox.Changed, "#autoplay-switch")
     def changed_skip(self, event: Checkbox.Changed):
