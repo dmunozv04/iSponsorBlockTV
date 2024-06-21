@@ -37,6 +37,7 @@ MUTE_ADS_PROMPT = "Do you want to mute native YouTube ads automatically? (y/n) "
 SKIP_ADS_PROMPT = "Do you want to skip native YouTube ads automatically? (y/n) "
 AUTOPLAY_PROMPT = "Do you want to enable autoplay? (y/n) "
 
+
 def get_yn_input(prompt):
     while choice := input(prompt):
         if choice.lower() in ["y", "n"]:
@@ -185,7 +186,7 @@ def main(config, debug: bool) -> None:
 
     choice = get_yn_input(SKIP_ADS_PROMPT)
     config.skip_ads = choice == "y"
-    
+
     choice = get_yn_input(AUTOPLAY_PROMPT)
     config.auto_play = choice == "y"
 
