@@ -12,7 +12,7 @@
     "skip_count_tracking": true,
     "mute_ads": true,
     "skip_ads": true,
-    "minimum_skip_length": 1,
+    "minimum_skip_length": 0,
     "auto_play": true,
     "join_name": "iSponsorBlockTV",
     "apikey": "",
