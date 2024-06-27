@@ -42,6 +42,7 @@ class Config:
         self.mute_ads = False
         self.skip_ads = False
         self.minimum_skip_length = 1
+        self.auto_play = True
         self.__load()
 
     def validate(self):
