@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
-FROM python:3.11-alpine3.19 as BASE
+FROM python:3.11-alpine3.19 AS base
 
-FROM base as compiler
+FROM base AS compiler
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ COPY src .
 RUN python3 -m compileall -b -f . && \
     find . -name "*.py" -type f -delete
 
-FROM base as DEP_INSTALLER
+FROM base AS dep_installer
 
 COPY requirements.txt .
 
