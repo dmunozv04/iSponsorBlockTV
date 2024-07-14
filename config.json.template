@@ -12,7 +12,7 @@
     "skip_count_tracking": true,
     "mute_ads": true,
     "skip_ads": true,
-    "autoplay": true,
+    "auto_play": true,
     "apikey": "",
     "channel_whitelist": [
         {"id": "",
