@@ -70,24 +70,22 @@ jobs:
           os: ubuntu-latest
           cross: true
           release_suffix: x86_64-linux
-        # - target: x86_64-unknown-linux-musl
-        #   os: ubuntu-latest
-        #   cross: true
         - target: aarch64-unknown-linux-gnu
           os: ubuntu-latest
           cross: true
           release_suffix: aarch64-linux
-        # - target: i686-unknown-linux-gnu
-        #   os: ubuntu-latest
-        #   cross: true
-        #   release_suffix: i686-linux
+        - target: armv7-unknown-linux-gnueabihf	
+          os: ubuntu-latest
+          cross: true
+          release_suffix: armv7-linux
         # Windows
         - target: x86_64-pc-windows-msvc
           os: windows-2022
           release_suffix: x86_64-windows
-        # - target: i686-pc-windows-msvc
-        #   os: windows-2022
-        #   release_suffix: i686-windows
+        - target: aarch64-pc-windows-msvc
+          os: windows-2022
+          cross: true
+          release_suffix: aarch64-windows
         # macOS
         - target: aarch64-apple-darwin
           os: macos-14
