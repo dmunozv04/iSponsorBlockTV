@@ -1,4 +1,4 @@
-import argparse
+import rich_click as click
 import json
 import logging
 import os
@@ -126,35 +126,59 @@ class Config:
         return False
 
 
-def app_start():
-    # If env has a data dir use that, otherwise use the default
-    default_data_dir = os.getenv("iSPBTV_data_dir") or user_data_dir(
-        "iSponsorBlockTV", "dmunozv04"
-    )
-    parser = argparse.ArgumentParser(description="iSponsorblockTV")
-    parser.add_argument(
-        "--data-dir", "-d", default=default_data_dir, help="data directory"
-    )
-    parser.add_argument(
-        "--setup", "-s", action="store_true", help="setup the program graphically"
-    )
-    parser.add_argument(
-        "--setup-cli",
-        "-sc",
-        action="store_true",
-        help="setup the program in the command line",
-    )
-    parser.add_argument("--debug", action="store_true", help="debug mode")
-    args = parser.parse_args()
-
-    config = Config(args.data_dir)
-    if args.debug:
+@click.group(invoke_without_command=True)
+@click.option('--data', '-d', default=lambda: os.getenv("iSPBTV_data_dir") or user_data_dir("iSponsorBlockTV", "dmunozv04"), help='data directory')
+@click.option('--debug', is_flag=True, help='debug mode')
+#legacy commands as arguments
+@click.option('--setup', is_flag=True, help='Setup the program graphically', hidden=True)
+@click.option('--setup-cli', is_flag=True, help='Setup the program in the command line', hidden=True)
+@click.pass_context
+def cli(ctx, data, debug, setup, setup_cli):
+    """iSponsorblockTV"""
+    ctx.ensure_object(dict)
+    ctx.obj['data_dir'] = data
+    ctx.obj['debug'] = debug
+    if debug:
         logging.basicConfig(level=logging.DEBUG)
-    if args.setup:  # Set up the config file graphically
-        setup_wizard.main(config)
-        sys.exit()
-    if args.setup_cli:  # Set up the config file
-        config_setup.main(config, args.debug)
-    else:
-        config.validate()
-        main.main(config, args.debug)
+    if ctx.invoked_subcommand is None:
+        if setup:
+            ctx.invoke(setup_command)
+        elif setup_cli:
+            ctx.invoke(setup_cli_command)
+        else:
+            ctx.invoke(start)
+
+@cli.command()
+@click.pass_context
+def setup(ctx):
+    """Setup the program graphically"""
+    config = Config(ctx.obj['data_dir'])
+    setup_wizard.main(config)
+    sys.exit()
+setup_command = setup
+@cli.command()
+@click.pass_context
+def setup_cli(ctx):
+    """Setup the program in the command line"""
+    config = Config(ctx.obj['data_dir'])
+    config_setup.main(config, ctx.obj['debug'])
+setup_cli_command = setup_cli
+@cli.command()
+@click.pass_context
+def start(ctx):
+    """Start the main program"""
+    config = Config(ctx.obj['data_dir'])
+    config.validate()
+    main.main(config, ctx.obj['debug'])
+
+# Create fake "self" group to show pyapp options in help menu
+#Subcommands remove, restore, update
+pyapp_group = click.RichGroup("self", help="pyapp options (update, remove, restore)")
+pyapp_group.add_command(click.RichCommand("update", help="Update the package to the latest version"))
+pyapp_group.add_command(click.Command("remove", help="Remove the package, wiping the installation but not the data"))
+pyapp_group.add_command(click.RichCommand("restore", help="Restore the package to its original state by reinstalling it"))
+if os.getenv("PYAPP"):
+    cli.add_command(pyapp_group)
+
+def app_start():
+    cli(obj={})
