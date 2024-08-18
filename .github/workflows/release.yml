@@ -145,7 +145,7 @@ jobs:
       run: |-
         current_version=$(hatch version)
         PYAPP_PROJECT_PATH="${{ github.workspace }}/dist/isponsorblocktv-${current_version}-py3-none-any.whl" hatch -v build -t binary
-    
+
     - name: Rename binary
       working-directory: ${{ github.workspace }}
       run: |-
@@ -164,7 +164,7 @@ jobs:
     permissions:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
     # only run step if the event is a published release
-    if: github.event_name == 'release' && github.event.action == 'published' 
+    if: github.event_name == 'release' && github.event.action == 'published'
     runs-on: ubuntu-latest
     steps:
     - name: Get artifact
@@ -179,10 +179,10 @@ jobs:
 
 
   publish-to-release:
-    needs: 
+    needs:
       - build-sdist-and-wheel
       - build-binaries
-    if: github.event_name == 'release' && github.event.action == 'published' 
+    if: github.event_name == 'release' && github.event.action == 'published'
     runs-on: ubuntu-latest
     steps:
     - uses: actions/download-artifact@v4
