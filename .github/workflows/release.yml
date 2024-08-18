@@ -61,6 +61,8 @@ jobs:
 
   build-binaries:
     name: Build binaries for ${{ matrix.job.target }} (${{ matrix.job.os }})
+    needs:
+      - build-sdist-and-wheel
     runs-on: ${{ matrix.job.os }}
     strategy:
       fail-fast: false
