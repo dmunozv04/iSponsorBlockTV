@@ -9,17 +9,14 @@
 name: Release Package
 
 on:
-#   push:
-#     tags:
-#     - v*
-#     branches:
-#     - master
-#   pull_request:
-#     branches:
-#     - master
   push:
     branches:
-      - build-binaries # Testing branch
+      - '*'
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - '*'
   release:
     types: [published]
 
