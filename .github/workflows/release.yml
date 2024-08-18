@@ -162,7 +162,7 @@ jobs:
     - name: Rename binary
       working-directory: ${{ github.workspace }}
       run: |-
-        mv dist/binary/dma* dist/binary/dma-${{ matrix.job.release_suffix }}
+        mv dist/binary/iSponsorBlockTV* dist/binary/iSponsorBlockTV-${{ matrix.job.release_suffix }}
 
     - name: Upload built binary package
       uses: actions/upload-artifact@v4
