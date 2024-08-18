@@ -17,6 +17,9 @@ on:
 #   pull_request:
 #     branches:
 #     - master
+  push:
+    branches:
+      - build-binaries # Testing branch
   release:
     types: [published]
 
