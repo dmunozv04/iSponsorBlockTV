@@ -216,5 +216,6 @@ if os.getenv("PYAPP"):
 
 cli.add_command(service)
 
+
 def app_start():
     cli(obj={})
