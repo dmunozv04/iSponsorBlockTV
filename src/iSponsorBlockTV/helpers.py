@@ -9,6 +9,7 @@ from appdirs import user_data_dir
 
 from . import config_setup, main, setup_wizard
 from .constants import config_file_blacklist_keys
+from .service.service_helpers import service
 
 
 class Device:
@@ -213,6 +214,7 @@ pyapp_group.add_command(
 if os.getenv("PYAPP"):
     cli.add_command(pyapp_group)
 
+cli.add_command(service)
 
 def app_start():
     cli(obj={})
