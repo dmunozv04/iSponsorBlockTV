@@ -35,6 +35,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             self.mute_ads = config.mute_ads
             self.skip_ads = config.skip_ads
             self.auto_play = config.auto_play
+        self._command_mutex = asyncio.Lock()
 
     # Ensures that we still are subscribed to the lounge
     async def _watchdog(self):
@@ -181,3 +182,9 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
 
     async def play_video(self, video_id: str) -> bool:
         return await self._command("setPlaylist", {"videoId": video_id})
+
+    # Test to wrap the command function in a mutex to avoid race conditions with 
+    # the _command_offset (TODO: move to upstream if it works)
+    async def _command(self, command: str, command_parameters: dict = None) -> bool:
+        async with self._command_mutex:
+            return await super()._command(command, command_parameters)
