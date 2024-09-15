@@ -146,9 +146,10 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 self.shorts_disconnected = False
                 create_task(self.play_video(video_id_saved))
         elif event_type == "loungeScreenDisconnected":
-            data = args[0]
-            if data["reason"] == "disconnectedByUserScreenInitiated":  # Short playing?
-                self.shorts_disconnected = True
+            if args: # Sometimes it's empty
+                data = args[0]
+                if data["reason"] == "disconnectedByUserScreenInitiated":  # Short playing?
+                    self.shorts_disconnected = True
         elif event_type == "onAutoplayModeChanged":
             create_task(self.set_auto_play_mode(self.auto_play))
 
