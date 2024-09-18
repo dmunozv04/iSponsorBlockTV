@@ -26,7 +26,10 @@ Open an issue/pull request if you have tested a device that isn't listed here.
 | CCwGTV             |   ✅    |
 | Nintendo Switch    |   ✅    |
 | Xbox One/Series    |   ✅    |
+| Xbox 360           |   ✅    |
 | Playstation 4/5    |   ✅    |
+| Rogers Ignite Xi6-T|   ✅    |
+| Xfinity Flex Xi6-T |   ❔    |
 
 ## Usage
 Run iSponsorBlockTV on a computer that has network access.
