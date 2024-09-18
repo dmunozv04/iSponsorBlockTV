@@ -35,6 +35,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             self.mute_ads = config.mute_ads
             self.skip_ads = config.skip_ads
             self.auto_play = config.auto_play
+        self._command_mutex = asyncio.Lock()
 
     # Ensures that we still are subscribed to the lounge
     async def _watchdog(self):
@@ -145,9 +146,12 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 self.shorts_disconnected = False
                 create_task(self.play_video(video_id_saved))
         elif event_type == "loungeScreenDisconnected":
-            data = args[0]
-            if data["reason"] == "disconnectedByUserScreenInitiated":  # Short playing?
-                self.shorts_disconnected = True
+            if args:  # Sometimes it's empty
+                data = args[0]
+                if (
+                    data["reason"] == "disconnectedByUserScreenInitiated"
+                ):  # Short playing?
+                    self.shorts_disconnected = True
         elif event_type == "onAutoplayModeChanged":
             create_task(self.set_auto_play_mode(self.auto_play))
 
@@ -181,3 +185,9 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
 
     async def play_video(self, video_id: str) -> bool:
         return await self._command("setPlaylist", {"videoId": video_id})
+
+    # Test to wrap the command function in a mutex to avoid race conditions with
+    # the _command_offset (TODO: move to upstream if it works)
+    async def _command(self, command: str, command_parameters: dict = None) -> bool:
+        async with self._command_mutex:
+            return await super()._command(command, command_parameters)
