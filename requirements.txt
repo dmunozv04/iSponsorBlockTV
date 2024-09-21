@@ -1,11 +1,11 @@
-aiohttp==3.9.5
+aiohttp==3.10.5
 appdirs==1.4.4
 argparse==1.4.0
 async-cache==1.1.1
-pyytlounge==2.0.0
-rich==13.7.1
+pyytlounge==2.1.1
+rich==13.8.1
 ssdp==1.3.0
-textual==0.58.0
-textual-slider==0.1.1
+textual==0.70.0
+textual-slider==0.1.2
 xmltodict==0.13.0
 rich_click==1.8.3
