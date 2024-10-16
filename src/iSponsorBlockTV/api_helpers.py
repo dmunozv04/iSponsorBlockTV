@@ -27,6 +27,7 @@ class ApiHelper:
         self.skip_count_tracking = config.skip_count_tracking
         self.web_session = web_session
         self.num_devices = len(config.devices)
+        self.api_server = config.api_server
 
     # Not used anymore, maybe it can stay here a little longer
     @AsyncLRU(maxsize=10)
@@ -130,7 +131,7 @@ class ApiHelper:
             "service": constants.SponsorBlock_service,
         }
         headers = {"Accept": "application/json"}
-        url = constants.SponsorBlock_api + "skipSegments/" + vid_id_hashed
+        url = self.api_server + "/api/skipSegments/" + vid_id_hashed
         async with self.web_session.get(
             url, headers=headers, params=params
         ) as response:
@@ -201,7 +202,7 @@ class ApiHelper:
         Lets the contributor know that someone skipped the segment (thanks)"""
         if self.skip_count_tracking:
             for i in uuids:
-                url = constants.SponsorBlock_api + "viewedVideoSponsorTime/"
+                url = self.api_server + "/api/viewedVideoSponsorTime/"
                 params = {"UUID": i}
                 await self.web_session.post(url, params=params)
 

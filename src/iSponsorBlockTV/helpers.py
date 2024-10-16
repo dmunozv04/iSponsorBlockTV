@@ -42,6 +42,7 @@ class Config:
         self.mute_ads = False
         self.skip_ads = False
         self.auto_play = True
+        self.api_server = "https://sponsor.ajay.app"
         self.__load()
 
     def validate(self):
