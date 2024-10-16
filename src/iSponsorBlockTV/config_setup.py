@@ -36,7 +36,9 @@ REPORT_SKIPPED_SEGMENTS_PROMPT = (
 MUTE_ADS_PROMPT = "Do you want to mute native YouTube ads automatically? (y/N) "
 SKIP_ADS_PROMPT = "Do you want to skip native YouTube ads automatically? (y/N) "
 AUTOPLAY_PROMPT = "Do you want to enable autoplay? (Y/n) "
-ENTER_API_SERVER_PROMPT = "Enter the custom API server URL (leave blank to use default): "
+ENTER_API_SERVER_PROMPT = (
+    "Enter the custom API server URL (leave blank to use default): "
+)
 
 
 def get_yn_input(prompt):
