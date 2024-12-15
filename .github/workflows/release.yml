@@ -89,6 +89,7 @@ jobs:
     env:
       PYAPP_PASS_LOCATION: "1"
       PYAPP_UV_ENABLED: "1"
+      PYAPP_DISTRIBUTION_VARIANT_CPU: "v1"
       HATCH_BUILD_LOCATION: dist
       CARGO: cargo
       CARGO_BUILD_TARGET: ${{ matrix.job.target }}
