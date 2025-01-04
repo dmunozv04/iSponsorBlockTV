@@ -28,8 +28,7 @@ Open an issue/pull request if you have tested a device that isn't listed here.
 | Xbox One/Series    |   ✅    |
 | Xbox 360           |   ✅    |
 | Playstation 4/5    |   ✅    |
-| Rogers Ignite Xi6-T|   ✅    |
-| Xfinity Flex Xi6-T |   ❔    |
+| Xfinity            |   ✅    |
 
 ## Usage
 Run iSponsorBlockTV on a computer that has network access.
