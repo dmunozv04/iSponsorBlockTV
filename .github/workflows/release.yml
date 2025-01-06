@@ -57,7 +57,7 @@ jobs:
 
 
   build-binaries:
-    name: Build binaries for ${{ matrix.job.target }} (${{ matrix.job.os }})
+    name: Build binaries for ${{ matrix.job.release_suffix }} (${{ matrix.job.os }})
     needs:
       - build-sdist-and-wheel
     runs-on: ${{ matrix.job.os }}
@@ -70,20 +70,26 @@ jobs:
           os: ubuntu-latest
           cross: true
           release_suffix: x86_64-linux
+        - target: x86_64-unknown-linux-gnu
+          os: ubuntu-latest
+          cross: true
+          cpu_variant: v1
+          release_suffix: x86_64-linux-v1
         - target: aarch64-unknown-linux-gnu
           os: ubuntu-latest
           cross: true
           release_suffix: aarch64-linux
         # Windows
         - target: x86_64-pc-windows-msvc
-          os: windows-2022
+          os: windows-latest
           release_suffix: x86_64-windows
         # macOS
         - target: aarch64-apple-darwin
-          os: macos-14
+          os: macos-latest
           release_suffix: aarch64-osx
         - target: x86_64-apple-darwin
-          os: macos-12
+          os: macos-latest
+          cross: true
           release_suffix: x86_64-osx
 
     env:
@@ -92,8 +98,9 @@ jobs:
       HATCH_BUILD_LOCATION: dist
       CARGO: cargo
       CARGO_BUILD_TARGET: ${{ matrix.job.target }}
+      PYAPP_DISTRIBUTION_VARIANT_CPU: ${{ matrix.job.cpu_variant }}
       PYAPP_REPO: pyapp # Use local copy of pyapp (needed for cross-compiling)
-      PYAPP_VERSION: v0.23.0
+      PYAPP_VERSION: v0.24.0
 
     steps:
     - name: Checkout

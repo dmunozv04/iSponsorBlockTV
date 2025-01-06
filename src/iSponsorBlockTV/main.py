@@ -27,7 +27,7 @@ class DeviceListener:
             logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
         )
         self.logger.addHandler(sh)
-        self.logger.info(f"Starting device")
+        self.logger.info("Starting device")
         self.lounge_controller = ytlounge.YtLoungeApi(
             device.screen_id, config, api_helper, self.logger, self.web_session
         )
@@ -155,8 +155,10 @@ async def finish(devices, web_session, tcp_connector):
     await web_session.close()
     await tcp_connector.close()
 
+
 def handle_signal(signum, frame):
     raise KeyboardInterrupt()
+
 
 def main(config, debug):
     loop = asyncio.get_event_loop_policy().get_event_loop()
