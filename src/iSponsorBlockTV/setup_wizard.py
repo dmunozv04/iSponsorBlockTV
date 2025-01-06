@@ -328,9 +328,9 @@ class AddDevice(ModalWithClickExit):
 
     @on(Input.Changed, "#pairing-code-input")
     def changed_pairing_code(self, event: Input.Changed):
-        self.query_one("#add-device-pin-add-button").disabled = (
-            not event.validation_result.is_valid
-        )
+        self.query_one(
+            "#add-device-pin-add-button"
+        ).disabled = not event.validation_result.is_valid
 
     @on(Input.Submitted, "#pairing-code-input")
     @on(Button.Pressed, "#add-device-pin-add-button")
@@ -377,9 +377,9 @@ class AddDevice(ModalWithClickExit):
 
     @on(SelectionList.SelectedChanged, "#dial-devices-list")
     def changed_device_list(self, event: SelectionList.SelectedChanged):
-        self.query_one("#add-device-dial-add-button").disabled = (
-            not event.selection_list.selected
-        )
+        self.query_one(
+            "#add-device-dial-add-button"
+        ).disabled = not event.selection_list.selected
 
 
 class AddChannel(ModalWithClickExit):
