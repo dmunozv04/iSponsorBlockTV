@@ -27,7 +27,7 @@ class DeviceListener:
             logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
         )
         self.logger.addHandler(sh)
-        self.logger.info(f"Starting device")
+        self.logger.info("Starting device")
         self.lounge_controller = ytlounge.YtLoungeApi(
             device.screen_id, config, api_helper, self.logger, self.web_session
         )
