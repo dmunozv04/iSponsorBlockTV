@@ -144,12 +144,14 @@ class DeviceListener:
             self.task,
             self.lounge_controller.subscribe_task_watchdog,
             self.lounge_controller.subscribe_task,
-            return_exceptions=True
+            return_exceptions=True,
         )
 
 
 async def finish(devices, web_session, tcp_connector):
-    await asyncio.gather(*(device.cancel() for device in devices), return_exceptions=True)
+    await asyncio.gather(
+        *(device.cancel() for device in devices), return_exceptions=True
+    )
     await web_session.close()
     await tcp_connector.close()
 
