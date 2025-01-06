@@ -70,6 +70,11 @@ jobs:
           os: ubuntu-latest
           cross: true
           release_suffix: x86_64-linux
+        - target: x86_64-unknown-linux-gnu
+          os: ubuntu-latest
+          cross: true
+          cpu_variant: v1
+          release_suffix: x86_64-linux-v1
         - target: aarch64-unknown-linux-gnu
           os: ubuntu-latest
           cross: true
@@ -78,10 +83,6 @@ jobs:
         - target: x86_64-pc-windows-msvc
           os: windows-latest
           release_suffix: x86_64-windows
-        - target: aarch64-pc-windows-msvc
-          os: windows-latest
-          cross: true
-          release_suffix: aarch64-windows
         # macOS
         - target: aarch64-apple-darwin
           os: macos-latest
@@ -97,6 +98,7 @@ jobs:
       HATCH_BUILD_LOCATION: dist
       CARGO: cargo
       CARGO_BUILD_TARGET: ${{ matrix.job.target }}
+      PYAPP_DISTRIBUTION_VARIANT_CPU: ${{ matrix.job.cpu_variant }}
       PYAPP_REPO: pyapp # Use local copy of pyapp (needed for cross-compiling)
       PYAPP_VERSION: v0.24.0
 
