@@ -145,8 +145,10 @@ async def finish(devices, web_session, tcp_connector):
     await web_session.close()
     await tcp_connector.close()
 
+
 def handle_signal(signum, frame):
     raise KeyboardInterrupt()
+
 
 def main(config, debug):
     loop = asyncio.get_event_loop_policy().get_event_loop()
