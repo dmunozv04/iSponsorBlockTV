@@ -21,6 +21,8 @@ permissions:
 
 jobs:
   build:
+    env:
+        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
     runs-on: ubuntu-latest
     steps:
       # Get the repository's code
@@ -32,7 +34,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/dmunozv04/isponsorblocktv, dmunozv04/isponsorblocktv
+          images: |
+            ghcr.io/${{ github.repository }}
+            ${{ env.DOCKERHUB_USERNAME && 'dmunozv04/isponsorblocktv' || '' }}
           tags: |
             type=raw,value=develop,priority=900,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
             type=ref,enable=true,priority=600,prefix=pr-,suffix=,event=pr

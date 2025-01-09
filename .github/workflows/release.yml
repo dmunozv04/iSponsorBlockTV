@@ -1,0 +1,205 @@
+# This workflow will upload a Python Package using Twine when a release is created
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python#publishing-to-package-registries
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: Release Package
+
+on:
+  push:
+    branches:
+      - '*'
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - '*'
+  release:
+    types: [published]
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  PYTHON_VERSION: "3.11"
+permissions:
+  contents: read
+jobs:
+  build-sdist-and-wheel:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Hatch
+      run: |
+        python -m pip install --upgrade pip
+        pip install hatch
+
+    - name: Build package
+      run: python -m hatch build
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: sdist-and-wheel
+        path: dist/*
+        if-no-files-found: error
+
+
+  build-binaries:
+    name: Build binaries for ${{ matrix.job.release_suffix }} (${{ matrix.job.os }})
+    needs:
+      - build-sdist-and-wheel
+    runs-on: ${{ matrix.job.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        job:
+        # Linux
+        - target: x86_64-unknown-linux-gnu
+          os: ubuntu-latest
+          cross: true
+          release_suffix: x86_64-linux
+        - target: x86_64-unknown-linux-gnu
+          os: ubuntu-latest
+          cross: true
+          cpu_variant: v1
+          release_suffix: x86_64-linux-v1
+        - target: aarch64-unknown-linux-gnu
+          os: ubuntu-latest
+          cross: true
+          release_suffix: aarch64-linux
+        # Windows
+        - target: x86_64-pc-windows-msvc
+          os: windows-latest
+          release_suffix: x86_64-windows
+        # macOS
+        - target: aarch64-apple-darwin
+          os: macos-latest
+          release_suffix: aarch64-osx
+        - target: x86_64-apple-darwin
+          os: macos-latest
+          cross: true
+          release_suffix: x86_64-osx
+
+    env:
+      PYAPP_PASS_LOCATION: "1"
+      PYAPP_UV_ENABLED: "1"
+      HATCH_BUILD_LOCATION: dist
+      CARGO: cargo
+      CARGO_BUILD_TARGET: ${{ matrix.job.target }}
+      PYAPP_DISTRIBUTION_VARIANT_CPU: ${{ matrix.job.cpu_variant }}
+      PYAPP_REPO: pyapp # Use local copy of pyapp (needed for cross-compiling)
+      PYAPP_VERSION: v0.24.0
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Clone PyApp
+      run: git clone --depth 1 --branch $PYAPP_VERSION https://github.com/ofek/pyapp $PYAPP_REPO
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Hatch
+      run: |
+        python -m pip install --upgrade pip
+        pip install hatch
+
+    - name: Install Rust toolchain
+      if: ${{ !matrix.job.cross }}
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ matrix.job.target }}
+
+    - name: Set up cross compiling tools
+      if: matrix.job.cross
+      uses: taiki-e/setup-cross-toolchain-action@v1
+      with:
+        target: ${{ matrix.job.target}}
+
+    - name: Show toolchain information
+      run: |-
+        rustup toolchain list
+        rustup default
+        rustup -V
+        rustc -V
+        cargo -V
+        hatch --version
+
+    - name: Get artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: sdist-and-wheel
+        path: ${{ github.workspace }}/dist
+        merge-multiple: true
+
+    - name: Build Binary
+      working-directory: ${{ github.workspace }}
+      run: |-
+        current_version=$(hatch version)
+        PYAPP_PROJECT_PATH="${{ github.workspace }}/dist/isponsorblocktv-${current_version}-py3-none-any.whl" hatch -v build -t binary
+
+    - name: Rename binary
+      working-directory: ${{ github.workspace }}
+      run: |-
+        mv dist/binary/iSponsorBlockTV* dist/binary/iSponsorBlockTV-${{ matrix.job.release_suffix }}
+
+    - name: Upload built binary package
+      uses: actions/upload-artifact@v4
+      with:
+        name: binaries-${{ matrix.job.release_suffix }}
+        path: dist/binary/*
+        if-no-files-found: error
+
+
+  publish-to-pypi:
+    needs: build-sdist-and-wheel
+    permissions:
+      id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
+    # only run step if the event is a published release
+    if: github.event_name == 'release' && github.event.action == 'published'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: sdist-and-wheel
+        path: dist
+        merge-multiple: true
+
+    - name: Publish package
+      uses: pypa/gh-action-pypi-publish@release/v1
+
+
+  publish-to-release:
+    permissions:
+      contents: write
+    needs:
+      - build-sdist-and-wheel
+      - build-binaries
+    if: github.event_name == 'release' && github.event.action == 'published'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/download-artifact@v4
+      name: Get artifact
+      with:
+        path: dist
+        merge-multiple: true
+    - name: Add assets to release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: dist/*

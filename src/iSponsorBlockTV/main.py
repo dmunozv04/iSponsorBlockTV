@@ -27,7 +27,7 @@ class DeviceListener:
             logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
         )
         self.logger.addHandler(sh)
-        self.logger.info(f"Starting device")
+        self.logger.info("Starting device")
         self.lounge_controller = ytlounge.YtLoungeApi(
             device.screen_id, config, api_helper, self.logger, self.web_session
         )
@@ -131,18 +131,33 @@ class DeviceListener:
         await asyncio.create_task(self.api_helper.mark_viewed_segments(uuids))
         await asyncio.create_task(self.lounge_controller.seek_to(position))
 
-    # Stops the connection to the device
     async def cancel(self):
         self.cancelled = True
-        try:
+        await self.lounge_controller.disconnect()
+        if self.task:
             self.task.cancel()
-        except Exception:
-            pass
+        if self.lounge_controller.subscribe_task_watchdog:
+            self.lounge_controller.subscribe_task_watchdog.cancel()
+        if self.lounge_controller.subscribe_task:
+            self.lounge_controller.subscribe_task.cancel()
+        await asyncio.gather(
+            self.task,
+            self.lounge_controller.subscribe_task_watchdog,
+            self.lounge_controller.subscribe_task,
+            return_exceptions=True,
+        )
 
 
-async def finish(devices):
-    for i in devices:
-        await i.cancel()
+async def finish(devices, web_session, tcp_connector):
+    await asyncio.gather(
+        *(device.cancel() for device in devices), return_exceptions=True
+    )
+    await web_session.close()
+    await tcp_connector.close()
+
+
+def handle_signal(signum, frame):
+    raise KeyboardInterrupt()
 
 
 def main(config, debug):
@@ -160,11 +175,16 @@ def main(config, debug):
         devices.append(device)
         tasks.append(loop.create_task(device.loop()))
         tasks.append(loop.create_task(device.refresh_auth_loop()))
-    signal(SIGINT, lambda s, f: loop.stop())
-    signal(SIGTERM, lambda s, f: loop.stop())
-    loop.run_forever()
-    print("Cancelling tasks and exiting...")
-    loop.run_until_complete(finish(devices))
-    loop.run_until_complete(web_session.close())
-    loop.run_until_complete(tcp_connector.close())
-    loop.close()
+    signal(SIGTERM, handle_signal)
+    signal(SIGINT, handle_signal)
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt:
+        print("Cancelling tasks and exiting...")
+        loop.run_until_complete(finish(devices, web_session, tcp_connector))
+        for task in tasks:
+            task.cancel()
+        loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
+    finally:
+        loop.close()
+        print("Exited")
