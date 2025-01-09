@@ -133,15 +133,25 @@ class DeviceListener:
 
     async def cancel(self):
         self.cancelled = True
-        try:
+        await self.lounge_controller.disconnect()
+        if self.task:
             self.task.cancel()
-        except Exception:
-            pass
+        if self.lounge_controller.subscribe_task_watchdog:
+            self.lounge_controller.subscribe_task_watchdog.cancel()
+        if self.lounge_controller.subscribe_task:
+            self.lounge_controller.subscribe_task.cancel()
+        await asyncio.gather(
+            self.task,
+            self.lounge_controller.subscribe_task_watchdog,
+            self.lounge_controller.subscribe_task,
+            return_exceptions=True,
+        )
 
 
 async def finish(devices, web_session, tcp_connector):
-    for device in devices:
-        await device.cancel()
+    await asyncio.gather(
+        *(device.cancel() for device in devices), return_exceptions=True
+    )
     await web_session.close()
     await tcp_connector.close()
 
@@ -171,9 +181,10 @@ def main(config, debug):
         loop.run_forever()
     except KeyboardInterrupt:
         print("Cancelling tasks and exiting...")
+        loop.run_until_complete(finish(devices, web_session, tcp_connector))
         for task in tasks:
             task.cancel()
         loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
-        loop.run_until_complete(finish(devices, web_session, tcp_connector))
     finally:
         loop.close()
+        print("Exited")
