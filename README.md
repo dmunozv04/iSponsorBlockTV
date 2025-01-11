@@ -34,7 +34,9 @@ Open an issue/pull request if you have tested a device that isn't listed here.
 | CCwGTV             |   ✅    |
 | Nintendo Switch    |   ✅    |
 | Xbox One/Series    |   ✅    |
+| Xbox 360           |   ✅    |
 | Playstation 4/5    |   ✅    |
+| Xfinity            |   ✅    |
 
 ## Usage
 
