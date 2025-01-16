@@ -585,7 +585,7 @@ class EditDevice(ModalWithClickExit):
                 )
 
     def on_slider_changed(self, event: Slider.Changed) -> None:
-        offset_input = self.query_one("#device-offset-offset_input")
+        offset_input = self.query_one("#device-offset-input")
         with offset_input.prevent(Input.Changed):
             offset_input.value = str(event.slider.value)
 
