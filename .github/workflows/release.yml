@@ -101,6 +101,7 @@ jobs:
       PYAPP_DISTRIBUTION_VARIANT_CPU: ${{ matrix.job.cpu_variant }}
       PYAPP_REPO: pyapp # Use local copy of pyapp (needed for cross-compiling)
       PYAPP_VERSION: v0.24.0
+      XDG_CONFIG_HOME: ~/.config
 
     steps:
     - name: Checkout
