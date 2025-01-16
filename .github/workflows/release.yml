@@ -76,8 +76,8 @@ jobs:
           cpu_variant: v1
           release_suffix: x86_64-linux-v1
         - target: aarch64-unknown-linux-gnu
-          os: ubuntu-latest
-          cross: true
+          os: ubuntu-24.04-arm
+          cross: false
           release_suffix: aarch64-linux
         # Windows
         - target: x86_64-pc-windows-msvc
