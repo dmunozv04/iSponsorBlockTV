@@ -1,0 +1,11 @@
+name: "Sponsorblock Addon Mod"
+description: "SponsorBlock client for all YouTube TV clients.."
+version: "1.0.0"
+slug: "Sponsorblock"
+init: false
+arch:
+  - aarch64
+  - amd64
+  - armhf
+  - armv7
+  - i386

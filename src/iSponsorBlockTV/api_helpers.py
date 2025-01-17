@@ -175,6 +175,8 @@ class ApiHelper:
                     ignore_ttl and i["locked"] == 1
                 )  # If all segments are locked, ignore ttl
                 segment = i["segment"]
+                if segment[0] >= segment[1]:
+                    continue
                 UUID = i["UUID"]
                 segment_dict = {"start": segment[0], "end": segment[1], "UUID": [UUID]}
                 try:
