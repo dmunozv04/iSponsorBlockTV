@@ -1,4 +1,4 @@
-aiohttp==3.9.5
+aiohttp==3.11.11
 appdirs==1.4.4
 argparse==1.4.0
 async-cache==1.1.1
