@@ -38,14 +38,14 @@ class DeviceListener:
             await asyncio.sleep(60 * 60 * 24)  # Refresh every 24 hours
             try:
                 await self.lounge_controller.refresh_auth()
-            except:
+            except BaseException:
                 # traceback.print_exc()
                 pass
 
     async def is_available(self):
         try:
             return await self.lounge_controller.is_available()
-        except:
+        except BaseException:
             # traceback.print_exc()
             return False
 
@@ -57,20 +57,20 @@ class DeviceListener:
                 try:
                     self.logger.debug("Refreshing auth")
                     await lounge_controller.refresh_auth()
-                except:
+                except BaseException:
                     await asyncio.sleep(10)
             while not (await self.is_available()) and not self.cancelled:
                 await asyncio.sleep(10)
             try:
                 await lounge_controller.connect()
-            except:
+            except BaseException:
                 pass
             while not lounge_controller.connected() and not self.cancelled:
                 # Doesn't connect to the device if it's a kids profile (it's broken)
                 await asyncio.sleep(10)
                 try:
                     await lounge_controller.connect()
-                except:
+                except BaseException:
                     pass
             self.logger.info(
                 "Connected to device %s (%s)", lounge_controller.screen_name, self.name
@@ -79,14 +79,14 @@ class DeviceListener:
                 self.logger.info("Subscribing to lounge")
                 sub = await lounge_controller.subscribe_monitored(self)
                 await sub
-            except:
+            except BaseException:
                 pass
 
     # Method called on playback state change
     async def __call__(self, state):
         try:
             self.task.cancel()
-        except:
+        except BaseException:
             pass
         time_start = time.time()
         self.task = asyncio.create_task(self.process_playstatus(state, time_start))

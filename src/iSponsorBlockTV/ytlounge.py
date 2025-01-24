@@ -44,7 +44,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         )  # YouTube sends at least a message every 30 seconds (no-op or any other)
         try:
             self.subscribe_task.cancel()
-        except Exception:
+        except BaseException:
             pass
 
     # Subscribe to the lounge and start the watchdog
@@ -52,7 +52,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         self.callback = callback
         try:
             self.subscribe_task_watchdog.cancel()
-        except:
+        except BaseException:
             pass  # No watchdog task
         self.subscribe_task = asyncio.create_task(super().subscribe(callback))
         self.subscribe_task_watchdog = asyncio.create_task(self._watchdog())
@@ -64,7 +64,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         # (Re)start the watchdog
         try:
             self.subscribe_task_watchdog.cancel()
-        except:
+        except BaseException:
             pass
         finally:
             self.subscribe_task_watchdog = asyncio.create_task(self._watchdog())
