@@ -136,6 +136,8 @@ jobs:
 
     - name: Cache Cargo
       uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: pyapp -> pyapp
 
     - name: Show toolchain information
       run: |-
