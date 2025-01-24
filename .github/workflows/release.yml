@@ -57,6 +57,9 @@ jobs:
 
 
   build-binaries:
+    permissions:
+      id-token: write
+      attestations: write
     name: Build binaries for ${{ matrix.job.release_suffix }} (${{ matrix.job.os }})
     needs:
       - build-sdist-and-wheel
