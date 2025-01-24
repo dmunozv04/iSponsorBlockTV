@@ -134,6 +134,9 @@ jobs:
       with:
         target: ${{ matrix.job.target}}
 
+    - name: Cache Cargo
+      uses: Swatinem/rust-cache@v2
+
     - name: Show toolchain information
       run: |-
         rustup toolchain list
