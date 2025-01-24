@@ -476,7 +476,6 @@ class AddChannel(ModalWithClickExit):
 
     @on(Button.Pressed, "#add-channel-switch-buttons > *")
     def handle_switch_buttons(self, event: Button.Pressed) -> None:
-        button_ = event.button.id
         self.query_one("#add-channel-switcher").current = event.button.id.replace(
             "-button", "-container"
         )
