@@ -138,6 +138,7 @@ jobs:
       uses: Swatinem/rust-cache@v2
       with:
         workspaces: pyapp -> pyapp
+        cache-all-crates: true
 
     - name: Show toolchain information
       run: |-
