@@ -100,7 +100,7 @@ jobs:
       CARGO_BUILD_TARGET: ${{ matrix.job.target }}
       PYAPP_DISTRIBUTION_VARIANT_CPU: ${{ matrix.job.cpu_variant }}
       PYAPP_REPO: pyapp # Use local copy of pyapp (needed for cross-compiling)
-      PYAPP_VERSION: v0.24.0
+      PYAPP_VERSION: v0.26.0
 
     steps:
     - name: Checkout
