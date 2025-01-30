@@ -347,7 +347,7 @@ class AddDevice(ModalWithClickExit):
         paired = False
         try:
             paired = await lounge_controller.pair(pairing_code)
-        except:
+        except BaseException:
             pass
         if paired:
             device = {
@@ -476,7 +476,6 @@ class AddChannel(ModalWithClickExit):
 
     @on(Button.Pressed, "#add-channel-switch-buttons > *")
     def handle_switch_buttons(self, event: Button.Pressed) -> None:
-        button_ = event.button.id
         self.query_one("#add-channel-switcher").current = event.button.id.replace(
             "-button", "-container"
         )
@@ -496,7 +495,7 @@ class AddChannel(ModalWithClickExit):
         self.query_one("#channel-search-results").remove_children()
         try:
             channels_list = await self.api_helper.search_channels(channel_name)
-        except:
+        except BaseException:
             self.query_one("#add-channel-info").update(
                 "[#ff0000]Failed to search for channel"
             )
@@ -943,7 +942,7 @@ class ISponsorBlockTVSetupMainScreen(Screen):
             self.app.query_one("#warning-no-key").display = (
                 not event.input.value
             ) and self.config.channel_whitelist
-        except:
+        except BaseException:
             pass
 
 

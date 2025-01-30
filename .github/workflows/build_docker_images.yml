@@ -75,6 +75,5 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=ghcr.io/dmunozv04/isponsorblocktv:buildcache
-          # Only cache if it's not a pull request
-          cache-to: ${{ github.event_name != 'pull_request' && 'type=registry,ref=ghcr.io/dmunozv04/isponsorblocktv:buildcache,mode=max' || '' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
