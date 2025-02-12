@@ -84,12 +84,15 @@ class Element(Static):
     def compose(self) -> ComposeResult:
         yield Button(
             label=self.element_name,
-            classes="element-name",
+            classes="element-name button-small",
             disabled=True,
             id="element-name",
         )
         yield Button(
-            "Remove", classes="element-remove", variant="error", id="element-remove"
+            "Remove",
+            classes="element-remove button-small",
+            variant="error",
+            id="element-remove",
         )
 
     def on_mount(self) -> None:
@@ -102,7 +105,6 @@ class Device(Element):
     """A device element."""
 
     def process_values_from_data(self):
-        print(self.element_data)
         if "name" in self.element_data and self.element_data["name"]:
             self.element_name = self.element_data["name"]
         else:
@@ -285,7 +287,8 @@ class AddDevice(ModalWithClickExit):
                             " computer\nIf it isn't showing up, try restarting the"
                             " app.\nIf running in docker, make sure to use"
                             " `--network=host`\nTo refresh the list, close and open the"
-                            " dialog again"
+                            " dialog again\n[b][u]If it still doesn't work, "
+                            "pair using a pairing code (it's much more reliable)"
                         ),
                         classes="subtitle",
                     )
@@ -618,7 +621,9 @@ class DevicesManager(Vertical):
     def compose(self) -> ComposeResult:
         yield Label("Devices", classes="title")
         with Horizontal(id="add-device-button-container"):
-            yield Button("Add Device", id="add-device", classes="button-100")
+            yield Button(
+                "Add Device", id="add-device", classes="button-100 button-small"
+            )
         for device in self.devices:
             yield Device(device, tooltip="Click to edit")
 
@@ -812,7 +817,9 @@ class ChannelWhitelistManager(Vertical):
             id="warning-no-key",
         )
         with Horizontal(id="add-channel-button-container"):
-            yield Button("Add Channel", id="add-channel", classes="button-100")
+            yield Button(
+                "Add Channel", id="add-channel", classes="button-100 button-small"
+            )
         for channel in self.config.channel_whitelist:
             yield Channel(channel)
 
