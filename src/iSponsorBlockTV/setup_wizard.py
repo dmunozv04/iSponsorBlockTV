@@ -287,8 +287,8 @@ class AddDevice(ModalWithClickExit):
                             " computer\nIf it isn't showing up, try restarting the"
                             " app.\nIf running in docker, make sure to use"
                             " `--network=host`\nTo refresh the list, close and open the"
-                            " dialog again\n[b][u]If it still doesn't work, pair using a"
-                            " pairing code (it's much more reliable)"
+                            " dialog again\n[b][u]If it still doesn't work, "
+                            "pair using a pairing code (it's much more reliable)"
                         ),
                         classes="subtitle",
                     )
