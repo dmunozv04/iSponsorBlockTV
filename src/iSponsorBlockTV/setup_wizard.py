@@ -89,7 +89,10 @@ class Element(Static):
             id="element-name",
         )
         yield Button(
-            "Remove", classes="element-remove button-small", variant="error", id="element-remove"
+            "Remove",
+            classes="element-remove button-small",
+            variant="error",
+            id="element-remove",
         )
 
     def on_mount(self) -> None:
@@ -618,7 +621,9 @@ class DevicesManager(Vertical):
     def compose(self) -> ComposeResult:
         yield Label("Devices", classes="title")
         with Horizontal(id="add-device-button-container"):
-            yield Button("Add Device", id="add-device", classes="button-100 button-small")
+            yield Button(
+                "Add Device", id="add-device", classes="button-100 button-small"
+            )
         for device in self.devices:
             yield Device(device, tooltip="Click to edit")
 
@@ -812,7 +817,9 @@ class ChannelWhitelistManager(Vertical):
             id="warning-no-key",
         )
         with Horizontal(id="add-channel-button-container"):
-            yield Button("Add Channel", id="add-channel", classes="button-100 button-small")
+            yield Button(
+                "Add Channel", id="add-channel", classes="button-100 button-small"
+            )
         for channel in self.config.channel_whitelist:
             yield Channel(channel)
 
