@@ -21,9 +21,13 @@
     scrollbar-gutter: stable;
 }
 
-.small-button{
+.button-small {
     height: 3;
-
+    border: none;
+    border-top: none;
+    border-bottom: none;
+    offset: 0 -1;
+    padding: 0;
 }
 
 .button-100 {
@@ -106,13 +110,14 @@ EditDevice {
 }
 
 Element {
-    background: $panel;
+    background: $panel-darken-1;
     border-top: solid $panel-lighten-2;
     layout: horizontal;
     height: 2;
     width: 100%;
     margin: 0 1 0 1;
     padding: 0;
+
 }
 Element > .element-name {
     offset: 0 -1;
@@ -120,7 +125,11 @@ Element > .element-name {
     width: 100%;
     align: left middle;
     text-align: left;
-
+    background: $panel-darken-1;
+    &:hover {
+        background: $panel-lighten-1;
+        border-top: tall $panel-lighten-3;
+    }
 }
 Element > .element-remove {
     dock: right;
@@ -132,7 +141,7 @@ Element > .element-remove {
     margin: 0 1 0 0;
 }
 
-#add-device {
+#add-device, #add-channel {
     text-style: bold;
     width: 100%;
     align: left middle;
@@ -140,6 +149,11 @@ Element > .element-remove {
     dock: left;
 
     text-align: left;
+    background: $panel-darken-1;
+    &:hover {
+        background: $panel-lighten-1;
+        border-top: tall $panel-lighten-3;
+    }
 }
 #add-device-button-container{
     height: 1;
