@@ -882,6 +882,31 @@ class AutoPlayManager(Vertical):
         self.config.auto_play = event.checkbox.value
 
 
+class ApiServerManager(Vertical):
+    """Manager for the custom API server URL."""
+
+    def __init__(self, config, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.config = config
+
+    def compose(self) -> ComposeResult:
+        yield Label("Custom API Server", classes="title")
+        yield Label(
+            "You can specify a custom SponsorBlock API server URL here.",
+            classes="subtitle",
+        )
+        with Grid(id="api-server-grid"):
+            yield Input(
+                placeholder="Custom API Server URL",
+                id="api-server-input",
+                value=self.config.api_server,
+            )
+
+    @on(Input.Changed, "#api-server-input")
+    def changed_api_server(self, event: Input.Changed):
+        self.config.api_server = event.input.value
+
+
 class ISponsorBlockTVSetupMainScreen(Screen):
     """Making this a separate screen to avoid a bug: https://github.com/Textualize/textual/issues/3221"""
 
@@ -920,6 +945,9 @@ class ISponsorBlockTVSetupMainScreen(Screen):
             )
             yield AutoPlayManager(
                 config=self.config, id="autoplay-manager", classes="container"
+            )
+            yield ApiServerManager(
+                config=self.config, id="api-server-manager", classes="container"
             )
 
     def on_mount(self) -> None:
