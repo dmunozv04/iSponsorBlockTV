@@ -167,7 +167,7 @@ def main(config, debug):
     if debug:
         loop.set_debug(True)
     asyncio.set_event_loop(loop)
-    tcp_connector = aiohttp.TCPConnector(ttl_dns_cache=300)
+    tcp_connector = aiohttp.TCPConnector(loop=loop, ttl_dns_cache=300)
     web_session = aiohttp.ClientSession(loop=loop, connector=tcp_connector)
     api_helper = api_helpers.ApiHelper(config, web_session)
     for i in config.devices:

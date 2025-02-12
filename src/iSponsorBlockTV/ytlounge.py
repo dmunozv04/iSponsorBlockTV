@@ -20,6 +20,9 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
     ):
         super().__init__("iSponsorBlockTV", logger=logger)
         if web_session is not None:
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(self.session.close())
+            loop.run_until_complete(self.conn.close())
             self.session = web_session  # And use the one we passed
         self.auth.screen_id = screen_id
         self.auth.lounge_id_token = None
