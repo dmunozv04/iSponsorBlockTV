@@ -1,5 +1,6 @@
 import asyncio
 import json
+from typing import Any, List
 
 import pyytlounge
 from aiohttp import ClientSession
@@ -62,8 +63,8 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         return self.subscribe_task
 
     # Process a lounge subscription event
-    def _process_event(self, event_id: int, event_type: str, args):
-        self.logger.debug(f"process_event({event_id}, {event_type}, {args})")
+    def _process_event(self, event_type: str, args: List[Any]):
+        self.logger.debug(f"process_event({event_type}, {args})")
         # (Re)start the watchdog
         try:
             self.subscribe_task_watchdog.cancel()
@@ -158,7 +159,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         elif event_type == "onAutoplayModeChanged":
             create_task(self.set_auto_play_mode(self.auto_play))
 
-        super()._process_event(event_id, event_type, args)
+        super()._process_event(event_type, args)
 
     # Set the volume to a specific value (0-100)
     async def set_volume(self, volume: int) -> None:
