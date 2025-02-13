@@ -19,7 +19,11 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         logger=None,
         web_session: ClientSession = None,
     ):
-        super().__init__("iSponsorBlockTV", logger=logger)
+        super().__init__(
+            config.join_name if config else "iSponsorBlockTV",
+            logger=logger
+        )
+
         if web_session is not None:
             loop = asyncio.get_event_loop()
             loop.run_until_complete(self.session.close())
