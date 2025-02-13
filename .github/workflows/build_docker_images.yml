@@ -15,61 +15,65 @@ on:
 
   workflow_dispatch:
 
-permissions: 
+permissions:
   contents: read
   packages: write
-  
+
 jobs:
   build:
+    env:
+        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
     runs-on: ubuntu-latest
     steps:
       # Get the repository's code
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # Generate docker tags
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/dmunozv04/isponsorblocktv, dmunozv04/isponsorblocktv
+          images: |
+            ghcr.io/${{ github.repository }}
+            ${{ env.DOCKERHUB_USERNAME && 'dmunozv04/isponsorblocktv' || '' }}
           tags: |
             type=raw,value=develop,priority=900,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
             type=ref,enable=true,priority=600,prefix=pr-,suffix=,event=pr
             type=ref,event=tag
             type=ref,event=branch
             type=schedule
-      
+
       # https://github.com/docker/setup-qemu-action
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
       # https://github.com/docker/setup-buildx-action
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v2
-      
+        uses: docker/setup-buildx-action@v3
+
       - name: Login to DockerHub
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to GHCR
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64, linux/arm64
+          platforms: linux/amd64, linux/arm64, linux/arm/v7
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=ghcr.io/dmunozv04/isponsorblocktv:buildcache
-          cache-to: type=registry,ref=ghcr.io/dmunozv04/isponsorblocktv:buildcache,mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

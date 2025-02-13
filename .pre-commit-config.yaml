@@ -1,0 +1,31 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+# Inspired by textual pre-commit config
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-ast  # simply checks whether the files parse as valid python
+      - id: check-builtin-literals  # requires literal syntax when initializing empty or zero python builtin types
+      - id: check-case-conflict  # checks for files that would conflict in case-insensitive filesystems
+      - id: check-merge-conflict  # checks for files that contain merge conflict strings
+      - id: check-json  # checks json files for parseable syntax
+      - id: check-toml  # checks toml files for parseable syntax
+      - id: check-yaml  # checks yaml files for parseable syntax
+        args: [ '--unsafe' ]  # Instead of loading the files, parse them for syntax.
+      - id: check-shebang-scripts-are-executable  # ensures that (non-binary) files with a shebang are executable
+      - id: check-vcs-permalinks  # ensures that links to vcs websites are permalinks
+      - id: end-of-file-fixer  # ensures that a file is either empty, or ends with one newline
+      - id: mixed-line-ending  # replaces or checks mixed line ending
+      - id: trailing-whitespace  # checks for trailing whitespace
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.6
+    hooks:
+      - id: ruff
+        args: [ --fix, --exit-non-zero-on-fix ]
+      - id: ruff-format
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.44.0
+    hooks:
+      - id: markdownlint
+        args: ["--fix"]
