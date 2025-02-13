@@ -881,6 +881,7 @@ class AutoPlayManager(Vertical):
     def changed_skip(self, event: Checkbox.Changed):
         self.config.auto_play = event.checkbox.value
 
+
 class ForceEndManager(Vertical):
     """Manager for force_end, forcefully ends every video skiping post-video ads."""
 
@@ -894,7 +895,7 @@ class ForceEndManager(Vertical):
             (
                 "If enabled, every video will be forcefully stopped once it has fully",
                 " played through. This skips any post-video ads that might play and"
-                " returns you to the YoutTube home screen."
+                " returns you to the YoutTube home screen.",
             ),
             classes="subtitle",
             id="force-end-subtitle",
@@ -909,6 +910,7 @@ class ForceEndManager(Vertical):
     @on(Checkbox.Changed, "#force-end-switch")
     def changed_skip(self, event: Checkbox.Changed):
         self.config.force_end = event.checkbox.value
+
 
 class ISponsorBlockTVSetupMainScreen(Screen):
     """Making this a separate screen to avoid a bug: https://github.com/Textualize/textual/issues/3221"""

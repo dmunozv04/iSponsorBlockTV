@@ -123,9 +123,14 @@ class DeviceListener:
 
                 if start_next_segment:
                     time_to_next = (
-                        start_next_segment - position - (time.time() - time_start) - self.offset
+                        start_next_segment
+                        - position
+                        - (time.time() - time_start)
+                        - self.offset
                     )
-                    await self.skip(time_to_next, next_segment["end"], next_segment["UUID"])
+                    await self.skip(
+                        time_to_next, next_segment["end"], next_segment["UUID"]
+                    )
 
             # If there's no segment before the end of the video and the force_end is on
             if not start_next_segment and self.config.force_end:
