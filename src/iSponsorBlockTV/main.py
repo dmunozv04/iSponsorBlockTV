@@ -13,6 +13,7 @@ class DeviceListener:
     def __init__(self, api_helper, config, device, debug: bool, web_session):
         self.task: Optional[asyncio.Task] = None
         self.api_helper = api_helper
+        self.config = config
         self.offset = device.offset
         self.name = device.name
         self.cancelled = False
@@ -93,36 +94,47 @@ class DeviceListener:
 
     # Processes the playback state change
     async def process_playstatus(self, state, time_start):
+        position = state.currentTime
         segments = []
+
         if state.videoId:
             segments = await self.api_helper.get_segments(state.videoId)
+
         if state.state.value == 1:  # Playing
             self.logger.info(
                 f"Playing video {state.videoId} with {len(segments)} segments"
             )
-            if segments:  # If there are segments
-                await self.time_to_segment(segments, state.currentTime, time_start)
 
-    # Finds the next segment to skip to and skips to it
-    async def time_to_segment(self, segments, position, time_start):
-        start_next_segment = None
-        next_segment = None
-        for segment in segments:
-            if position < 2 and (segment["start"] <= position < segment["end"]):
-                next_segment = segment
-                start_next_segment = (
-                    position  # different variable so segment doesn't change
+            next_segment = None
+            start_next_segment = None
+
+            if segments:  # If there are segments
+                for segment in segments:
+                    if position < 2 and (segment["start"] <= position < segment["end"]):
+                        next_segment = segment
+                        start_next_segment = (
+                            position  # different variable so segment doesn't change
+                        )
+                        break
+                    if segment["start"] > position:
+                        next_segment = segment
+                        start_next_segment = next_segment["start"]
+                        break
+
+                if start_next_segment:
+                    time_to_next = (
+                        start_next_segment - position - (time.time() - time_start) - self.offset
+                    )
+                    await self.skip(time_to_next, next_segment["end"], next_segment["UUID"])
+
+            # If there's no segment before the end of the video and the force_end is on
+            if not start_next_segment and self.config.force_end:
+                # Schedule a stop task
+                time_to_end = (
+                    state.duration - position - (time.time() - time_start) - self.offset
                 )
-                break
-            if segment["start"] > position:
-                next_segment = segment
-                start_next_segment = next_segment["start"]
-                break
-        if start_next_segment:
-            time_to_next = (
-                start_next_segment - position - (time.time() - time_start) - self.offset
-            )
-            await self.skip(time_to_next, next_segment["end"], next_segment["UUID"])
+                if time_to_end > 2:
+                    await self.stop(time_to_end)
 
     # Skips to the next segment (waits for the time to pass)
     async def skip(self, time_to, position, uuids):
@@ -130,6 +142,13 @@ class DeviceListener:
         self.logger.info("Skipping segment: seeking to %s", position)
         await asyncio.create_task(self.api_helper.mark_viewed_segments(uuids))
         await asyncio.create_task(self.lounge_controller.seek_to(position))
+
+    # Force ends video after expected play time, skiping a video end ad
+    async def stop(self, time_to):
+        # Trigger a few frames earlier to avoid the video end event canceling the task
+        await asyncio.sleep(time_to - 0.1)
+        self.logger.info("Force stopping video, end of expected play time reached")
+        await asyncio.create_task(self.lounge_controller._command("stopVideo"))
 
     async def cancel(self):
         self.cancelled = True
