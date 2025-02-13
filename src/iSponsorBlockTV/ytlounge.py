@@ -20,8 +20,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         web_session: ClientSession = None,
     ):
         super().__init__(
-            config.join_name if config else "iSponsorBlockTV",
-            logger=logger
+            config.join_name if config else "iSponsorBlockTV", logger=logger
         )
 
         if web_session is not None:
