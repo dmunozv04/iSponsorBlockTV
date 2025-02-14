@@ -383,3 +383,9 @@ MigrationScreen {
     padding: 1;
     height: auto;
 }
+
+/* Force end */
+#force-end-container{
+    padding: 1;
+    height: auto;
+}

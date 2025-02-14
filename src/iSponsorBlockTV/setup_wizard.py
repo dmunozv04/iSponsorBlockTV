@@ -893,9 +893,10 @@ class ForceEndManager(Vertical):
         yield Label("Force video end", classes="title")
         yield Label(
             (
-                "If enabled, every video will be forcefully stopped once it has fully",
+                "If enabled, every video will be forcefully stopped once it has fully"
                 " played through. This skips any post-video ads that might play and"
-                " returns you to the YoutTube home screen.",
+                " returns you to the YoutTube home screen. Autoplay cannot be enabled"
+                " at the same time."
             ),
             classes="subtitle",
             id="force-end-subtitle",
@@ -910,6 +911,9 @@ class ForceEndManager(Vertical):
     @on(Checkbox.Changed, "#force-end-switch")
     def changed_skip(self, event: Checkbox.Changed):
         self.config.force_end = event.checkbox.value
+
+        if event.checkbox.value:
+            self.app.query_one("#autoplay-switch").value = False
 
 
 class ISponsorBlockTVSetupMainScreen(Screen):
