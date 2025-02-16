@@ -6,18 +6,20 @@ from typing import Optional
 
 import aiohttp
 
-from . import api_helpers, ytlounge
+from . import api_helpers, webhook_helpers, ytlounge
 
 
 class DeviceListener:
-    def __init__(self, api_helper, config, device, debug: bool, web_session):
+    def __init__(self, api_helper, webhook_helper, config, device, debug: bool, web_session, webhook_session):
         self.task: Optional[asyncio.Task] = None
         self.api_helper = api_helper
+        self.webhook_helper = webhook_helper
         self.offset = device.offset
         self.name = device.name
         self.cancelled = False
         self.logger = logging.getLogger(f"iSponsorBlockTV-{device.screen_id}")
         self.web_session = web_session
+        self.webhook_sessions = webhook_session
         if debug:
             self.logger.setLevel(logging.DEBUG)
         else:
@@ -101,10 +103,10 @@ class DeviceListener:
                 f"Playing video {state.videoId} with {len(segments)} segments"
             )
             if segments:  # If there are segments
-                await self.time_to_segment(segments, state.currentTime, time_start)
+                await self.time_to_segment(segments, state.currentTime, time_start, state.videoId)
 
     # Finds the next segment to skip to and skips to it
-    async def time_to_segment(self, segments, position, time_start):
+    async def time_to_segment(self, segments, position, time_start, video_id):
         start_next_segment = None
         next_segment = None
         for segment in segments:
@@ -122,14 +124,26 @@ class DeviceListener:
             time_to_next = (
                 start_next_segment - position - (time.time() - time_start) - self.offset
             )
-            await self.skip(time_to_next, next_segment["end"], next_segment["UUID"])
+            await self.skip(time_to_next, next_segment["end"], next_segment["UUID"], video_id)
 
-    # Skips to the next segment (waits for the time to pass)
-    async def skip(self, time_to, position, uuids):
+    async def skip(self, time_to, position, uuids, video_id):
         await asyncio.sleep(time_to)
         self.logger.info("Skipping segment: seeking to %s", position)
-        await asyncio.create_task(self.api_helper.mark_viewed_segments(uuids))
         await asyncio.create_task(self.lounge_controller.seek_to(position))
+        self.logger.info("🚀 Calling webhook notify_webhook() NOW!")
+        loop = asyncio.get_running_loop()
+        loop.call_soon(lambda: asyncio.create_task(
+            self.webhook_helper.notify_webhook(
+                self.logger,
+                "segment_skipped",
+                video_id=video_id,
+                device_name=self.name,
+                skip_position=position,
+                segment_uuid=uuids
+            )
+        ))
+        self.logger.info("🚀 Calling webhook notify_webhook() DONE!")
+        await asyncio.create_task(self.api_helper.mark_viewed_segments(uuids))
 
     async def cancel(self):
         self.cancelled = True
@@ -151,12 +165,14 @@ class DeviceListener:
         await self.lounge_controller.change_web_session(self.web_session)
 
 
-async def finish(devices, web_session, tcp_connector):
+async def finish(devices, web_session, webhook_session, tcp_connector, webhook_tcp_connector):
     await asyncio.gather(
         *(device.cancel() for device in devices), return_exceptions=True
     )
     await web_session.close()
+    await webhook_session.close()
     await tcp_connector.close()
+    await webhook_tcp_connector.close()
 
 
 def handle_signal(signum, frame):
@@ -169,11 +185,14 @@ async def main_async(config, debug):
     devices = []  # Save the devices to close them later
     if debug:
         loop.set_debug(True)
-    tcp_connector = aiohttp.TCPConnector(ttl_dns_cache=300)
-    web_session = aiohttp.ClientSession(connector=tcp_connector)
+    web_tcp_connector = aiohttp.TCPConnector(ttl_dns_cache=300)
+    web_session = aiohttp.ClientSession(connector=web_tcp_connector)
     api_helper = api_helpers.ApiHelper(config, web_session)
+    webhook_tcp_connector = aiohttp.TCPConnector(ttl_dns_cache=300)
+    webhook_session = aiohttp.ClientSession(loop=loop, connector=webhook_tcp_connector)
+    webhook_helper = webhook_helpers.WebhookHelper(config, webhook_session)
     for i in config.devices:
-        device = DeviceListener(api_helper, config, i, debug, web_session)
+        device = DeviceListener(api_helper, webhook_helper, config, i, debug, web_session, webhook_session)
         devices.append(device)
         await device.initialize_web_session()
         tasks.append(loop.create_task(device.loop()))
@@ -184,13 +203,15 @@ async def main_async(config, debug):
         await asyncio.gather(*tasks)
     except KeyboardInterrupt:
         print("Cancelling tasks and exiting...")
-        await finish(devices, web_session, tcp_connector)
+        await finish(devices, web_session, webhook_session, web_tcp_connector, webhook_tcp_connector)
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
     finally:
         await web_session.close()
-        await tcp_connector.close()
+        await web_tcp_connector.close()
+        await webhook_session.close()
+        await webhook_tcp_connector.close()
         loop.close()
         print("Exited")
 
