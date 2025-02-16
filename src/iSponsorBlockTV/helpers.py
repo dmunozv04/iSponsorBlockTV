@@ -42,6 +42,7 @@ class Config:
         self.mute_ads = False
         self.skip_ads = False
         self.auto_play = True
+        self.webhooks = {}
         self.__load()
 
     def validate(self):
