@@ -36,6 +36,9 @@ REPORT_SKIPPED_SEGMENTS_PROMPT = (
 MUTE_ADS_PROMPT = "Do you want to mute native YouTube ads automatically? (y/N) "
 SKIP_ADS_PROMPT = "Do you want to skip native YouTube ads automatically? (y/N) "
 AUTOPLAY_PROMPT = "Do you want to enable autoplay? (Y/n) "
+ENTER_API_SERVER_PROMPT = (
+    "Enter the custom API server URL (leave blank to use default): "
+)
 
 
 def get_yn_input(prompt):
@@ -189,6 +192,10 @@ def main(config, debug: bool) -> None:
 
     choice = get_yn_input(AUTOPLAY_PROMPT)
     config.auto_play = choice != "n"
+
+    api_server = input(ENTER_API_SERVER_PROMPT)
+    if api_server:
+        config.api_server = api_server
 
     print("Config finished")
     config.save()

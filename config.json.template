@@ -18,5 +18,6 @@
         {"id": "",
         "name": ""
         }
-    ]
+    ],
+    "api_server": "https://sponsor.ajay.app"
 }
