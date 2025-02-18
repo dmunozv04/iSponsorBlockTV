@@ -882,6 +882,40 @@ class AutoPlayManager(Vertical):
         self.config.auto_play = event.checkbox.value
 
 
+class ForceEndManager(Vertical):
+    """Manager for force_end, forcefully ends every video skiping post-video ads."""
+
+    def __init__(self, config, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.config = config
+
+    def compose(self) -> ComposeResult:
+        yield Label("Force video end", classes="title")
+        yield Label(
+            (
+                "If enabled, every video will be forcefully stopped once it has fully"
+                " played through. This skips any post-video ads that might play and"
+                " returns you to the YoutTube home screen. Autoplay cannot be enabled"
+                " at the same time."
+            ),
+            classes="subtitle",
+            id="force-end-subtitle",
+        )
+        with Horizontal(id="force-end-container"):
+            yield Checkbox(
+                value=self.config.force_end,
+                id="force-end-switch",
+                label="Enable force end",
+            )
+
+    @on(Checkbox.Changed, "#force-end-switch")
+    def changed_skip(self, event: Checkbox.Changed):
+        self.config.force_end = event.checkbox.value
+
+        if event.checkbox.value:
+            self.app.query_one("#autoplay-switch").value = False
+
+
 class ISponsorBlockTVSetupMainScreen(Screen):
     """Making this a separate screen to avoid a bug: https://github.com/Textualize/textual/issues/3221"""
 
@@ -920,6 +954,9 @@ class ISponsorBlockTVSetupMainScreen(Screen):
             )
             yield AutoPlayManager(
                 config=self.config, id="autoplay-manager", classes="container"
+            )
+            yield ForceEndManager(
+                config=self.config, id="force-end-manager", classes="container"
             )
 
     def on_mount(self) -> None:

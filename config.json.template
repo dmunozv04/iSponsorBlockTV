@@ -13,6 +13,7 @@
     "mute_ads": true,
     "skip_ads": true,
     "auto_play": true,
+    "force_end": false,
     "apikey": "",
     "channel_whitelist": [
         {"id": "",
