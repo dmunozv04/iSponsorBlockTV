@@ -19,7 +19,9 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         logger=None,
         web_session: ClientSession = None,
     ):
-        super().__init__("iSponsorBlockTV", logger=logger)
+        super().__init__(
+            config.join_name if config else "iSponsorBlockTV", logger=logger
+        )
         self.auth.screen_id = screen_id
         self.auth.lounge_id_token = None
         self.api_helper = api_helper
