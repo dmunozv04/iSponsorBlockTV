@@ -147,6 +147,9 @@ class DeviceListener:
             return_exceptions=True,
         )
 
+    async def initialize_web_session(self):
+        await self.lounge_controller.change_web_session(self.web_session)
+
 
 async def finish(devices, web_session, tcp_connector):
     await asyncio.gather(
@@ -160,31 +163,39 @@ def handle_signal(signum, frame):
     raise KeyboardInterrupt()
 
 
-def main(config, debug):
+async def main_async(config, debug):
     loop = asyncio.get_event_loop_policy().get_event_loop()
     tasks = []  # Save the tasks so the interpreter doesn't garbage collect them
     devices = []  # Save the devices to close them later
     if debug:
         loop.set_debug(True)
-    asyncio.set_event_loop(loop)
-    tcp_connector = aiohttp.TCPConnector(loop=loop, ttl_dns_cache=300)
-    web_session = aiohttp.ClientSession(loop=loop, connector=tcp_connector)
+    tcp_connector = aiohttp.TCPConnector(ttl_dns_cache=300)
+    web_session = aiohttp.ClientSession(connector=tcp_connector)
     api_helper = api_helpers.ApiHelper(config, web_session)
     for i in config.devices:
         device = DeviceListener(api_helper, config, i, debug, web_session)
         devices.append(device)
+        await device.initialize_web_session()
         tasks.append(loop.create_task(device.loop()))
         tasks.append(loop.create_task(device.refresh_auth_loop()))
     signal(SIGTERM, handle_signal)
     signal(SIGINT, handle_signal)
     try:
-        loop.run_forever()
+        await asyncio.gather(*tasks)
     except KeyboardInterrupt:
         print("Cancelling tasks and exiting...")
-        loop.run_until_complete(finish(devices, web_session, tcp_connector))
+        await finish(devices, web_session, tcp_connector)
         for task in tasks:
             task.cancel()
-        loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
+        await asyncio.gather(*tasks, return_exceptions=True)
     finally:
+        await web_session.close()
+        await tcp_connector.close()
         loop.close()
         print("Exited")
+
+
+def main(config, debug):
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main_async(config, debug))
+    loop.close()
