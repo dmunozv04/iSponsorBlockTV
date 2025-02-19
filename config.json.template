@@ -19,4 +19,14 @@
         "name": ""
         }
     ]
+    "webhooks": [
+        {
+            "event": "segment_skipped",
+            "url": "",
+            "method": "POST",
+            "headers": {
+                "Content-Type": "application/json"
+            }
+        }
+    ],
 }
