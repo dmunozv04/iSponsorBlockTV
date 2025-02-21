@@ -340,8 +340,9 @@ class AddDevice(ModalWithClickExit):
     async def handle_add_device_pin(self) -> None:
         self.query_one("#add-device-pin-add-button").disabled = True
         lounge_controller = ytlounge.YtLoungeApi(
-            "iSponsorBlockTV", web_session=self.web_session
+            "iSponsorBlockTV",
         )
+        await lounge_controller.change_web_session(self.web_session)
         pairing_code = self.query_one("#pairing-code-input").value
         pairing_code = int(
             pairing_code.replace("-", "").replace(" ", "")

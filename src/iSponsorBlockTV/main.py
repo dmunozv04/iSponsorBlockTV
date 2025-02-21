@@ -29,7 +29,7 @@ class DeviceListener:
         self.logger.addHandler(sh)
         self.logger.info("Starting device")
         self.lounge_controller = ytlounge.YtLoungeApi(
-            device.screen_id, config, api_helper, self.logger, self.web_session
+            device.screen_id, config, api_helper, self.logger
         )
 
     # Ensures that we have a valid auth token
