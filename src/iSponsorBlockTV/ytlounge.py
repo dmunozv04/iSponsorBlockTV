@@ -13,11 +13,10 @@ create_task = asyncio.create_task
 class YtLoungeApi(pyytlounge.YtLoungeApi):
     def __init__(
         self,
-        screen_id,
+        screen_id=None,
         config=None,
         api_helper=None,
         logger=None,
-        web_session: ClientSession = None,
     ):
         super().__init__(
             config.join_name if config else "iSponsorBlockTV", logger=logger

@@ -44,10 +44,13 @@ def get_yn_input(prompt):
             return choice.lower()
         print("Invalid input. Please enter 'y' or 'n'.")
 
+async def create_web_session():
+    return aiohttp.ClientSession()
 
-async def pair_device():
+async def pair_device(web_session: aiohttp.ClientSession):
     try:
-        lounge_controller = ytlounge.YtLoungeApi("iSponsorBlockTV")
+        lounge_controller = ytlounge.YtLoungeApi()
+        await lounge_controller.change_web_session(web_session)
         pairing_code = input(PAIRING_CODE_PROMPT)
         pairing_code = int(
             pairing_code.replace("-", "").replace(" ", "")
@@ -71,7 +74,7 @@ async def pair_device():
 def main(config, debug: bool) -> None:
     print("Welcome to the iSponsorBlockTV cli setup wizard")
     loop = asyncio.get_event_loop_policy().get_event_loop()
-    web_session = aiohttp.ClientSession()
+    web_session = loop.run_until_complete(create_web_session())
     if debug:
         loop.set_debug(True)
     asyncio.set_event_loop(loop)
@@ -88,9 +91,7 @@ def main(config, debug: bool) -> None:
     devices = config.devices
     choice = get_yn_input(ADD_MORE_DEVICES_PROMPT.format(num_devices=len(devices)))
     while choice == "y":
-        task = loop.create_task(pair_device())
-        loop.run_until_complete(task)
-        device = task.result()
+        device = loop.run_until_complete(pair_device(web_session))
         if device:
             devices.append(device)
         choice = get_yn_input(ADD_MORE_DEVICES_PROMPT.format(num_devices=len(devices)))
