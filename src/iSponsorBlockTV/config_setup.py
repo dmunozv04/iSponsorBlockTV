@@ -44,8 +44,10 @@ def get_yn_input(prompt):
             return choice.lower()
         print("Invalid input. Please enter 'y' or 'n'.")
 
+
 async def create_web_session():
     return aiohttp.ClientSession()
+
 
 async def pair_device(web_session: aiohttp.ClientSession):
     try:
