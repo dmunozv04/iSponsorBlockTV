@@ -4,7 +4,7 @@ async-cache==1.1.1
 pyytlounge==2.1.2
 rich==13.9.4
 ssdp==1.3.0
-textual==1.0.0
+textual==2.1.1
 textual-slider==0.2.0
 xmltodict==0.14.2
 rich_click==1.8.5
