@@ -3,6 +3,7 @@
 .gitignore
 .deepsource.toml
 .github
+.git
 
 Dockerfile
 docker-compose.yml

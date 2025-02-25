@@ -5,7 +5,7 @@ authors = [
     {"name" = "dmunozv04"}
 ]
 description = "SponsorBlock client for all YouTube TV clients"
-readme = "README.md"
+#readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -13,10 +13,18 @@ classifiers = [
     "Operating System :: OS Independent",
     "Topic :: Home Automation"
 ]
-dynamic = ["dependencies"]
-
-[tool.hatch.metadata.hooks.requirements_txt]
-files = ["requirements.txt"]
+dependencies = [
+    "aiohttp==3.11.12",
+    "appdirs==1.4.4",
+    "async-cache==1.1.1",
+    "pyytlounge==2.1.2",
+    "rich==13.9.4",
+    "rich-click==1.8.5",
+    "ssdp==1.3.0",
+    "textual==1.0.0",
+    "textual-slider==0.2.0",
+    "xmltodict==0.14.2",
+]
 
 [project.urls]
 "Homepage" = "https://github.com/dmunozv04/iSponsorBlockTV"

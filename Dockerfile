@@ -1,38 +1,26 @@
 # syntax=docker/dockerfile:1
-FROM python:3.13-alpine3.21 AS base
+FROM ghcr.io/astral-sh/uv:python3.13-alpine AS base-builder
+FROM python:3.13-alpine AS base
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=0
 
-FROM base AS compiler
+FROM base-builder AS builder
 
 WORKDIR /app
 
-COPY src .
-
-RUN python3 -m compileall -b -f . && \
-    find . -name "*.py" -type f -delete
-
-FROM base AS dep_installer
-
-COPY requirements.txt .
-
-RUN apk add --no-cache gcc musl-dev && \
-    pip install --upgrade pip wheel && \
-    pip install -r requirements.txt && \
-    pip uninstall -y pip wheel && \
-    apk del gcc musl-dev && \
-    python3 -m compileall -b -f /usr/local/lib/python3.13/site-packages && \
-    find /usr/local/lib/python3.13/site-packages -name "*.py" -type f -delete && \
-    find /usr/local/lib/python3.13/ -name "__pycache__" -type d -exec rm -rf {} +
+RUN apk add --no-cache gcc musl-dev
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-install-project --no-dev
+ADD . /app
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
 
 FROM base
 
 ENV PIP_NO_CACHE_DIR=off iSPBTV_docker=True iSPBTV_data_dir=data TERM=xterm-256color COLORTERM=truecolor
 
-COPY requirements.txt .
+COPY --from=builder --chown=app:app /app /app
+ENV PATH="/app/.venv/bin:$PATH"
 
-COPY --from=dep_installer /usr/local /usr/local
-
-WORKDIR /app
-
-COPY --from=compiler /app .
-
-ENTRYPOINT ["python3", "-u", "main.pyc"]
+ENTRYPOINT ["python3", "/app/src/main.py"]
