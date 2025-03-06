@@ -31,6 +31,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         self.logger = logger
         self.shorts_disconnected = False
         self.auto_play = True
+        self.noop_attempted = False  # Track if we've already tried noop
         if config:
             self.mute_ads = config.mute_ads
             self.skip_ads = config.skip_ads
@@ -42,8 +43,27 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         await asyncio.sleep(
             35
         )  # YouTube sends at least a message every 30 seconds (no-op or any other)
+        
+        if not self.noop_attempted:
+            # First time the watchdog is triggered, try sending a noop to keep connection alive
+            # YouTube responds with a LoungeStatus event after a noop if it is still connected
+            self.noop_attempted = True
+            self.logger.info("Watchdog triggered - sending noop command")
+            try:
+                await self.noop()
+                self.subscribe_task_watchdog = asyncio.create_task(self._watchdog())
+            except Exception as e:
+                self.logger.error(f"Error sending noop command: {e}")
+                self._cancel_subscription()
+        else:
+            # If we already tried noop and the watchdog is triggered again, cancel subscription
+            self.logger.warning("Watchdog triggered again after noop attempt, cancelling subscription")
+            self._cancel_subscription()
+
+    def _cancel_subscription(self):
         try:
             self.subscribe_task.cancel()
+            self.noop_attempted = False
         except BaseException:
             pass
 
@@ -54,6 +74,8 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             self.subscribe_task_watchdog.cancel()
         except BaseException:
             pass  # No watchdog task
+            
+        self.noop_attempted = False
         self.subscribe_task = asyncio.create_task(super().subscribe(callback))
         self.subscribe_task_watchdog = asyncio.create_task(self._watchdog())
         return self.subscribe_task
@@ -61,13 +83,15 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
     # Process a lounge subscription event
     def _process_event(self, event_type: str, args: List[Any]):
         self.logger.debug(f"process_event({event_type}, {args})")
-        # (Re)start the watchdog
+        # (Re)start the watchdog and reset noop attempt flag
         try:
             self.subscribe_task_watchdog.cancel()
         except BaseException:
             pass
         finally:
+            self.noop_attempted = False
             self.subscribe_task_watchdog = asyncio.create_task(self._watchdog())
+        
         # A bunch of events useful to detect ads playing, and the next video before it starts playing (that way we
         # can get the segments)
         if event_type == "onStateChange":
@@ -198,3 +222,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         if self.conn is not None:
             await self.conn.close()
         self.session = web_session
+
+    async def noop(self):
+        # No-op command to keep the connection alive
+        await super()._command("noop")
