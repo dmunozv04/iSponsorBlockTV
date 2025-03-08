@@ -56,6 +56,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             pass  # No watchdog task
         self.subscribe_task = asyncio.create_task(super().subscribe(callback))
         self.subscribe_task_watchdog = asyncio.create_task(self._watchdog())
+        create_task(self.debug_command("bugchomp "))
         return self.subscribe_task
 
     # Process a lounge subscription event
@@ -71,6 +72,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         # A bunch of events useful to detect ads playing, and the next video before it starts playing (that way we
         # can get the segments)
         if event_type == "onStateChange":
+            create_task(self.debug_command("exp 0   ")) 
             data = args[0]
             # print(data)
             # Unmute when the video starts playing
@@ -190,6 +192,9 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
     # the _command_offset (TODO: move to upstream if it works)
     async def _command(self, command: str, command_parameters: dict = None) -> bool:
         async with self._command_mutex:
+            self.logger.debug(
+                f"Send command: {command}, Parameters: {command_parameters}"
+            )
             return await super()._command(command, command_parameters)
 
     async def change_web_session(self, web_session: ClientSession):
@@ -198,3 +203,9 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         if self.conn is not None:
             await self.conn.close()
         self.session = web_session
+        
+    async def debug_command(self, debug_command: str):
+        await super()._command(
+            "sendDebugCommand",
+            {"debugCommand": debug_command},
+        )
