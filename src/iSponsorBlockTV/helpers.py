@@ -152,7 +152,7 @@ def cli(ctx, data, debug, setup, setup_cli):
     ctx.ensure_object(dict)
     ctx.obj["data_dir"] = data
     ctx.obj["debug"] = debug
-    
+
     logger = logging.getLogger()
     ctx.obj["logger"] = logger
     sh = logging.StreamHandler()
@@ -160,7 +160,7 @@ def cli(ctx, data, debug, setup, setup_cli):
         logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     )
     logger.addHandler(sh)
-    
+
     if debug:
         logger.setLevel(logging.DEBUG)
     else:
