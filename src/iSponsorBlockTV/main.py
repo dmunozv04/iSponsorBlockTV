@@ -18,16 +18,6 @@ class DeviceListener:
         self.cancelled = False
         self.logger = logging.getLogger(f"iSponsorBlockTV-{device.screen_id}")
         self.web_session = web_session
-        if debug:
-            self.logger.setLevel(logging.DEBUG)
-        else:
-            self.logger.setLevel(logging.INFO)
-        sh = logging.StreamHandler()
-        sh.setFormatter(
-            logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-        )
-        self.logger.addHandler(sh)
-        self.logger.info("Starting device")
         self.lounge_controller = ytlounge.YtLoungeApi(
             device.screen_id, config, api_helper, self.logger
         )
@@ -60,6 +50,7 @@ class DeviceListener:
                 except BaseException:
                     await asyncio.sleep(10)
             while not (await self.is_available()) and not self.cancelled:
+                self.logger.debug("Waiting for device to be available")
                 await asyncio.sleep(10)
             try:
                 await lounge_controller.connect()
@@ -67,6 +58,7 @@ class DeviceListener:
                 pass
             while not lounge_controller.connected() and not self.cancelled:
                 # Doesn't connect to the device if it's a kids profile (it's broken)
+                self.logger.debug("Waiting for device to be connected")
                 await asyncio.sleep(10)
                 try:
                     await lounge_controller.connect()
@@ -76,7 +68,7 @@ class DeviceListener:
                 "Connected to device %s (%s)", lounge_controller.screen_name, self.name
             )
             try:
-                self.logger.info("Subscribing to lounge")
+                self.logger.debug("Subscribing to lounge")
                 sub = await lounge_controller.subscribe_monitored(self)
                 await sub
             except BaseException:

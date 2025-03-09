@@ -152,8 +152,20 @@ def cli(ctx, data, debug, setup, setup_cli):
     ctx.ensure_object(dict)
     ctx.obj["data_dir"] = data
     ctx.obj["debug"] = debug
+
+    logger = logging.getLogger()
+    ctx.obj["logger"] = logger
+    sh = logging.StreamHandler()
+    sh.setFormatter(
+        logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    )
+    logger.addHandler(sh)
+
     if debug:
-        logging.basicConfig(level=logging.DEBUG)
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
+
     if ctx.invoked_subcommand is None:
         if setup:
             ctx.invoke(setup_command)
