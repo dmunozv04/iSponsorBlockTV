@@ -60,6 +60,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         return self.subscribe_task
 
     # Process a lounge subscription event
+    # skipcq: PY-R1000
     def _process_event(self, event_type: str, args: List[Any]):
         self.logger.debug(f"process_event({event_type}, {args})")
         # (Re)start the watchdog
