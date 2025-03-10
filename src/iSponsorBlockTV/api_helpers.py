@@ -121,7 +121,7 @@ class ApiHelper:
                 [],
                 True,
             )  # Return empty list and True to indicate
-               # that the cache should last forever
+            # that the cache should last forever
         vid_id_hashed = sha256(vid_id.encode("utf-8")).hexdigest()[
             :4
         ]  # Hashes video id and gets the first 4 characters

@@ -84,7 +84,8 @@ class Handler(ssdp.aio.SSDP):
 
     def request_received(self, request: ssdp.messages.SSDPRequest, addr):
         raise NotImplementedError(
-            "Request received is not implemented, this is a client")
+            "Request received is not implemented, this is a client"
+        )
 
 
 async def find_youtube_app(web_session, url_location):

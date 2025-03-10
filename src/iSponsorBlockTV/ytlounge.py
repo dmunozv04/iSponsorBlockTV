@@ -166,11 +166,11 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         """
         Mute or unmute the device (if the device already
         is in the desired state, nothing happens)
-        
+
         :param bool mute: True to mute, False to unmute
         :param bool override: If True, the command is sent even if the
         device already is in the desired state
-        
+
         TODO: Only works if the device is subscribed to the lounge
         """
         if mute:

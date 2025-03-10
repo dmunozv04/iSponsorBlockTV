@@ -45,6 +45,7 @@ def get_yn_input(prompt):
         print("Invalid input. Please enter 'y' or 'n'.")
     return None
 
+
 async def create_web_session():
     return aiohttp.ClientSession()
 
