@@ -25,6 +25,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         self.auth.lounge_id_token = None
         self.api_helper = api_helper
         self.volume_state = {}
+        self.playback_speed = 1.0
         self.subscribe_task = None
         self.subscribe_task_watchdog = None
         self.callback = None
@@ -59,6 +60,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         return self.subscribe_task
 
     # Process a lounge subscription event
+    # skipcq: PY-R1000
     def _process_event(self, event_type: str, args: List[Any]):
         self.logger.debug(f"process_event({event_type}, {args})")
         # (Re)start the watchdog
@@ -156,6 +158,11 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         elif event_type == "onAutoplayModeChanged":
             create_task(self.set_auto_play_mode(self.auto_play))
 
+        elif event_type == "onPlaybackSpeedChanged":
+            data = args[0]
+            self.playback_speed = float(data.get("playbackSpeed", "1"))
+            create_task(self.get_now_playing())
+
         super()._process_event(event_type, args)
 
     # Set the volume to a specific value (0-100)
@@ -192,6 +199,9 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
 
     async def play_video(self, video_id: str) -> bool:
         return await self._command("setPlaylist", {"videoId": video_id})
+
+    async def get_now_playing(self):
+        return await super()._command("getNowPlaying")
 
     # Test to wrap the command function in a mutex to avoid race conditions with
     # the _command_offset (TODO: move to upstream if it works)
