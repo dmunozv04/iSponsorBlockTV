@@ -76,11 +76,11 @@ class DeviceListener:
 
     # Method called on playback state change
     async def __call__(self, state):
+        time_start = time.monotonic()
         try:
             self.task.cancel()
         except BaseException:
             pass
-        time_start = time.time()
         self.task = asyncio.create_task(self.process_playstatus(state, time_start))
 
     # Processes the playback state change
@@ -100,28 +100,29 @@ class DeviceListener:
         start_next_segment = None
         next_segment = None
         for segment in segments:
-            if position < 2 and (segment["start"] <= position < segment["end"]):
+            segment_start = segment["start"]
+            is_within_start_range = position < 1 and segment_start <= position < segment["end"] and segment["end"] > 1
+            is_beyond_current_position = segment_start > position
+
+            if is_within_start_range or is_beyond_current_position:
                 next_segment = segment
-                start_next_segment = (
-                    position  # different variable so segment doesn't change
-                )
-                break
-            if segment["start"] > position:
-                next_segment = segment
-                start_next_segment = next_segment["start"]
+                start_next_segment = position if is_within_start_range else segment_start
                 break
         if start_next_segment:
             time_to_next = (
-                start_next_segment - position - (time.time() - time_start) - self.offset
-            )
+                (start_next_segment - position - (time.monotonic() - time_start))
+                / self.lounge_controller.playback_speed
+            ) - self.offset
             await self.skip(time_to_next, next_segment["end"], next_segment["UUID"])
 
     # Skips to the next segment (waits for the time to pass)
     async def skip(self, time_to, position, uuids):
         await asyncio.sleep(time_to)
         self.logger.info("Skipping segment: seeking to %s", position)
-        await asyncio.create_task(self.api_helper.mark_viewed_segments(uuids))
-        await asyncio.create_task(self.lounge_controller.seek_to(position))
+        await asyncio.gather(
+            asyncio.create_task(self.lounge_controller.seek_to(position)),
+            asyncio.create_task(self.api_helper.mark_viewed_segments(uuids)),
+        )
 
     async def cancel(self):
         self.cancelled = True
