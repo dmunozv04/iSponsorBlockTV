@@ -101,10 +101,10 @@ class DeviceListener:
         next_segment = None
         for segment in segments:
             segment_start = segment["start"]
+            segment_end = segment["end"]
             is_within_start_range = (
-                position < 1
-                and segment_start <= position < segment["end"]
-                and segment["end"] > 1
+                position < 1 < segment_end
+                and segment_start <= position < segment_end
             )
             is_beyond_current_position = segment_start > position
 
