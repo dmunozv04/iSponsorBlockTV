@@ -79,7 +79,7 @@ class Element(Static):
         self.tooltip = tooltip
 
     def process_values_from_data(self):
-        pass
+        raise NotImplementedError("Subclasses must implement this method.")
 
     def compose(self) -> ComposeResult:
         yield Button(
@@ -229,7 +229,8 @@ class ExitScreen(ModalWithClickExit):
 
 
 class AddDevice(ModalWithClickExit):
-    """Screen with a dialog to add a device, either with a pairing code or with lan discovery."""
+    """Screen with a dialog to add a device, either with a pairing code
+    or with lan discovery."""
 
     BINDINGS = [("escape", "dismiss({})", "Return")]
 
@@ -387,7 +388,8 @@ class AddDevice(ModalWithClickExit):
 
 
 class AddChannel(ModalWithClickExit):
-    """Screen with a dialog to add a channel, either using search or with a channel id."""
+    """Screen with a dialog to add a channel,
+    either using search or with a channel id."""
 
     BINDINGS = [("escape", "dismiss(())", "Return")]
 
@@ -553,7 +555,7 @@ class EditDevice(ModalWithClickExit):
     def action_close_screen_saving(self) -> None:
         self.dismiss()
 
-    def dismiss(self) -> None:
+    def dismiss(self, _=None) -> None:
         self.device_data["name"] = self.query_one("#device-name-input").value
         self.device_data["screen_id"] = self.query_one("#device-id-input").value
         self.device_data["offset"] = int(self.query_one("#device-offset-input").value)
@@ -793,7 +795,8 @@ class AdSkipMuteManager(Vertical):
 
 
 class ChannelWhitelistManager(Vertical):
-    """Manager for channel whitelist, allows adding/removing channels from the whitelist."""
+    """Manager for channel whitelist,
+    allows adding/removing channels from the whitelist."""
 
     def __init__(self, config, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -884,8 +887,6 @@ class AutoPlayManager(Vertical):
 
 
 class ISponsorBlockTVSetupMainScreen(Screen):
-    """Making this a separate screen to avoid a bug: https://github.com/Textualize/textual/issues/3221"""
-
     TITLE = "iSponsorBlockTV"
     SUB_TITLE = "Setup Wizard"
     BINDINGS = [("q,ctrl+c", "exit_modal", "Exit"), ("s", "save", "Save")]
@@ -926,7 +927,6 @@ class ISponsorBlockTVSetupMainScreen(Screen):
     def on_mount(self) -> None:
         if self.check_for_old_config_entries():
             self.app.push_screen(MigrationScreen())
-            pass
 
     def action_save(self) -> None:
         self.config.save()

@@ -120,7 +120,8 @@ class ApiHelper:
             return (
                 [],
                 True,
-            )  # Return empty list and True to indicate that the cache should last forever
+            )  # Return empty list and True to indicate
+               # that the cache should last forever
         vid_id_hashed = sha256(vid_id.encode("utf-8")).hexdigest()[
             :4
         ]  # Hashes video id and gets the first 4 characters
@@ -183,7 +184,7 @@ class ApiHelper:
                     segment_before_start = segments[-1]["start"]
                     segment_before_UUID = segments[-1]["UUID"]
 
-                except Exception:
+                except IndexError:
                     segment_before_end = -10
                 if (
                     segment_dict["start"] - segment_before_end < 1
@@ -192,12 +193,13 @@ class ApiHelper:
                     segment_dict["UUID"].extend(segment_before_UUID)
                     segments.pop()
                 segments.append(segment_dict)
-        except Exception:
+        except BaseException:
             pass
         return segments, ignore_ttl
 
     async def mark_viewed_segments(self, uuids):
-        """Marks the segments as viewed in the SponsorBlock API, if skip_count_tracking is enabled.
+        """Marks the segments as viewed in the SponsorBlock API
+        if skip_count_tracking is enabled.
         Lets the contributor know that someone skipped the segment (thanks)"""
         if self.skip_count_tracking:
             for i in uuids:

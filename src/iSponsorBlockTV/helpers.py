@@ -8,7 +8,7 @@ import rich_click as click
 from appdirs import user_data_dir
 
 from . import config_setup, main, setup_wizard
-from .constants import config_file_blacklist_keys
+from .constants import config_file_blacklist_keys, github_wiki_base_url
 
 
 class Device:
@@ -51,8 +51,8 @@ class Config:
                 (
                     "The atvs config option is deprecated and has stopped working."
                     " Please read this for more information "
-                    "on how to upgrade to V2:"
-                    " \nhttps://github.com/dmunozv04/iSponsorBlockTV/wiki/Migrate-from-V1-to-V2"
+                    "on how to upgrade to V2:\n"
+                    f"{github_wiki_base_url}/Migrate-from-V1-to-V2"
                 ),
             )
             print("Exiting in 10 seconds...")
@@ -90,7 +90,7 @@ class Config:
                     print(
                         "Running in docker without mounting the data dir, check the"
                         " wiki for more information: "
-                        "https://github.com/dmunozv04/iSponsorBlockTV/wiki/Installation#Docker"
+                        f"{github_wiki_base_url}/Installation#Docker"
                     )
                     print(
                         (
@@ -101,7 +101,7 @@ class Config:
                             "Please read this for more information on how to upgrade"
                             " to V2:"
                         ),
-                        "https://github.com/dmunozv04/iSponsorBlockTV/wiki/Migrate-from-V1-to-V2",
+                        f"{github_wiki_base_url}/Migrate-from-V1-to-V2",
                     )
                     print("Exiting in 10 seconds...")
                     time.sleep(10)
@@ -125,6 +125,9 @@ class Config:
         if isinstance(other, Config):
             return self.__dict__ == other.__dict__
         return False
+
+    def __hash__(self):
+        return hash(tuple(sorted(self.items())))
 
 
 @click.group(invoke_without_command=True)
@@ -175,27 +178,21 @@ def cli(ctx, data, debug, setup, setup_cli):
             ctx.invoke(start)
 
 
-@cli.command()
+@cli.command(name="setup")
 @click.pass_context
-def setup(ctx):
+def setup_command(ctx):
     """Setup the program graphically"""
     config = Config(ctx.obj["data_dir"])
     setup_wizard.main(config)
     sys.exit()
 
 
-setup_command = setup
-
-
-@cli.command()
+@cli.command(name="setup-cli")
 @click.pass_context
-def setup_cli(ctx):
+def setup_cli_command(ctx):
     """Setup the program in the command line"""
     config = Config(ctx.obj["data_dir"])
     config_setup.main(config, ctx.obj["debug"])
-
-
-setup_cli_command = setup_cli
 
 
 @cli.command()
