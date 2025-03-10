@@ -29,14 +29,12 @@ class DeviceListener:
             try:
                 await self.lounge_controller.refresh_auth()
             except BaseException:
-                # traceback.print_exc()
                 pass
 
     async def is_available(self):
         try:
             return await self.lounge_controller.is_available()
         except BaseException:
-            # traceback.print_exc()
             return False
 
     # Main subscription loop
@@ -90,7 +88,7 @@ class DeviceListener:
             segments = await self.api_helper.get_segments(state.videoId)
         if state.state.value == 1:  # Playing
             self.logger.info(
-                f"Playing video {state.videoId} with {len(segments)} segments"
+                "Playing video %s with %d segments", state.videoId, len(segments)
             )
             if segments:  # If there are segments
                 await self.time_to_segment(segments, state.currentTime, time_start)

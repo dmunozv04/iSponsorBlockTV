@@ -70,8 +70,9 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             pass
         finally:
             self.subscribe_task_watchdog = asyncio.create_task(self._watchdog())
-        # A bunch of events useful to detect ads playing, and the next video before it starts playing (that way we
-        # can get the segments)
+        # A bunch of events useful to detect ads playing,
+        # and the next video before it starts playing
+        # (that way we can get the segments)
         if event_type == "onStateChange":
             data = args[0]
             # print(data)
@@ -100,10 +101,10 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             ):  # Seen multiple other adStates, assuming they are all ads
                 self.logger.info("Ad has started, muting")
                 create_task(self.mute(True, override=True))
-        # Manages volume, useful since YouTube wants to know the volume when unmuting (even if they already have it)
+        # Manages volume, useful since YouTube wants to know the volume
+        # when unmuting (even if they already have it)
         elif event_type == "onVolumeChanged":
             self.volume_state = args[0]
-            pass
         # Gets segments for the next video before it starts playing
         elif event_type == "autoplayUpNext":
             if len(args) > 0 and (
@@ -168,16 +169,22 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
     async def set_volume(self, volume: int) -> None:
         await super()._command("setVolume", {"volume": volume})
 
-    # Mute or unmute the device (if the device already is in the desired state, nothing happens)
-    # mute: True to mute, False to unmute
-    # override: If True, the command is sent even if the device already is in the desired state
-    # TODO: Only works if the device is subscribed to the lounge
     async def mute(self, mute: bool, override: bool = False) -> None:
+        """
+        Mute or unmute the device (if the device already
+        is in the desired state, nothing happens)
+
+        :param bool mute: True to mute, False to unmute
+        :param bool override: If True, the command is sent even if the
+        device already is in the desired state
+
+        TODO: Only works if the device is subscribed to the lounge
+        """
         if mute:
             mute_str = "true"
         else:
             mute_str = "false"
-        if override or not (self.volume_state.get("muted", "false") == mute_str):
+        if override or not self.volume_state.get("muted", "false") == mute_str:
             self.volume_state["muted"] = mute_str
             # YouTube wants the volume when unmuting, so we send it
             await super()._command(

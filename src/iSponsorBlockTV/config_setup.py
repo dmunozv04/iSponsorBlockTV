@@ -43,6 +43,7 @@ def get_yn_input(prompt):
         if choice.lower() in ["y", "n"]:
             return choice.lower()
         print("Invalid input. Please enter 'y' or 'n'.")
+    return None
 
 
 async def create_web_session():
