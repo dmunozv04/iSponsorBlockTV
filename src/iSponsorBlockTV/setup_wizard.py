@@ -723,6 +723,33 @@ class SkipCategoriesManager(Vertical):
         self.config.skip_categories = event.selection_list.selected
 
 
+class MinimumSkipLengthManager(Vertical):
+    """Manager for minimum skip length setting."""
+    
+    def __init__(self, config, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.config = config
+
+    def compose(self) -> ComposeResult:
+        yield Label("Minimum Skip Length", classes="title")
+        yield Label(
+            "Specify the minimum length a segment must meet in order to skip it (in seconds). Default is 1 second; entering 0 will skip all segments.",
+            classes="subtitle",
+        )
+        yield Input(
+            placeholder="Minimum skip length (0 to skip all)",
+            id="minimum-skip-length-input",
+            value=str(getattr(self.config, "minimum_skip_length", 1))
+        )
+
+    @on(Input.Changed, "#minimum-skip-length-input")
+    def changed_minimum_skip_length(self, event: Input.Changed):
+        try:
+            self.config.minimum_skip_length = int(event.input.value)
+        except ValueError:
+            self.config.minimum_skip_length = 1
+
+
 class SkipCountTrackingManager(Vertical):
     """Manager for skip count tracking, allows to enable/disable skip count tracking."""
 
