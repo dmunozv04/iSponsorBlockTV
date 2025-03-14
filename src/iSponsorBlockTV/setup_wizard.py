@@ -739,7 +739,13 @@ class MinimumSkipLengthManager(Vertical):
         yield Input(
             placeholder="Minimum skip length (0 to skip all)",
             id="minimum-skip-length-input",
-            value=str(getattr(self.config, "minimum_skip_length", 1))
+            value=str(getattr(self.config, "minimum_skip_length", 1)),
+            validators=[
+                Function(
+                    lambda user_input: user_input.isdigit(),
+                    "Please enter a valid non-negative number"
+                )
+            ]
         )
 
     @on(Input.Changed, "#minimum-skip-length-input")
