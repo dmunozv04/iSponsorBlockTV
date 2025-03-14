@@ -725,7 +725,7 @@ class SkipCategoriesManager(Vertical):
 
 class MinimumSkipLengthManager(Vertical):
     """Manager for minimum skip length setting."""
-    
+
     def __init__(self, config, **kwargs) -> None:
         super().__init__(**kwargs)
         self.config = config
@@ -739,7 +739,7 @@ class MinimumSkipLengthManager(Vertical):
         yield Input(
             placeholder="Minimum skip length (0 to skip all)",
             id="minimum-skip-length-input",
-            value=str(getattr(self.config, "minimum_skip_length", 1))
+            value=str(getattr(self.config, "minimum_skip_length", 1)),
         )
 
     @on(Input.Changed, "#minimum-skip-length-input")
@@ -936,7 +936,9 @@ class ISponsorBlockTVSetupMainScreen(Screen):
                 config=self.config, id="skip-categories-manager", classes="container"
             )
             yield MinimumSkipLengthManager(
-                config=self.config, id="minimum-skip-length-manager", classes="container"
+                config=self.config,
+                id="minimum-skip-length-manager",
+                classes="container",
             )
             yield SkipCountTrackingManager(
                 config=self.config, id="count-segments-manager", classes="container"
