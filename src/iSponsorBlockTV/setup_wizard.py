@@ -935,6 +935,9 @@ class ISponsorBlockTVSetupMainScreen(Screen):
             yield SkipCategoriesManager(
                 config=self.config, id="skip-categories-manager", classes="container"
             )
+            yield MinimumSkipLengthManager(
+                config=self.config, id="minimum-skip-length-manager", classes="container"
+            )
             yield SkipCountTrackingManager(
                 config=self.config, id="count-segments-manager", classes="container"
             )
