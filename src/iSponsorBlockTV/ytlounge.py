@@ -192,11 +192,6 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 {"volume": self.volume_state.get("volume", 100), "muted": mute_str},
             )
 
-    async def set_auto_play_mode(self, enabled: bool):
-        await super()._command(
-            "setAutoplayMode", {"autoplayMode": "ENABLED" if enabled else "DISABLED"}
-        )
-
     async def play_video(self, video_id: str) -> bool:
         return await self._command("setPlaylist", {"videoId": video_id})
 
