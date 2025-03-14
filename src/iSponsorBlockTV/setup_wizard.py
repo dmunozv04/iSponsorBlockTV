@@ -743,9 +743,9 @@ class MinimumSkipLengthManager(Vertical):
             validators=[
                 Function(
                     lambda user_input: user_input.isdigit(),
-                    "Please enter a valid non-negative number"
+                    "Please enter a valid non-negative number",
                 )
-            ]
+            ],
         )
 
     @on(Input.Changed, "#minimum-skip-length-input")
