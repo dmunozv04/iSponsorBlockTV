@@ -211,7 +211,7 @@ def main(config, debug: bool) -> None:
             )
             break
         except ValueError:
-            print('You entered a non integer value, try again.')
+            print("You entered a non integer value, try again.")
             continue
     config.minimum_skip_length = minimum_skip_length
 
