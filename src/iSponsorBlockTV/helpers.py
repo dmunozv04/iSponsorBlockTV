@@ -41,7 +41,7 @@ class Config:
         self.skip_count_tracking = True
         self.mute_ads = False
         self.skip_ads = False
-        self.minimum_skip_length = 0
+        self.minimum_skip_length = 1
         self.auto_play = True
         self.join_name = "iSponsorBlockTV"
         self.__load()
