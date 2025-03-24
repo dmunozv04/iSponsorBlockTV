@@ -671,7 +671,7 @@ class ApiKeyManager(Vertical):
         yield Label("YouTube Api Key", classes="title")
         yield Label(
             "You can get a YouTube Data API v3 Key from the"
-            " [link=https://console.developers.google.com/apis/credentials]Google Cloud"
+            " [link='https://console.developers.google.com/apis/credentials']Google Cloud"
             " Console[/link]. This key is only required if you're whitelisting"
             " channels."
         )
