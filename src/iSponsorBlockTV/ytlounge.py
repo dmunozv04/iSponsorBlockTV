@@ -7,6 +7,10 @@ from aiohttp import ClientSession
 
 from .constants import youtube_client_blacklist
 
+from pyytlounge.api import api_base
+from pyytlounge.exceptions import NotLinkedException
+from pyytlounge.util import as_aiter
+
 create_task = asyncio.create_task
 
 
@@ -200,3 +204,52 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         if self.conn is not None:
             await self.conn.close()
         self.session = web_session
+
+    # TODO: Open a PR upstream to specify the connect_body.method
+    # if this works
+    async def connect(self) -> bool:
+        """Attempt to connect using the previously set tokens"""
+        if not self.linked():
+            raise NotLinkedException("Not linked")
+
+        connect_body = {
+            "app": "web",
+            "mdx-version": "3",
+            "name": self.device_name,
+            "id": self.auth.screen_id,
+            "device": "REMOTE_CONTROL",
+            "capabilities": "que,dsdtr,atp,vsp",
+            "method": "getNowPlaying",
+            "magnaKey": "cloudPairedDevice",
+            "ui": "false",
+            "deviceContext": "user_agent=dunno&window_width_points=&window_height_points=&os_name=android&ms=",
+            "theme": "cl",
+            "loungeIdToken": self.auth.lounge_id_token,
+        }
+        connect_url = (
+            f"{api_base}/bc/bind?RID=1&VER=8&CVER=1&auth_failure_option=send_error"
+        )
+        async with self.session.post(url=connect_url, data=connect_body) as resp:
+            try:
+                text = await resp.text()
+                if resp.status == 401:
+                    self._lounge_token_expired()
+                    return False
+
+                if resp.status != 200:
+                    self._logger.warning(
+                        "Unknown reply to connect %i %s", resp.status, resp.reason
+                    )
+                    return False
+                lines = text.splitlines()
+                async for events in self._parse_event_chunks(as_aiter(lines)):
+                    self._process_events(events)
+                self._command_offset = 1
+                return self.connected()
+            except:
+                self._logger.exception(
+                    "Handle connect failed, status %s reason %s",
+                    resp.status,
+                    resp.reason,
+                )
+                raise
