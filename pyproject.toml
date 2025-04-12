@@ -29,5 +29,5 @@ files = ["requirements.txt"]
 requires = ["hatchling", "hatch-requirements-txt"]
 build-backend = "hatchling.build"
 
-[tool.black]
-line-length = 88
+[tool.ruff]
+line-length = 100

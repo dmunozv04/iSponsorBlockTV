@@ -122,9 +122,7 @@ class Channel(Element):
         if "name" in self.element_data:
             self.element_name = self.element_data["name"]
         else:
-            self.element_name = (
-                f"Unnamed channel with id {self.element_data['channel_id']}"
-            )
+            self.element_name = f"Unnamed channel with id {self.element_data['channel_id']}"
 
 
 class ChannelRadio(RadioButton):
@@ -204,9 +202,7 @@ class ExitScreen(ModalWithClickExit):
                 classes="button-100",
             ),
             Button("Save", variant="success", id="exit-save", classes="button-100"),
-            Button(
-                "Don't save", variant="error", id="exit-no-save", classes="button-100"
-            ),
+            Button("Don't save", variant="error", id="exit-no-save", classes="button-100"),
             Button("Cancel", variant="primary", id="exit-cancel", classes="button-100"),
             id="dialog-exit",
         )
@@ -255,19 +251,13 @@ class AddDevice(ModalWithClickExit):
                     id="add-device-dial-button",
                     classes="button-switcher",
                 )
-            with ContentSwitcher(
-                id="add-device-switcher", initial="add-device-pin-container"
-            ):
+            with ContentSwitcher(id="add-device-switcher", initial="add-device-pin-container"):
                 with Container(id="add-device-pin-container"):
                     yield Input(
-                        placeholder=(
-                            "Pairing Code (found in Settings - Link with TV code)"
-                        ),
+                        placeholder=("Pairing Code (found in Settings - Link with TV code)"),
                         id="pairing-code-input",
                         validators=[
-                            Function(
-                                _validate_pairing_code, "Invalid pairing code format"
-                            )
+                            Function(_validate_pairing_code, "Invalid pairing code format")
                         ],
                     )
                     yield Input(
@@ -332,9 +322,7 @@ class AddDevice(ModalWithClickExit):
 
     @on(Input.Changed, "#pairing-code-input")
     def changed_pairing_code(self, event: Input.Changed):
-        self.query_one(
-            "#add-device-pin-add-button"
-        ).disabled = not event.validation_result.is_valid
+        self.query_one("#add-device-pin-add-button").disabled = not event.validation_result.is_valid
 
     @on(Input.Submitted, "#pairing-code-input")
     @on(Button.Pressed, "#add-device-pin-add-button")
@@ -382,9 +370,7 @@ class AddDevice(ModalWithClickExit):
 
     @on(SelectionList.SelectedChanged, "#dial-devices-list")
     def changed_device_list(self, event: SelectionList.SelectedChanged):
-        self.query_one(
-            "#add-device-dial-add-button"
-        ).disabled = not event.selection_list.selected
+        self.query_one("#add-device-dial-add-button").disabled = not event.selection_list.selected
 
 
 class AddChannel(ModalWithClickExit):
@@ -422,9 +408,7 @@ class AddChannel(ModalWithClickExit):
                     classes="button-switcher",
                 )
             yield Label(id="add-channel-info", classes="subtitle")
-            with ContentSwitcher(
-                id="add-channel-switcher", initial="add-channel-search-container"
-            ):
+            with ContentSwitcher(id="add-channel-switcher", initial="add-channel-search-container"):
                 with Vertical(id="add-channel-search-container"):
                     if self.config.apikey:
                         with Grid(id="add-channel-search-inputs"):
@@ -432,9 +416,7 @@ class AddChannel(ModalWithClickExit):
                                 placeholder="Enter channel name",
                                 id="channel-name-input-search",
                             )
-                            yield Button(
-                                "Search", id="search-channel-button", variant="success"
-                            )
+                            yield Button("Search", id="search-channel-button", variant="success")
                         yield RadioSet(
                             RadioButton(label="Search to see results", disabled=True),
                             id="channel-search-results",
@@ -457,15 +439,12 @@ class AddChannel(ModalWithClickExit):
                         )
                 with Vertical(id="add-channel-id-container"):
                     yield Input(
-                        placeholder=(
-                            "Enter channel ID (example: UCuAXFkgsw1L7xaCfnd5JJOw)"
-                        ),
+                        placeholder=("Enter channel ID (example: UCuAXFkgsw1L7xaCfnd5JJOw)"),
                         id="channel-id-input",
                     )
                     yield Input(
                         placeholder=(
-                            "Enter channel name (only used to display in the config"
-                            " file)"
+                            "Enter channel name (only used to display in the config file)"
                         ),
                         id="channel-name-input-id",
                     )
@@ -491,9 +470,7 @@ class AddChannel(ModalWithClickExit):
     async def handle_search_channel(self) -> None:
         channel_name = self.query_one("#channel-name-input-search").value
         if not channel_name:
-            self.query_one("#add-channel-info").update(
-                "[#ff0000]Please enter a channel name"
-            )
+            self.query_one("#add-channel-info").update("[#ff0000]Please enter a channel name")
             return
         self.query_one("#search-channel-button").disabled = True
         self.query_one("#add-channel-info").update("Searching...")
@@ -502,9 +479,7 @@ class AddChannel(ModalWithClickExit):
         try:
             channels_list = await self.api_helper.search_channels(channel_name)
         except BaseException:
-            self.query_one("#add-channel-info").update(
-                "[#ff0000]Failed to search for channel"
-            )
+            self.query_one("#add-channel-info").update("[#ff0000]Failed to search for channel")
             self.query_one("#search-channel-button").disabled = False
             return
         for i in channels_list:
@@ -517,9 +492,7 @@ class AddChannel(ModalWithClickExit):
     def handle_add_channel_search(self) -> None:
         channel = self.query_one("#channel-search-results").pressed_button.channel_data
         if not channel:
-            self.query_one("#add-channel-info").update(
-                "[#ff0000]Please select a channel"
-            )
+            self.query_one("#add-channel-info").update("[#ff0000]Please select a channel")
             return
         self.query_one("#add-channel-info").update("Adding...")
         self.dismiss(channel)
@@ -531,9 +504,7 @@ class AddChannel(ModalWithClickExit):
         channel_id = self.query_one("#channel-id-input").value
         channel_name = self.query_one("#channel-name-input-id").value
         if not channel_id:
-            self.query_one("#add-channel-info").update(
-                "[#ff0000]Please enter a channel ID"
-            )
+            self.query_one("#add-channel-info").update("[#ff0000]Please enter a channel ID")
             return
         if not channel_name:
             channel_name = channel_id
@@ -624,9 +595,7 @@ class DevicesManager(Vertical):
     def compose(self) -> ComposeResult:
         yield Label("Devices", classes="title")
         with Horizontal(id="add-device-button-container"):
-            yield Button(
-                "Add Device", id="add-device", classes="button-100 button-small"
-            )
+            yield Button("Add Device", id="add-device", classes="button-100 button-small")
         for device in self.devices:
             yield Device(device, tooltip="Click to edit")
 
@@ -821,16 +790,14 @@ class ChannelWhitelistManager(Vertical):
             id="warning-no-key",
         )
         with Horizontal(id="add-channel-button-container"):
-            yield Button(
-                "Add Channel", id="add-channel", classes="button-100 button-small"
-            )
+            yield Button("Add Channel", id="add-channel", classes="button-100 button-small")
         for channel in self.config.channel_whitelist:
             yield Channel(channel)
 
     def on_mount(self) -> None:
-        self.app.query_one("#warning-no-key").display = (
-            not self.config.apikey
-        ) and bool(self.config.channel_whitelist)
+        self.app.query_one("#warning-no-key").display = (not self.config.apikey) and bool(
+            self.config.channel_whitelist
+        )
 
     def new_channel(self, channel: tuple) -> None:
         if channel:
@@ -842,18 +809,18 @@ class ChannelWhitelistManager(Vertical):
             channel_widget = Channel(channel_dict)
             self.mount(channel_widget)
             channel_widget.focus(scroll_visible=True)
-            self.app.query_one("#warning-no-key").display = (
-                not self.config.apikey
-            ) and bool(self.config.channel_whitelist)
+            self.app.query_one("#warning-no-key").display = (not self.config.apikey) and bool(
+                self.config.channel_whitelist
+            )
 
     @on(Button.Pressed, "#element-remove")
     def remove_channel(self, event: Button.Pressed):
         channel_to_remove: Element = event.button.parent
         self.config.channel_whitelist.remove(channel_to_remove.element_data)
         channel_to_remove.remove()
-        self.app.query_one("#warning-no-key").display = (
-            not self.config.apikey
-        ) and bool(self.config.channel_whitelist)
+        self.app.query_one("#warning-no-key").display = (not self.config.apikey) and bool(
+            self.config.channel_whitelist
+        )
 
     @on(Button.Pressed, "#add-channel")
     def add_channel(self, event: Button.Pressed):
@@ -902,9 +869,7 @@ class ISponsorBlockTVSetupMainScreen(Screen):
         yield Header()
         yield Footer()
         with ScrollableContainer(id="setup-wizard"):
-            yield DevicesManager(
-                config=self.config, id="devices-manager", classes="container"
-            )
+            yield DevicesManager(config=self.config, id="devices-manager", classes="container")
             yield SkipCategoriesManager(
                 config=self.config, id="skip-categories-manager", classes="container"
             )
@@ -917,12 +882,8 @@ class ISponsorBlockTVSetupMainScreen(Screen):
             yield ChannelWhitelistManager(
                 config=self.config, id="channel-whitelist-manager", classes="container"
             )
-            yield ApiKeyManager(
-                config=self.config, id="api-key-manager", classes="container"
-            )
-            yield AutoPlayManager(
-                config=self.config, id="autoplay-manager", classes="container"
-            )
+            yield ApiKeyManager(config=self.config, id="api-key-manager", classes="container")
+            yield AutoPlayManager(config=self.config, id="autoplay-manager", classes="container")
 
     def on_mount(self) -> None:
         if self.check_for_old_config_entries():
