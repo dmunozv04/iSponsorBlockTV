@@ -65,9 +65,7 @@ class Config:
             sys.exit()
         self.devices = [Device(i) for i in self.devices]
         if not self.apikey and self.channel_whitelist:
-            raise ValueError(
-                "No youtube API key found and channel whitelist is not empty"
-            )
+            raise ValueError("No youtube API key found and channel whitelist is not empty")
         if not self.skip_categories:
             self.skip_categories = ["sponsor"]
             print("No categories found, using default: sponsor")
@@ -93,14 +91,8 @@ class Config:
                         f"{github_wiki_base_url}/Installation#Docker"
                     )
                     print(
-                        (
-                            "This image has recently been updated to v2, and requires"
-                            " changes."
-                        ),
-                        (
-                            "Please read this for more information on how to upgrade"
-                            " to V2:"
-                        ),
+                        ("This image has recently been updated to v2, and requires changes."),
+                        ("Please read this for more information on how to upgrade to V2:"),
                         f"{github_wiki_base_url}/Migrate-from-V1-to-V2",
                     )
                     print("Exiting in 10 seconds...")
@@ -134,15 +126,12 @@ class Config:
 @click.option(
     "--data",
     "-d",
-    default=lambda: os.getenv("iSPBTV_data_dir")
-    or user_data_dir("iSponsorBlockTV", "dmunozv04"),
+    default=lambda: os.getenv("iSPBTV_data_dir") or user_data_dir("iSponsorBlockTV", "dmunozv04"),
     help="data directory",
 )
 @click.option("--debug", is_flag=True, help="debug mode")
 # legacy commands as arguments
-@click.option(
-    "--setup", is_flag=True, help="Setup the program graphically", hidden=True
-)
+@click.option("--setup", is_flag=True, help="Setup the program graphically", hidden=True)
 @click.option(
     "--setup-cli",
     is_flag=True,
@@ -159,9 +148,7 @@ def cli(ctx, data, debug, setup, setup_cli):
     logger = logging.getLogger()
     ctx.obj["logger"] = logger
     sh = logging.StreamHandler()
-    sh.setFormatter(
-        logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    )
+    sh.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
     logger.addHandler(sh)
 
     if debug:
@@ -211,9 +198,7 @@ pyapp_group.add_command(
     click.RichCommand("update", help="Update the package to the latest version")
 )
 pyapp_group.add_command(
-    click.Command(
-        "remove", help="Remove the package, wiping the installation but not the data"
-    )
+    click.Command("remove", help="Remove the package, wiping the installation but not the data")
 )
 pyapp_group.add_command(
     click.RichCommand(
