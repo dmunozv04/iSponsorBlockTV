@@ -181,11 +181,8 @@ async def main_async(config, debug):
     finally:
         await web_session.close()
         await tcp_connector.close()
-        loop.close()
         print("Exited")
 
 
 def main(config, debug):
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main_async(config, debug))
-    loop.close()
+    asyncio.run(main_async(config, debug))
