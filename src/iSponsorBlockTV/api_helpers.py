@@ -101,20 +101,14 @@ class ApiHelper:
             if channel_data["items"][0]["statistics"]["hiddenSubscriberCount"]:
                 sub_count = "Hidden"
             else:
-                sub_count = int(
-                    channel_data["items"][0]["statistics"]["subscriberCount"]
-                )
+                sub_count = int(channel_data["items"][0]["statistics"]["subscriberCount"])
                 sub_count = format(sub_count, "_")
 
-            channels.append(
-                (i["snippet"]["channelId"], i["snippet"]["channelTitle"], sub_count)
-            )
+            channels.append((i["snippet"]["channelId"], i["snippet"]["channelTitle"], sub_count))
         return channels
 
     @list_to_tuple  # Convert list to tuple so it can be used as a key in the cache
-    @AsyncConditionalTTL(
-        time_to_live=300, maxsize=10
-    )  # 5 minutes for non-locked segments
+    @AsyncConditionalTTL(time_to_live=300, maxsize=10)  # 5 minutes for non-locked segments
     async def get_segments(self, vid_id):
         if await self.is_whitelisted(vid_id):
             return (
@@ -132,9 +126,7 @@ class ApiHelper:
         }
         headers = {"Accept": "application/json"}
         url = constants.SponsorBlock_api + "skipSegments/" + vid_id_hashed
-        async with self.web_session.get(
-            url, headers=headers, params=params
-        ) as response:
+        async with self.web_session.get(url, headers=headers, params=params) as response:
             response_json = await response.json()
         if response.status != 200:
             response_text = await response.text()
