@@ -157,7 +157,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
 
     # Set the volume to a specific value (0-100)
     async def set_volume(self, volume: int) -> None:
-        await super()._command("setVolume", {"volume": volume})
+        await self._command("setVolume", {"volume": volume})
 
     async def mute(self, mute: bool, override: bool = False) -> None:
         """
@@ -177,7 +177,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         if override or not self.volume_state.get("muted", "false") == mute_str:
             self.volume_state["muted"] = mute_str
             # YouTube wants the volume when unmuting, so we send it
-            await super()._command(
+            await self._command(
                 "setVolume",
                 {"volume": self.volume_state.get("volume", 100), "muted": mute_str},
             )
@@ -186,7 +186,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         return await self._command("setPlaylist", {"videoId": video_id})
 
     async def get_now_playing(self):
-        return await super()._command("getNowPlaying")
+        return await self._command("getNowPlaying")
 
     # Test to wrap the command function in a mutex to avoid race conditions with
     # the _command_offset (TODO: move to upstream if it works)
