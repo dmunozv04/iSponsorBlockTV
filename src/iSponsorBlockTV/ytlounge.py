@@ -118,7 +118,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 create_task(self.mute(False, override=True))
         elif event_type == "onAdStateChange":
             data = args[0]
-            if data["adState"] == "0":  # Ad is not playing
+            if data["adState"] == "0" and data["currentTime"] != 0:  # Ad is not playing
                 self.logger.info("Ad has ended, unmuting")
                 create_task(self.mute(False, override=True))
             elif (
