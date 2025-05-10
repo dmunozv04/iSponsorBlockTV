@@ -47,7 +47,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         """
         self.watchdog_running = True
         self.last_event_time = asyncio.get_event_loop().time()
-        
+
         try:
             while self.watchdog_running:
                 await asyncio.sleep(10)
@@ -56,7 +56,9 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 
                 # YouTube sends a message at least every 30 seconds
                 if time_since_last_event > 60:
-                    self.logger.debug(f"Watchdog triggered: No events for {time_since_last_event:.1f} seconds")
+                    self.logger.debug(
+                        f"Watchdog triggered: No events for {time_since_last_event:.1f} seconds"
+                    )
                     
                     # Cancel current subscription
                     if self.subscribe_task and not self.subscribe_task.done():
@@ -147,7 +149,8 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             if vid_id := data["contentVideoId"]:
                 self.logger.info(f"Getting segments for next video: {vid_id}")
                 create_task(self.api_helper.get_segments(vid_id))
-            elif (
+
+            if (
                 self.skip_ads and data["isSkipEnabled"] == "true"
             ):  # YouTube uses strings for booleans
                 self.logger.info("Ad can be skipped, skipping")
