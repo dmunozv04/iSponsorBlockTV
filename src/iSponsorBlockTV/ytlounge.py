@@ -30,6 +30,8 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         self.logger = logger
         self.shorts_disconnected = False
         self.auto_play = True
+        self.watchdog_running = False
+        self.last_event_time = 0
         if config:
             self.mute_ads = config.mute_ads
             self.skip_ads = config.skip_ads
@@ -38,21 +40,58 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
 
     # Ensures that we still are subscribed to the lounge
     async def _watchdog(self):
-        await asyncio.sleep(
-            35
-        )  # YouTube sends at least a message every 30 seconds (no-op or any other)
+        """
+        Continuous watchdog that monitors for connection health.
+        If no events are received within the expected timeframe,
+        it cancels the current subscription.
+        """
+        self.watchdog_running = True
+        self.last_event_time = asyncio.get_event_loop().time()
+
         try:
-            self.subscribe_task.cancel()
-        except BaseException:
-            pass
+            while self.watchdog_running:
+                await asyncio.sleep(10)
+                current_time = asyncio.get_event_loop().time()
+                time_since_last_event = current_time - self.last_event_time
+
+                # YouTube sends a message at least every 30 seconds
+                if time_since_last_event > 60:
+                    self.logger.debug(
+                        f"Watchdog triggered: No events for {time_since_last_event:.1f} seconds"
+                    )
+
+                    # Cancel current subscription
+                    if self.subscribe_task and not self.subscribe_task.done():
+                        self.subscribe_task.cancel()
+                        await asyncio.sleep(1)  # Give it time to cancel
+        except asyncio.CancelledError:
+            self.logger.debug("Watchdog task cancelled")
+            self.watchdog_running = False
+        except BaseException as e:
+            self.logger.error(f"Watchdog error: {e}")
+            self.watchdog_running = False
 
     # Subscribe to the lounge and start the watchdog
     async def subscribe_monitored(self, callback):
         self.callback = callback
-        try:
+
+        # Stop existing watchdog if running
+        if self.subscribe_task_watchdog and not self.subscribe_task_watchdog.done():
+            self.watchdog_running = False
             self.subscribe_task_watchdog.cancel()
-        except BaseException:
-            pass  # No watchdog task
+            try:
+                await self.subscribe_task_watchdog
+            except (asyncio.CancelledError, Exception):
+                pass
+
+        # Start new subscription
+        if self.subscribe_task and not self.subscribe_task.done():
+            self.subscribe_task.cancel()
+            try:
+                await self.subscribe_task
+            except (asyncio.CancelledError, Exception):
+                pass
+
         self.subscribe_task = asyncio.create_task(super().subscribe(callback))
         self.subscribe_task_watchdog = asyncio.create_task(self._watchdog())
         return self.subscribe_task
@@ -61,13 +100,9 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
     # skipcq: PY-R1000
     def _process_event(self, event_type: str, args: List[Any]):
         self.logger.debug(f"process_event({event_type}, {args})")
-        # (Re)start the watchdog
-        try:
-            self.subscribe_task_watchdog.cancel()
-        except BaseException:
-            pass
-        finally:
-            self.subscribe_task_watchdog = asyncio.create_task(self._watchdog())
+        # Update last event time for the watchdog
+        self.last_event_time = asyncio.get_event_loop().time()
+
         # A bunch of events useful to detect ads playing,
         # and the next video before it starts playing
         # (that way we can get the segments)
@@ -85,7 +120,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 create_task(self.mute(False, override=True))
         elif event_type == "onAdStateChange":
             data = args[0]
-            if data["adState"] == "0":  # Ad is not playing
+            if data["adState"] == "0" and data["currentTime"] != "0":  # Ad is not playing
                 self.logger.info("Ad has ended, unmuting")
                 create_task(self.mute(False, override=True))
             elif (
@@ -114,7 +149,8 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             if vid_id := data["contentVideoId"]:
                 self.logger.info(f"Getting segments for next video: {vid_id}")
                 create_task(self.api_helper.get_segments(vid_id))
-            elif (
+
+            if (
                 self.skip_ads and data["isSkipEnabled"] == "true"
             ):  # YouTube uses strings for booleans
                 self.logger.info("Ad can be skipped, skipping")
