@@ -53,13 +53,13 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 await asyncio.sleep(10)
                 current_time = asyncio.get_event_loop().time()
                 time_since_last_event = current_time - self.last_event_time
-                
+
                 # YouTube sends a message at least every 30 seconds
                 if time_since_last_event > 60:
                     self.logger.debug(
                         f"Watchdog triggered: No events for {time_since_last_event:.1f} seconds"
                     )
-                    
+
                     # Cancel current subscription
                     if self.subscribe_task and not self.subscribe_task.done():
                         self.subscribe_task.cancel()
@@ -74,7 +74,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
     # Subscribe to the lounge and start the watchdog
     async def subscribe_monitored(self, callback):
         self.callback = callback
-        
+
         # Stop existing watchdog if running
         if self.subscribe_task_watchdog and not self.subscribe_task_watchdog.done():
             self.watchdog_running = False
