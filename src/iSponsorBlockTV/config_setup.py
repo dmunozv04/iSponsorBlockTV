@@ -29,9 +29,7 @@ SEARCH_CHANNEL_PROMPT = 'Enter a channel name or "/exit" to exit: '
 SELECT_CHANNEL_PROMPT = "Select one option of the above [0-6]: "
 ENTER_CHANNEL_ID_PROMPT = "Enter a channel ID: "
 ENTER_CUSTOM_CHANNEL_NAME_PROMPT = "Enter the channel name: "
-MINIMUM_SKIP_PROMPT = (
-    "Do you want to specify a minimum length of segment to skip? (y/N)"
-)
+MINIMUM_SKIP_PROMPT = "Do you want to specify a minimum length of segment to skip? (y/N)"
 MINIMUM_SKIP_SPECIFICATION_PROMPT = (
     "Enter minimum length of segment to skip in seconds (enter 0 to disable):"
 )
