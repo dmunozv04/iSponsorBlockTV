@@ -733,7 +733,11 @@ class MinimumSkipLengthManager(Vertical):
     def compose(self) -> ComposeResult:
         yield Label("Minimum Skip Length", classes="title")
         yield Label(
-            "Specify the minimum length a segment must meet in order to skip it (in seconds). Default is 1 second; entering 0 will skip all segments.",
+            (
+                "Specify the minimum length a segment must meet in order to skip "
+                "it (in seconds). Default is 1 second; entering 0 will skip all "
+                "segments."
+            ),
             classes="subtitle",
         )
         yield Input(
