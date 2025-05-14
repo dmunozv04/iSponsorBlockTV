@@ -24,6 +24,10 @@ SEARCH_CHANNEL_PROMPT = 'Enter a channel name or "/exit" to exit: '
 SELECT_CHANNEL_PROMPT = "Select one option of the above [0-6]: "
 ENTER_CHANNEL_ID_PROMPT = "Enter a channel ID: "
 ENTER_CUSTOM_CHANNEL_NAME_PROMPT = "Enter the channel name: "
+MINIMUM_SKIP_PROMPT = "Do you want to specify a minimum length of segment to skip? (y/N)"
+MINIMUM_SKIP_SPECIFICATION_PROMPT = (
+    "Enter minimum length of segment to skip in seconds (enter 0 to disable):"
+)
 REPORT_SKIPPED_SEGMENTS_PROMPT = (
     "Do you want to report skipped segments to sponsorblock. Only the segment"
     " UUID will be sent? (Y/n) "
@@ -170,6 +174,21 @@ def main(config, debug: bool) -> None:
         # Close web session asynchronously
 
     config.channel_whitelist = channel_whitelist
+
+    # Ask for minimum skip length. Confirm input is an integer
+    minimum_skip_length = config.minimum_skip_length
+
+    choice = get_yn_input(MINIMUM_SKIP_PROMPT)
+    if choice == "y":
+        while True:
+            try:
+                minimum_skip_length = int(input(MINIMUM_SKIP_SPECIFICATION_PROMPT))
+                break
+            except ValueError:
+                print("You entered a non integer value, try again.")
+                continue
+
+    config.minimum_skip_length = minimum_skip_length
 
     choice = get_yn_input(REPORT_SKIPPED_SEGMENTS_PROMPT)
     config.skip_count_tracking = choice != "n"
