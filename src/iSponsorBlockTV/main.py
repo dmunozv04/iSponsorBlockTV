@@ -87,9 +87,7 @@ class DeviceListener:
         if state.videoId:
             segments = await self.api_helper.get_segments(state.videoId)
         if state.state.value == 1:  # Playing
-            self.logger.info(
-                "Playing video %s with %d segments", state.videoId, len(segments)
-            )
+            self.logger.info("Playing video %s with %d segments", state.videoId, len(segments))
             if segments:  # If there are segments
                 await self.time_to_segment(segments, state.currentTime, time_start)
 
@@ -107,9 +105,7 @@ class DeviceListener:
 
             if is_within_start_range or is_beyond_current_position:
                 next_segment = segment
-                start_next_segment = (
-                    position if is_within_start_range else segment_start
-                )
+                start_next_segment = position if is_within_start_range else segment_start
                 break
         if start_next_segment:
             time_to_next = (
@@ -148,9 +144,7 @@ class DeviceListener:
 
 
 async def finish(devices, web_session, tcp_connector):
-    await asyncio.gather(
-        *(device.cancel() for device in devices), return_exceptions=True
-    )
+    await asyncio.gather(*(device.cancel() for device in devices), return_exceptions=True)
     await web_session.close()
     await tcp_connector.close()
 
@@ -187,11 +181,8 @@ async def main_async(config, debug):
     finally:
         await web_session.close()
         await tcp_connector.close()
-        loop.close()
         print("Exited")
 
 
 def main(config, debug):
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main_async(config, debug))
-    loop.close()
+    asyncio.run(main_async(config, debug))

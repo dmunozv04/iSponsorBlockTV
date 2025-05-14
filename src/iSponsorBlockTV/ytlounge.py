@@ -18,9 +18,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         api_helper=None,
         logger=None,
     ):
-        super().__init__(
-            config.join_name if config else "iSponsorBlockTV", logger=logger
-        )
+        super().__init__(config.join_name if config else "iSponsorBlockTV", logger=logger)
         self.auth.screen_id = screen_id
         self.auth.lounge_id_token = None
         self.api_helper = api_helper
@@ -96,9 +94,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 self.logger.info("Ad can be skipped, skipping")
                 create_task(self.skip_ad())
                 create_task(self.mute(False, override=True))
-            elif (
-                self.mute_ads
-            ):  # Seen multiple other adStates, assuming they are all ads
+            elif self.mute_ads:  # Seen multiple other adStates, assuming they are all ads
                 self.logger.info("Ad has started, muting")
                 create_task(self.mute(True, override=True))
         # Manages volume, useful since YouTube wants to know the volume
@@ -107,9 +103,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             self.volume_state = args[0]
         # Gets segments for the next video before it starts playing
         elif event_type == "autoplayUpNext":
-            if len(args) > 0 and (
-                vid_id := args[0]["videoId"]
-            ):  # if video id is not empty
+            if len(args) > 0 and (vid_id := args[0]["videoId"]):  # if video id is not empty
                 self.logger.info(f"Getting segments for next video: {vid_id}")
                 create_task(self.api_helper.get_segments(vid_id))
 
@@ -126,9 +120,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 self.logger.info("Ad can be skipped, skipping")
                 create_task(self.skip_ad())
                 create_task(self.mute(False, override=True))
-            elif (
-                self.mute_ads
-            ):  # Seen multiple other adStates, assuming they are all ads
+            elif self.mute_ads:  # Seen multiple other adStates, assuming they are all ads
                 self.logger.info("Ad has started, muting")
                 create_task(self.mute(True, override=True))
 
@@ -151,9 +143,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         elif event_type == "loungeScreenDisconnected":
             if args:  # Sometimes it's empty
                 data = args[0]
-                if (
-                    data["reason"] == "disconnectedByUserScreenInitiated"
-                ):  # Short playing?
+                if data["reason"] == "disconnectedByUserScreenInitiated":  # Short playing?
                     self.shorts_disconnected = True
         elif event_type == "onAutoplayModeChanged":
             create_task(self.set_auto_play_mode(self.auto_play))
@@ -167,7 +157,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
 
     # Set the volume to a specific value (0-100)
     async def set_volume(self, volume: int) -> None:
-        await super()._command("setVolume", {"volume": volume})
+        await self._command("setVolume", {"volume": volume})
 
     async def mute(self, mute: bool, override: bool = False) -> None:
         """
@@ -187,21 +177,16 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         if override or not self.volume_state.get("muted", "false") == mute_str:
             self.volume_state["muted"] = mute_str
             # YouTube wants the volume when unmuting, so we send it
-            await super()._command(
+            await self._command(
                 "setVolume",
                 {"volume": self.volume_state.get("volume", 100), "muted": mute_str},
             )
-
-    async def set_auto_play_mode(self, enabled: bool):
-        await super()._command(
-            "setAutoplayMode", {"autoplayMode": "ENABLED" if enabled else "DISABLED"}
-        )
 
     async def play_video(self, video_id: str) -> bool:
         return await self._command("setPlaylist", {"videoId": video_id})
 
     async def get_now_playing(self):
-        return await super()._command("getNowPlaying")
+        return await self._command("getNowPlaying")
 
     # Test to wrap the command function in a mutex to avoid race conditions with
     # the _command_offset (TODO: move to upstream if it works)

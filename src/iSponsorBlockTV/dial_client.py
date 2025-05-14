@@ -83,9 +83,7 @@ class Handler(ssdp.aio.SSDP):
             self.devices.append(headers["location"])
 
     def request_received(self, request: ssdp.messages.SSDPRequest, addr):
-        raise NotImplementedError(
-            "Request received is not implemented, this is a client"
-        )
+        raise NotImplementedError("Request received is not implemented, this is a client")
 
 
 async def find_youtube_app(web_session, url_location):
@@ -121,9 +119,7 @@ async def discover(web_session):
     family, _ = network.get_best_family(bind, network.PORT)
     loop = asyncio.get_event_loop()
     ip_address = get_ip()
-    connect = loop.create_datagram_endpoint(
-        handler, family=family, local_addr=(ip_address, None)
-    )
+    connect = loop.create_datagram_endpoint(handler, family=family, local_addr=(ip_address, None))
     transport, _ = await connect
 
     target = network.MULTICAST_ADDRESS_IPV4, network.PORT

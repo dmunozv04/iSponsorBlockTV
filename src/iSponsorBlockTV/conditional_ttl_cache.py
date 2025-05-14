@@ -33,9 +33,7 @@ class AsyncConditionalTTL:
         def __init__(self, time_to_live, maxsize):
             super().__init__(maxsize=maxsize)
 
-            self.time_to_live = (
-                datetime.timedelta(seconds=time_to_live) if time_to_live else None
-            )
+            self.time_to_live = datetime.timedelta(seconds=time_to_live) if time_to_live else None
 
             self.maxsize = maxsize
 

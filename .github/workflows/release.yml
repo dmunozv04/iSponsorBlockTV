@@ -57,6 +57,9 @@ jobs:
 
 
   build-binaries:
+    permissions:
+      id-token: write
+      attestations: write
     name: Build binaries for ${{ matrix.job.release_suffix }} (${{ matrix.job.os }})
     needs:
       - build-sdist-and-wheel
@@ -76,7 +79,7 @@ jobs:
           cpu_variant: v1
           release_suffix: x86_64-linux-v1
         - target: aarch64-unknown-linux-gnu
-          os: ubuntu-latest
+          os: ubuntu-24.04-arm
           cross: true
           release_suffix: aarch64-linux
         # Windows
@@ -100,7 +103,7 @@ jobs:
       CARGO_BUILD_TARGET: ${{ matrix.job.target }}
       PYAPP_DISTRIBUTION_VARIANT_CPU: ${{ matrix.job.cpu_variant }}
       PYAPP_REPO: pyapp # Use local copy of pyapp (needed for cross-compiling)
-      PYAPP_VERSION: v0.24.0
+      PYAPP_VERSION: v0.27.0
 
     steps:
     - name: Checkout
@@ -157,6 +160,11 @@ jobs:
       working-directory: ${{ github.workspace }}
       run: |-
         mv dist/binary/iSponsorBlockTV* dist/binary/iSponsorBlockTV-${{ matrix.job.release_suffix }}
+
+    - name: Attest build provenance
+      uses: actions/attest-build-provenance@v2
+      with:
+        subject-path: dist/binary/*
 
     - name: Upload built binary package
       uses: actions/upload-artifact@v4

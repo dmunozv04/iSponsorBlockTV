@@ -6,15 +6,12 @@ from . import api_helpers, ytlounge
 
 # Constants for user input prompts
 ATVS_REMOVAL_PROMPT = (
-    "Do you want to remove the legacy 'atvs' entry (the app won't start"
-    " with it present)? (y/N) "
+    "Do you want to remove the legacy 'atvs' entry (the app won't start with it present)? (y/N) "
 )
 PAIRING_CODE_PROMPT = "Enter pairing code (found in Settings - Link with TV code): "
 ADD_MORE_DEVICES_PROMPT = "Paired with {num_devices} Device(s). Add more? (y/N) "
 CHANGE_API_KEY_PROMPT = "API key already specified. Change it? (y/N) "
-ADD_API_KEY_PROMPT = (
-    "API key only needed for the channel whitelist function. Add it? (y/N) "
-)
+ADD_API_KEY_PROMPT = "API key only needed for the channel whitelist function. Add it? (y/N) "
 ENTER_API_KEY_PROMPT = "Enter your API key: "
 CHANGE_SKIP_CATEGORIES_PROMPT = "Skip categories already specified. Change them? (y/N) "
 ENTER_SKIP_CATEGORIES_PROMPT = (
@@ -22,9 +19,7 @@ ENTER_SKIP_CATEGORIES_PROMPT = (
     " selfpromo, exclusive_access, interaction, poi_highlight, intro, outro,"
     " preview, filler, music_offtopic]:\n"
 )
-WHITELIST_CHANNELS_PROMPT = (
-    "Do you want to whitelist any channels from being ad-blocked? (y/N) "
-)
+WHITELIST_CHANNELS_PROMPT = "Do you want to whitelist any channels from being ad-blocked? (y/N) "
 SEARCH_CHANNEL_PROMPT = 'Enter a channel name or "/exit" to exit: '
 SELECT_CHANNEL_PROMPT = "Select one option of the above [0-6]: "
 ENTER_CHANNEL_ID_PROMPT = "Enter a channel ID: "
@@ -125,15 +120,11 @@ def main(config, debug: bool) -> None:
         if choice == "y":
             categories = input(ENTER_SKIP_CATEGORIES_PROMPT)
             skip_categories = categories.replace(",", " ").split(" ")
-            skip_categories = [
-                x for x in skip_categories if x != ""
-            ]  # Remove empty strings
+            skip_categories = [x for x in skip_categories if x != ""]  # Remove empty strings
     else:
         categories = input(ENTER_SKIP_CATEGORIES_PROMPT)
         skip_categories = categories.replace(",", " ").split(" ")
-        skip_categories = [
-            x for x in skip_categories if x != ""
-        ]  # Remove empty strings
+        skip_categories = [x for x in skip_categories if x != ""]  # Remove empty strings
     config.skip_categories = skip_categories
 
     channel_whitelist = config.channel_whitelist
@@ -152,9 +143,7 @@ def main(config, debug: bool) -> None:
             if channel == "/exit":
                 break
 
-            task = loop.create_task(
-                api_helper.search_channels(channel, apikey, web_session)
-            )
+            task = loop.create_task(api_helper.search_channels(channel, apikey, web_session))
             loop.run_until_complete(task)
             results = task.result()
             if len(results) == 0:
