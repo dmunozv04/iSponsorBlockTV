@@ -5,6 +5,9 @@ from typing import Any, List
 import pyytlounge
 from aiohttp import ClientSession
 
+from pyytlounge.wrapper import NotLinkedException, api_base, as_aiter, Dict
+from uuid import uuid4
+
 from .constants import youtube_client_blacklist
 
 create_task = asyncio.create_task
@@ -236,3 +239,68 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         if self.conn is not None:
             await self.conn.close()
         self.session = web_session
+        
+    def _common_connection_parameters(self) -> Dict[str, Any]:
+        return {
+            "name": self.device_name,
+            "loungeIdToken": self.auth.lounge_id_token,
+            "SID": self._sid,
+            "AID": self._last_event_id,
+            "gsessionid": self._gsession,
+            "device": "REMOTE_CONTROL",
+            "app": "ytios-phone-20.15.1",
+            "VER": "8",
+            "v": "2",
+        }
+
+    async def connect(self) -> bool:
+        """Attempt to connect using the previously set tokens"""
+        if not self.linked():
+            raise NotLinkedException("Not linked")
+
+        connect_body = {
+            "id": str(uuid4()),
+            "mdx-version": "3",
+            "TYPE": "xmlhttp",
+            "theme": "cl",
+            "sessionSource": "MDX_SESSION_SOURCE_UNKNOWN",
+            "connectParams": "{\"setStatesParams\": \"{\"playbackSpeed\":0}\"}",
+            "sessionNonce": str(uuid4()),
+            "RID": "1",
+            "CVER": "1",
+            "capabilities": "que,dsdtr,atp,vsp",
+            "ui": "false",
+            "app": "ytios-phone-20.15.1",
+            "pairing_type": "manual",
+            "VER": "8",
+            "loungeIdToken": self.auth.lounge_id_token,
+            "device": "REMOTE_CONTROL",
+            "name": self.device_name,
+        }
+        connect_url = (
+            f"{api_base}/bc/bind"
+        )
+        async with self.session.post(url=connect_url, data=connect_body) as resp:
+            try:
+                text = await resp.text()
+                if resp.status == 401:
+                    self._lounge_token_expired()
+                    return False
+
+                if resp.status != 200:
+                    self._logger.warning(
+                        "Unknown reply to connect %i %s", resp.status, resp.reason
+                    )
+                    return False
+                lines = text.splitlines()
+                async for events in self._parse_event_chunks(as_aiter(lines)):
+                    self._process_events(events)
+                self._command_offset = 1
+                return self.connected()
+            except:
+                self._logger.exception(
+                    "Handle connect failed, status %s reason %s",
+                    resp.status,
+                    resp.reason,
+                )
+                raise
