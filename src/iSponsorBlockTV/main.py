@@ -160,9 +160,9 @@ async def main_async(config, debug, http_tracing):
     devices = []  # Save the devices to close them later
     if debug:
         loop.set_debug(True)
-    
+
     tcp_connector = aiohttp.TCPConnector(ttl_dns_cache=300)
-    
+
     # Configure session with tracing if enabled
     if http_tracing:
         root_logger = logging.getLogger("aiohttp_trace")
@@ -175,7 +175,7 @@ async def main_async(config, debug, http_tracing):
         web_session = aiohttp.ClientSession(connector=tcp_connector, trace_configs=[trace_config])
     else:
         web_session = aiohttp.ClientSession(connector=tcp_connector)
-    
+
     api_helper = api_helpers.ApiHelper(config, web_session)
     for i in config.devices:
         device = DeviceListener(api_helper, config, i, debug, web_session)
