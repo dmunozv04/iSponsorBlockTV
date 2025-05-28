@@ -131,6 +131,7 @@ class Config:
     help="data directory",
 )
 @click.option("--debug", is_flag=True, help="debug mode")
+@click.option("--http-tracing", is_flag=True, help="Enable HTTP request/response tracing")
 # legacy commands as arguments
 @click.option("--setup", is_flag=True, help="Setup the program graphically", hidden=True)
 @click.option(
@@ -140,11 +141,12 @@ class Config:
     hidden=True,
 )
 @click.pass_context
-def cli(ctx, data, debug, setup, setup_cli):
+def cli(ctx, data, debug, http_tracing, setup, setup_cli):
     """iSponsorblockTV"""
     ctx.ensure_object(dict)
     ctx.obj["data_dir"] = data
     ctx.obj["debug"] = debug
+    ctx.obj["http_tracing"] = http_tracing
 
     logger = logging.getLogger()
     ctx.obj["logger"] = logger
@@ -189,7 +191,7 @@ def start(ctx):
     """Start the main program"""
     config = Config(ctx.obj["data_dir"])
     config.validate()
-    main.main(config, ctx.obj["debug"])
+    main.main(config, ctx.obj["debug"], ctx.obj["http_tracing"])
 
 
 # Create fake "self" group to show pyapp options in help menu
