@@ -240,7 +240,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         if self.conn is not None:
             await self.conn.close()
         self.session = web_session
-        
+
     def _common_connection_parameters(self) -> Dict[str, Any]:
         return {
             "name": self.device_name,
@@ -265,7 +265,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             "TYPE": "xmlhttp",
             "theme": "cl",
             "sessionSource": "MDX_SESSION_SOURCE_UNKNOWN",
-            "connectParams": "{\"setStatesParams\": \"{\"playbackSpeed\":0}\"}",
+            "connectParams": '{"setStatesParams": "{"playbackSpeed":0}"}',
             "sessionNonce": str(uuid4()),
             "RID": "1",
             "CVER": "1",
@@ -278,9 +278,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             "device": "REMOTE_CONTROL",
             "name": self.device_name,
         }
-        connect_url = (
-            f"{api_base}/bc/bind"
-        )
+        connect_url = f"{api_base}/bc/bind"
         async with self.session.post(url=connect_url, data=connect_body) as resp:
             try:
                 text = await resp.text()
@@ -290,13 +288,11 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                             "Connection denied, attempting to circumvent the issue"
                         )
                         await self.connect_as_screen()
-                    #self._lounge_token_expired()
+                    # self._lounge_token_expired()
                     return False
 
                 if resp.status != 200:
-                    self._logger.warning(
-                        "Unknown reply to connect %i %s", resp.status, resp.reason
-                    )
+                    self._logger.warning("Unknown reply to connect %i %s", resp.status, resp.reason)
                     return False
                 lines = text.splitlines()
                 async for events in self._parse_event_chunks(as_aiter(lines)):
@@ -322,7 +318,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             "TYPE": "xmlhttp",
             "theme": "cl",
             "sessionSource": "MDX_SESSION_SOURCE_UNKNOWN",
-            "connectParams": "{\"setStatesParams\": \"{\"playbackSpeed\":0}\"}",
+            "connectParams": '{"setStatesParams": "{"playbackSpeed":0}"}',
             "sessionNonce": str(uuid4()),
             "RID": "1",
             "CVER": "1",
@@ -335,13 +331,13 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             "device": "LOUNGE_SCREEN",
             "name": self.device_name,
         }
-        connect_url = (
-            f"{api_base}/bc/bind"
-        )
+        connect_url = f"{api_base}/bc/bind"
         async with self.session.post(url=connect_url, data=connect_body) as resp:
             try:
                 await resp.text()
-                self.logger.error("Connected as screen: please force close the app on the device for iSponsorBlockTV to work properly")
+                self.logger.error(
+                    "Connected as screen: please force close the app on the device for iSponsorBlockTV to work properly"
+                )
                 self.logger.warn("Exiting in 5 seconds")
                 await asyncio.sleep(5)
                 sys.exit(0)
