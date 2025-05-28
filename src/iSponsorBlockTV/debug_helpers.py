@@ -1,5 +1,3 @@
-
-
 class AiohttpTracer:
     def __init__(self, logger):
         self.logger = logger
@@ -17,9 +15,11 @@ class AiohttpTracer:
         chunk_size = len(params.chunk)
         try:
             # Try to decode as text
-            text = params.chunk.decode('utf-8')
+            text = params.chunk.decode("utf-8")
             self.logger.debug(f"Response chunk ({id(context):#x}) {chunk_size} bytes: {text}")
         except UnicodeDecodeError:
             # If not valid UTF-8, show as hex
             hex_data = params.chunk.hex()
-            self.logger.debug(f"Response chunk ({id(context):#x}) ({chunk_size} bytes) [HEX]: {hex_data}")
+            self.logger.debug(
+                f"Response chunk ({id(context):#x}) ({chunk_size} bytes) [HEX]: {hex_data}"
+            )
