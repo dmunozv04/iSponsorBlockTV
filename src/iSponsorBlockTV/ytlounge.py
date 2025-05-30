@@ -260,13 +260,12 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             raise NotLinkedException("Not linked")
 
         connect_body = {
-            "id": str(uuid4()),
+            "id": self.auth.screen_id,
             "mdx-version": "3",
             "TYPE": "xmlhttp",
             "theme": "cl",
             "sessionSource": "MDX_SESSION_SOURCE_UNKNOWN",
             "connectParams": '{"setStatesParams": "{"playbackSpeed":0}"}',
-            "sessionNonce": str(uuid4()),
             "RID": "1",
             "CVER": "1",
             "capabilities": "que,dsdtr,atp,vsp",
