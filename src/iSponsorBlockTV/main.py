@@ -7,6 +7,7 @@ from typing import Optional
 import aiohttp
 
 from . import api_helpers, ytlounge
+from .debug_helpers import AiohttpTracer
 
 
 class DeviceListener:
@@ -153,14 +154,28 @@ def handle_signal(signum, frame):
     raise KeyboardInterrupt()
 
 
-async def main_async(config, debug):
+async def main_async(config, debug, http_tracing):
     loop = asyncio.get_event_loop_policy().get_event_loop()
     tasks = []  # Save the tasks so the interpreter doesn't garbage collect them
     devices = []  # Save the devices to close them later
     if debug:
         loop.set_debug(True)
+
     tcp_connector = aiohttp.TCPConnector(ttl_dns_cache=300)
-    web_session = aiohttp.ClientSession(connector=tcp_connector)
+
+    # Configure session with tracing if enabled
+    if http_tracing:
+        root_logger = logging.getLogger("aiohttp_trace")
+        tracer = AiohttpTracer(root_logger)
+        trace_config = aiohttp.TraceConfig()
+        trace_config.on_request_start.append(tracer.on_request_start)
+        trace_config.on_response_chunk_received.append(tracer.on_response_chunk_received)
+        trace_config.on_request_end.append(tracer.on_request_end)
+        trace_config.on_request_exception.append(tracer.on_request_exception)
+        web_session = aiohttp.ClientSession(connector=tcp_connector, trace_configs=[trace_config])
+    else:
+        web_session = aiohttp.ClientSession(connector=tcp_connector)
+
     api_helper = api_helpers.ApiHelper(config, web_session)
     for i in config.devices:
         device = DeviceListener(api_helper, config, i, debug, web_session)
@@ -184,5 +199,5 @@ async def main_async(config, debug):
         print("Exited")
 
 
-def main(config, debug):
-    asyncio.run(main_async(config, debug))
+def main(config, debug, http_tracing):
+    asyncio.run(main_async(config, debug, http_tracing))
