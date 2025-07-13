@@ -17,56 +17,56 @@ create_task = asyncio.create_task
 
 class iSponsorBlockEventListener(EventListener):
     """Custom EventListener for iSponsorBlockTV that handles YouTube TV events"""
-    
+
     def __init__(self, ytlounge_api):
         self.ytlounge_api = ytlounge_api
         self.callback = None
-    
+
     def set_callback(self, callback):
         """Set the callback function for forwarding events to DeviceListener"""
         self.callback = callback
-    
+
     async def playback_state_changed(self, event) -> None:
         """Handle playback state changes (play, pause, etc.)"""
         # This corresponds to onStateChange in the old system
         data = {
-            'state': event.state,
-            'currentTime': getattr(event, 'current_time', 0),
-            'videoId': getattr(event, 'video_id', ''),
-            'duration': getattr(event, 'duration', 0)
+            "state": event.state,
+            "currentTime": getattr(event, "current_time", 0),
+            "videoId": getattr(event, "video_id", ""),
+            "duration": getattr(event, "duration", 0),
         }
         await self._handle_event("onStateChange", [data])
-        
+
         # Unmute when the video starts playing
         if self.ytlounge_api.mute_ads and str(event.state) == "1":
             create_task(self.ytlounge_api.mute(False, override=True))
-    
+
     async def now_playing_changed(self, event) -> None:
         """Handle when a new video/track starts playing"""
         # This corresponds to nowPlaying in the old system
         data = {
-            'state': getattr(event, 'state', '0'),
-            'videoId': getattr(event, 'video_id', ''),
-            'currentTime': getattr(event, 'current_time', 0),
-            'duration': getattr(event, 'duration', 0)
+            "state": getattr(event, "state", "0"),
+            "videoId": getattr(event, "video_id", ""),
+            "currentTime": getattr(event, "current_time", 0),
+            "duration": getattr(event, "duration", 0),
         }
         await self._handle_event("nowPlaying", [data])
-        
+
         # Unmute when the video starts playing
         if self.ytlounge_api.mute_ads and data.get("state", "0") == "1":
             self.ytlounge_api.logger.info("Ad has ended, unmuting")
             create_task(self.ytlounge_api.mute(False, override=True))
-    
+
     async def ad_state_changed(self, event) -> None:
         """Handle advertisement state changes"""
         # This corresponds to onAdStateChange in the old system
         data = {
-            'adState': getattr(event, 'ad_state', '0'),
-            'currentTime': getattr(event, 'current_time', '0'),
-            'isSkipEnabled': str(getattr(event, 'is_skip_enabled', False)).lower()
+            "adState": getattr(event, "ad_state", "0"),
+            "currentTime": getattr(event, "current_time", "0"),
+            "isSkipEnabled": str(getattr(event, "is_skip_enabled", False)).lower(),
         }
         await self._handle_event("onAdStateChange", [data])
-        
+
         if data["adState"] == "0" and data["currentTime"] != "0":  # Ad is not playing
             self.ytlounge_api.logger.info("Ad has ended, unmuting")
             create_task(self.ytlounge_api.mute(False, override=True))
@@ -79,36 +79,31 @@ class iSponsorBlockEventListener(EventListener):
         elif self.ytlounge_api.mute_ads:  # Seen multiple other adStates, assuming they are all ads
             self.ytlounge_api.logger.info("Ad has started, muting")
             create_task(self.ytlounge_api.mute(True, override=True))
-    
+
     async def volume_changed(self, event) -> None:
         """Handle volume changes"""
         # This corresponds to onVolumeChanged in the old system
-        data = {
-            'volume': getattr(event, 'volume', 100),
-            'muted': getattr(event, 'muted', False)
-        }
+        data = {"volume": getattr(event, "volume", 100), "muted": getattr(event, "muted", False)}
         self.ytlounge_api.volume_state = data
         await self._handle_event("onVolumeChanged", [data])
-    
+
     async def autoplay_up_next_changed(self, event) -> None:
         """Handle autoplay next video events"""
         # This corresponds to autoplayUpNext in the old system
-        data = {
-            'videoId': getattr(event, 'video_id', '')
-        }
-        if data['videoId']:  # if video id is not empty
+        data = {"videoId": getattr(event, "video_id", "")}
+        if data["videoId"]:  # if video id is not empty
             self.ytlounge_api.logger.info(f"Getting segments for next video: {data['videoId']}")
-            create_task(self.ytlounge_api.api_helper.get_segments(data['videoId']))
+            create_task(self.ytlounge_api.api_helper.get_segments(data["videoId"]))
         await self._handle_event("autoplayUpNext", [data])
-    
+
     async def ad_playing_changed(self, event) -> None:
         """Handle ad playing events"""
         # This corresponds to adPlaying in the old system
         data = {
-            'contentVideoId': getattr(event, 'content_video_id', ''),
-            'isSkipEnabled': str(getattr(event, 'is_skip_enabled', False)).lower()
+            "contentVideoId": getattr(event, "content_video_id", ""),
+            "isSkipEnabled": str(getattr(event, "is_skip_enabled", False)).lower(),
         }
-        
+
         # Gets segments for the next video (after the ad) before it starts playing
         if vid_id := data["contentVideoId"]:
             self.ytlounge_api.logger.info(f"Getting segments for next video: {vid_id}")
@@ -123,51 +118,47 @@ class iSponsorBlockEventListener(EventListener):
         elif self.ytlounge_api.mute_ads:  # Seen multiple other adStates, assuming they are all ads
             self.ytlounge_api.logger.info("Ad has started, muting")
             create_task(self.ytlounge_api.mute(True, override=True))
-        
+
         await self._handle_event("adPlaying", [data])
-    
+
     async def subtitles_track_changed(self, event) -> None:
         """Handle subtitle track changes"""
         # This corresponds to onSubtitlesTrackChanged in the old system
-        data = {
-            'videoId': getattr(event, 'video_id', None)
-        }
+        data = {"videoId": getattr(event, "video_id", None)}
         if self.ytlounge_api.shorts_disconnected:
             video_id_saved = data.get("videoId", None)
             self.ytlounge_api.shorts_disconnected = False
             create_task(self.ytlounge_api.play_video(video_id_saved))
         await self._handle_event("onSubtitlesTrackChanged", [data])
-    
+
     async def playback_speed_changed(self, event) -> None:
         """Handle playback speed changes"""
         # This corresponds to onPlaybackSpeedChanged in the old system
-        data = {
-            'playbackSpeed': str(getattr(event, 'playback_speed', 1.0))
-        }
+        data = {"playbackSpeed": str(getattr(event, "playback_speed", 1.0))}
         self.ytlounge_api.playback_speed = float(data.get("playbackSpeed", "1"))
         create_task(self.ytlounge_api.get_now_playing())
         await self._handle_event("onPlaybackSpeedChanged", [data])
-    
+
     async def disconnected(self, event) -> None:
         """Handle disconnection events - updated signature for pyytlounge 3.2.0+"""
         # This handles loungeScreenDisconnected logic
-        if hasattr(event, 'reason'):
-            data = {'reason': event.reason}
+        if hasattr(event, "reason"):
+            data = {"reason": event.reason}
             if event.reason == "disconnectedByUserScreenInitiated":  # Short playing?
                 self.ytlounge_api.shorts_disconnected = True
             await self._handle_event("loungeScreenDisconnected", [data])
         else:
             await self._handle_event("loungeScreenDisconnected", [])
-        
+
         self.ytlounge_api.logger.info("Disconnected from YouTube Lounge")
-    
+
     async def _handle_event(self, event_type: str, args: List[Any]):
         """Internal method to handle events and forward to callback if set"""
         # Update last event time for the watchdog
         self.ytlounge_api.last_event_time = asyncio.get_event_loop().time()
-        
+
         self.ytlounge_api.logger.debug(f"process_event({event_type}, {args})")
-        
+
         # Handle loungeStatus events (this doesn't have a direct EventListener equivalent)
         if event_type == "loungeStatus":
             data = args[0] if args else {}
@@ -178,19 +169,37 @@ class iSponsorBlockEventListener(EventListener):
                     if device_info.get("clientName", "") in youtube_client_blacklist:
                         self.ytlounge_api._sid = None
                         self.ytlounge_api._gsession = None  # Force disconnect
-        
+
         # Handle onAutoplayModeChanged events (might not have direct equivalent)
         elif event_type == "onAutoplayModeChanged":
             create_task(self.ytlounge_api.set_auto_play_mode(self.ytlounge_api.auto_play))
-        
+
         # Forward to the original callback if set (for DeviceListener)
         if self.callback:
             # Create a mock state object that mimics the old callback interface
-            mock_state = type('MockState', (), {
-                'videoId': args[0].get('videoId', '') if args and isinstance(args[0], dict) else '',
-                'state': type('State', (), {'value': int(args[0].get('state', 0)) if args and isinstance(args[0], dict) and args[0].get('state', '').isdigit() else 0})(),
-                'currentTime': float(args[0].get('currentTime', 0)) if args and isinstance(args[0], dict) else 0.0
-            })()
+            mock_state = type(
+                "MockState",
+                (),
+                {
+                    "videoId": args[0].get("videoId", "")
+                    if args and isinstance(args[0], dict)
+                    else "",
+                    "state": type(
+                        "State",
+                        (),
+                        {
+                            "value": int(args[0].get("state", 0))
+                            if args
+                            and isinstance(args[0], dict)
+                            and args[0].get("state", "").isdigit()
+                            else 0
+                        },
+                    )(),
+                    "currentTime": float(args[0].get("currentTime", 0))
+                    if args and isinstance(args[0], dict)
+                    else 0.0,
+                },
+            )()
             await self.callback(mock_state)
 
 
@@ -203,13 +212,13 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         logger=None,
     ):
         super().__init__(config.join_name if config else "iSponsorBlockTV", logger=logger)
-        
+
         # Initialize the EventListener after super().__init__
         self.event_listener = iSponsorBlockEventListener(self)
         # Set the event listener on the parent instance
-        if hasattr(self, 'set_event_listener'):
+        if hasattr(self, "set_event_listener"):
             self.set_event_listener(self.event_listener)
-        elif hasattr(self, '_event_listener'):
+        elif hasattr(self, "_event_listener"):
             self._event_listener = self.event_listener
         self.auth.screen_id = screen_id
         self.auth.lounge_id_token = None
