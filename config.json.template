@@ -20,5 +20,6 @@
         {"id": "",
         "name": ""
         }
-    ]
+    ],
+    "use_proxy": true
 }

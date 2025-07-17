@@ -889,6 +889,30 @@ class AutoPlayManager(Vertical):
     def changed_skip(self, event: Checkbox.Changed):
         self.config.auto_play = event.checkbox.value
 
+class UseProxyManager(Vertical):
+    """Manager for proxy use, allows enabling/disabling use of proxy."""
+
+    def __init__(self, config, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.config = config
+
+    def compose(self) -> ComposeResult:
+        yield Label("Use proxy", classes="title")
+        yield Label(
+            "This feature allows application to use system proxy, if it is set in environmental variables.",
+            classes="subtitle",
+            id="useproxy-subtitle",
+        )
+        with Horizontal(id="useproxy-container"):
+            yield Checkbox(
+                value=self.config.use_proxy,
+                id="useproxy-switch",
+                label="Use proxy",
+            )
+
+    @on(Checkbox.Changed, "#useproxy-switch")
+    def changed_skip(self, event: Checkbox.Changed):
+        self.config.use_proxy = event.checkbox.value
 
 class ISponsorBlockTVSetupMainScreen(Screen):
     TITLE = "iSponsorBlockTV"
@@ -926,6 +950,7 @@ class ISponsorBlockTVSetupMainScreen(Screen):
             )
             yield ApiKeyManager(config=self.config, id="api-key-manager", classes="container")
             yield AutoPlayManager(config=self.config, id="autoplay-manager", classes="container")
+            yield UseProxyManager(config=self.config, id="useproxy-manager", classes="container")
 
     def on_mount(self) -> None:
         if self.check_for_old_config_entries():
