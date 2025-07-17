@@ -46,7 +46,7 @@ def get_yn_input(prompt):
 
 
 async def create_web_session():
-    return aiohttp.ClientSession()
+    return aiohttp.ClientSession(trust_env=True)
 
 
 async def pair_device(web_session: aiohttp.ClientSession):
