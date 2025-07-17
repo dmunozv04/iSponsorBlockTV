@@ -233,7 +233,7 @@ class AddDevice(ModalWithClickExit):
     def __init__(self, config, **kwargs) -> None:
         super().__init__(**kwargs)
         self.config = config
-        self.web_session = aiohttp.ClientSession(trust_env=True)
+        self.web_session = aiohttp.ClientSession(trust_env=config.use_proxy)
         self.api_helper = api_helpers.ApiHelper(config, self.web_session)
         self.devices_discovered_dial = []
 
@@ -382,7 +382,7 @@ class AddChannel(ModalWithClickExit):
     def __init__(self, config, **kwargs) -> None:
         super().__init__(**kwargs)
         self.config = config
-        web_session = aiohttp.ClientSession(trust_env=True)
+        web_session = aiohttp.ClientSession(trust_env=config.use_proxy)
         self.api_helper = api_helpers.ApiHelper(config, web_session)
 
     def compose(self) -> ComposeResult:

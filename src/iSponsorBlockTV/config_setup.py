@@ -45,8 +45,8 @@ def get_yn_input(prompt):
     return None
 
 
-async def create_web_session():
-    return aiohttp.ClientSession(trust_env=True)
+async def create_web_session(use_proxy):
+    return aiohttp.ClientSession(trust_env = use_proxy)
 
 
 async def pair_device(web_session: aiohttp.ClientSession):
@@ -76,7 +76,7 @@ async def pair_device(web_session: aiohttp.ClientSession):
 def main(config, debug: bool) -> None:
     print("Welcome to the iSponsorBlockTV cli setup wizard")
     loop = asyncio.get_event_loop_policy().get_event_loop()
-    web_session = loop.run_until_complete(create_web_session())
+    web_session = loop.run_until_complete(create_web_session(config.use_proxy))
     if debug:
         loop.set_debug(True)
     asyncio.set_event_loop(loop)
