@@ -899,7 +899,8 @@ class UseProxyManager(Vertical):
     def compose(self) -> ComposeResult:
         yield Label("Use proxy", classes="title")
         yield Label(
-            "This feature allows application to use system proxy, if it is set in environmental variables.",
+            "This feature allows application to use system proxy,"
+            " if it is set in environmental variables.",
             classes="subtitle",
             id="useproxy-subtitle",
         )
