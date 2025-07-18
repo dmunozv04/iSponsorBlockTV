@@ -889,6 +889,7 @@ class AutoPlayManager(Vertical):
     def changed_skip(self, event: Checkbox.Changed):
         self.config.auto_play = event.checkbox.value
 
+
 class UseProxyManager(Vertical):
     """Manager for proxy use, allows enabling/disabling use of proxy."""
 
@@ -913,6 +914,7 @@ class UseProxyManager(Vertical):
     @on(Checkbox.Changed, "#useproxy-switch")
     def changed_skip(self, event: Checkbox.Changed):
         self.config.use_proxy = event.checkbox.value
+
 
 class ISponsorBlockTVSetupMainScreen(Screen):
     TITLE = "iSponsorBlockTV"
@@ -948,7 +950,7 @@ class ISponsorBlockTVSetupMainScreen(Screen):
             yield ChannelWhitelistManager(
                 config=self.config, id="channel-whitelist-manager", classes="container"
             )
-            yield ApiKeyManager(config=self.config, id="api-key-manager", classes="container")            
+            yield ApiKeyManager(config=self.config, id="api-key-manager", classes="container")
             yield AutoPlayManager(config=self.config, id="autoplay-manager", classes="container")
             yield UseProxyManager(config=self.config, id="useproxy-manager", classes="container")
 
