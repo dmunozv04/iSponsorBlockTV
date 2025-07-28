@@ -903,7 +903,7 @@ class UseProxyManager(Vertical):
             "This feature allows application to use system proxy,"
             " if it is set in environment variables."
             " This parameter will be passed in all [i]aiohttp.ClientSession[/i]"
-            " calls. For further information, see \"[i]trust_env[/i]\" section at"
+            ' calls. For further information, see "[i]trust_env[/i]" section at'
             " [link='https://docs.aiohttp.org/en/stable/client_reference.html']"
             "aiohttp documentation[/link].",
             classes="subtitle",
