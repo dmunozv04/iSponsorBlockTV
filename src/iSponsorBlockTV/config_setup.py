@@ -5,7 +5,7 @@ import aiohttp
 from . import api_helpers, ytlounge
 
 # Constants for user input prompts
-USE_PROXY_PROMPT = "Do you want to use system-wide proxy?"
+USE_PROXY_PROMPT = "Do you want to use system-wide proxy? (y/N)"
 ATVS_REMOVAL_PROMPT = (
     "Do you want to remove the legacy 'atvs' entry (the app won't start with it present)? (y/N) "
 )
