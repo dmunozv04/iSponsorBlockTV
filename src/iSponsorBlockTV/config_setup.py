@@ -5,6 +5,7 @@ import aiohttp
 from . import api_helpers, ytlounge
 
 # Constants for user input prompts
+USE_PROXY_PROMPT = "Do you want to use system-wide proxy? (y/N)"
 ATVS_REMOVAL_PROMPT = (
     "Do you want to remove the legacy 'atvs' entry (the app won't start with it present)? (y/N) "
 )
@@ -45,8 +46,8 @@ def get_yn_input(prompt):
     return None
 
 
-async def create_web_session():
-    return aiohttp.ClientSession()
+async def create_web_session(use_proxy):
+    return aiohttp.ClientSession(trust_env=use_proxy)
 
 
 async def pair_device(web_session: aiohttp.ClientSession):
@@ -75,8 +76,12 @@ async def pair_device(web_session: aiohttp.ClientSession):
 
 def main(config, debug: bool) -> None:
     print("Welcome to the iSponsorBlockTV cli setup wizard")
+
+    choice = get_yn_input(USE_PROXY_PROMPT)
+    config.use_proxy = choice == "y"
+
     loop = asyncio.get_event_loop_policy().get_event_loop()
-    web_session = loop.run_until_complete(create_web_session())
+    web_session = loop.run_until_complete(create_web_session(config.use_proxy))
     if debug:
         loop.set_debug(True)
     asyncio.set_event_loop(loop)

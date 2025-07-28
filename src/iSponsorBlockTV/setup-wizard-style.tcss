@@ -383,3 +383,9 @@ MigrationScreen {
     padding: 1;
     height: auto;
 }
+
+/* Use Proxy */
+#useproxy-container{
+    padding: 1;
+    height: auto;
+}

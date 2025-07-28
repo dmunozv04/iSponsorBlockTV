@@ -233,7 +233,7 @@ class AddDevice(ModalWithClickExit):
     def __init__(self, config, **kwargs) -> None:
         super().__init__(**kwargs)
         self.config = config
-        self.web_session = aiohttp.ClientSession()
+        self.web_session = aiohttp.ClientSession(trust_env=config.use_proxy)
         self.api_helper = api_helpers.ApiHelper(config, self.web_session)
         self.devices_discovered_dial = []
 
@@ -382,7 +382,7 @@ class AddChannel(ModalWithClickExit):
     def __init__(self, config, **kwargs) -> None:
         super().__init__(**kwargs)
         self.config = config
-        web_session = aiohttp.ClientSession()
+        web_session = aiohttp.ClientSession(trust_env=config.use_proxy)
         self.api_helper = api_helpers.ApiHelper(config, web_session)
 
     def compose(self) -> ComposeResult:
@@ -890,6 +890,37 @@ class AutoPlayManager(Vertical):
         self.config.auto_play = event.checkbox.value
 
 
+class UseProxyManager(Vertical):
+    """Manager for proxy use, allows enabling/disabling use of proxy."""
+
+    def __init__(self, config, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.config = config
+
+    def compose(self) -> ComposeResult:
+        yield Label("Use proxy", classes="title")
+        yield Label(
+            "This feature allows application to use system proxy,"
+            " if it is set in environment variables."
+            " This parameter will be passed in all [i]aiohttp.ClientSession[/i]"
+            ' calls. For further information, see "[i]trust_env[/i]" section at'
+            " [link='https://docs.aiohttp.org/en/stable/client_reference.html']"
+            "aiohttp documentation[/link].",
+            classes="subtitle",
+            id="useproxy-subtitle",
+        )
+        with Horizontal(id="useproxy-container"):
+            yield Checkbox(
+                value=self.config.use_proxy,
+                id="useproxy-switch",
+                label="Use proxy",
+            )
+
+    @on(Checkbox.Changed, "#useproxy-switch")
+    def changed_skip(self, event: Checkbox.Changed):
+        self.config.use_proxy = event.checkbox.value
+
+
 class ISponsorBlockTVSetupMainScreen(Screen):
     TITLE = "iSponsorBlockTV"
     SUB_TITLE = "Setup Wizard"
@@ -926,6 +957,7 @@ class ISponsorBlockTVSetupMainScreen(Screen):
             )
             yield ApiKeyManager(config=self.config, id="api-key-manager", classes="container")
             yield AutoPlayManager(config=self.config, id="autoplay-manager", classes="container")
+            yield UseProxyManager(config=self.config, id="useproxy-manager", classes="container")
 
     def on_mount(self) -> None:
         if self.check_for_old_config_entries():

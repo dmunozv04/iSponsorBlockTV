@@ -172,9 +172,11 @@ async def main_async(config, debug, http_tracing):
         trace_config.on_response_chunk_received.append(tracer.on_response_chunk_received)
         trace_config.on_request_end.append(tracer.on_request_end)
         trace_config.on_request_exception.append(tracer.on_request_exception)
-        web_session = aiohttp.ClientSession(connector=tcp_connector, trace_configs=[trace_config])
+        web_session = aiohttp.ClientSession(
+            trust_env=config.use_proxy, connector=tcp_connector, trace_configs=[trace_config]
+        )
     else:
-        web_session = aiohttp.ClientSession(connector=tcp_connector)
+        web_session = aiohttp.ClientSession(trust_env=config.use_proxy, connector=tcp_connector)
 
     api_helper = api_helpers.ApiHelper(config, web_session)
     for i in config.devices:
