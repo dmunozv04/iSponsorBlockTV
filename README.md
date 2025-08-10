@@ -5,10 +5,7 @@
 [![GitHub Release](https://img.shields.io/github/v/release/dmunozv04/isponsorblocktv?logo=GitHub&style=flat)](https://github.com/dmunozv04/iSponsorBlockTV/releases/latest)
 [![GitHub Repo stars](https://img.shields.io/github/stars/dmunozv04/isponsorblocktv?style=flat)](https://github.com/dmunozv04/isponsorblocktv)
 
-Skip sponsor segments in YouTube videos playing on a YouTube TV device (see
-below for compatibility details).
-
-This project is written in asynchronous python and should be pretty quick.
+iSponsorBlockTV is a self-hosted application that connects to your YouTube TV app (see compatibility below) and automatically skips segments (like Sponsors or intros) in YouTube videos using the [SponsorBlock](https://sponsor.ajay.app/) API. It can also auto mute and press the "Skip Ad" button the moment it becomes available on YouTube ads.
 
 ## Installation
 
@@ -37,15 +34,13 @@ Open an issue/pull request if you have tested a device that isn't listed here.
 
 ## Usage
 
-Run iSponsorBlockTV on a computer that has network access.
+Run iSponsorBlockTV on a computer that has network access. It doesn't need to
+be on the same network as the device, only access to youtube.com is required.
+
 Auto discovery will require the computer to be on the same network as the device
 during setup.
 The device can also be manually added to iSponsorBlockTV with a YouTube TV code.
-This code can be found in the settings page of your YouTube application.
-
-It connects to the device, watches its activity and skips any sponsor segment
-using the [SponsorBlock](https://sponsor.ajay.app/) API.
-It can also skip/mute YouTube ads.
+This code can be found in the settings page of your YouTube TV application.
 
 ## Libraries used
 
@@ -71,11 +66,9 @@ It can also skip/mute YouTube ads.
 
 ## Contributors
 
-- [dmunozv04](https://github.com/dmunozv04) - creator and maintainer
-- [HaltCatchFire](https://github.com/HaltCatchFire) - updated dependencies and
-  improved skip logic
-- [Oxixes](https://github.com/oxixes) - added support for channel whitelist and
-  minor improvements
+[![Contributors](https://contrib.rocks/image?repo=dmunozv04/iSponsorBlockTV)](https://github.com/dmunozv04/iSponsorBlockTV/graphs/contributors)
+
+Made with [contrib.rocks](https://contrib.rocks).
 
 ## License
 
