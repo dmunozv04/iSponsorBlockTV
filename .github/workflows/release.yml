@@ -11,12 +11,9 @@ name: Release Package
 on:
   push:
     branches:
-      - '*'
+      - 'main'
     tags:
       - 'v*'
-  pull_request:
-    branches:
-      - '*'
   release:
     types: [published]
 
@@ -103,7 +100,7 @@ jobs:
       CARGO_BUILD_TARGET: ${{ matrix.job.target }}
       PYAPP_DISTRIBUTION_VARIANT_CPU: ${{ matrix.job.cpu_variant }}
       PYAPP_REPO: pyapp # Use local copy of pyapp (needed for cross-compiling)
-      PYAPP_VERSION: v0.27.0
+      PYAPP_VERSION: v0.28.0
 
     steps:
     - name: Checkout
@@ -165,6 +162,7 @@ jobs:
       uses: actions/attest-build-provenance@v2
       with:
         subject-path: dist/binary/*
+      continue-on-error: true # Continue if attestation fails (it will fail on forks)
 
     - name: Upload built binary package
       uses: actions/upload-artifact@v4
