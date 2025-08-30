@@ -11,12 +11,9 @@ name: Release Package
 on:
   push:
     branches:
-      - '*'
+      - 'main'
     tags:
       - 'v*'
-  pull_request:
-    branches:
-      - '*'
   release:
     types: [published]
 
