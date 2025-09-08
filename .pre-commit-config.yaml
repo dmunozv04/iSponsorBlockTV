@@ -3,7 +3,7 @@
 # Inspired by textual pre-commit config
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: check-ast  # simply checks whether the files parse as valid python
       - id: check-builtin-literals  # requires literal syntax when initializing empty or zero python builtin types
@@ -19,7 +19,7 @@ repos:
       - id: mixed-line-ending  # replaces or checks mixed line ending
       - id: trailing-whitespace  # checks for trailing whitespace
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.7
+    rev: v0.12.12
     hooks:
       - id: ruff
         args: [ --fix, --exit-non-zero-on-fix ]
