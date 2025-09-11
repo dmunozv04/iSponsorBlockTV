@@ -159,7 +159,7 @@ jobs:
         mv dist/binary/iSponsorBlockTV* dist/binary/iSponsorBlockTV-${{ matrix.job.release_suffix }}
 
     - name: Attest build provenance
-      uses: actions/attest-build-provenance@v2
+      uses: actions/attest-build-provenance@v3
       with:
         subject-path: dist/binary/*
       continue-on-error: true # Continue if attestation fails (it will fail on forks)
