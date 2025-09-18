@@ -6,7 +6,8 @@ on:
     branches:
       - '*'
     tags:
-      - 'v*'
+      - 'v*.*.*'
+      - 'v*.*.*-*'
   pull_request:
     branches:
       - '*'
@@ -40,7 +41,9 @@ jobs:
           tags: |
             type=raw,value=develop,priority=900,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
             type=ref,enable=true,priority=600,prefix=pr-,suffix=,event=pr
-            type=ref,event=tag
+            type=semver,pattern=v{{version}}
+            type=semver,pattern=v{{major}}
+            type=semver,pattern=v{{major}}.{{minor}}
             type=ref,event=branch
             type=schedule
 
