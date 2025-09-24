@@ -23,7 +23,7 @@ Open an issue/pull request if you have tested a device that isn't listed here.
 
 | Device             | Status |
 |:-------------------|:------:|
-| Apple TV           |   ✅    |
+| Apple TV           |   ✅*   |
 | Samsung TV (Tizen) |   ✅    |
 | LG TV (WebOS)      |   ✅    |
 | Android TV         |   ✅    |
@@ -35,6 +35,8 @@ Open an issue/pull request if you have tested a device that isn't listed here.
 | Nintendo Switch    |   ✅    |
 | Xbox One/Series    |   ✅    |
 | Playstation 4/5    |   ✅    |
+
+*Ad muting won't work when using AirPlay to send the audio to another speaker.
 
 ## Usage
 
