@@ -36,10 +36,12 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         self.auto_play = True
         self.watchdog_running = False
         self.last_event_time = 0
+        self.ads_volume = 100
         if config:
             self.mute_ads = config.mute_ads
             self.skip_ads = config.skip_ads
             self.auto_play = config.auto_play
+            self.ads_volume = getattr(config, 'ads_volume', 100)
         self._command_mutex = asyncio.Lock()
 
     # Ensures that we still are subscribed to the lounge

@@ -35,7 +35,12 @@ REPORT_SKIPPED_SEGMENTS_PROMPT = (
 )
 MUTE_ADS_PROMPT = "Do you want to mute native YouTube ads automatically? (y/N) "
 SKIP_ADS_PROMPT = "Do you want to skip native YouTube ads automatically? (y/N) "
+ADS_VOLUME_PROMPT = "Enter ads volume level (0-100, where 0 is muted and 100 is full volume): "
 AUTOPLAY_PROMPT = "Do you want to enable autoplay? (Y/n) "
+
+# Error message constants
+INVALID_VOLUME_INPUT = "Invalid input. Please enter a number between 0 and 100."
+VOLUME_RANGE_ERROR = "Volume must be between 0 and 100. Please try again."
 
 
 def get_yn_input(prompt):
@@ -44,6 +49,28 @@ def get_yn_input(prompt):
             return choice.lower()
         print("Invalid input. Please enter 'y' or 'n'.")
     return None
+
+
+def get_volume_input(prompt):
+    """
+    Prompts user for volume input and validates range (0-100)
+    Returns: Valid integer between 0-100
+    Raises: Continues prompting until valid input received
+    """
+    while True:
+        try:
+            user_input = input(prompt).strip()
+            if not user_input:
+                print(INVALID_VOLUME_INPUT)
+                continue
+            
+            volume = int(user_input)
+            if 0 <= volume <= 100:
+                return volume
+            else:
+                print(VOLUME_RANGE_ERROR)
+        except ValueError:
+            print(INVALID_VOLUME_INPUT)
 
 
 async def create_web_session(use_proxy):
@@ -200,6 +227,12 @@ def main(config, debug: bool) -> None:
 
     choice = get_yn_input(MUTE_ADS_PROMPT)
     config.mute_ads = choice == "y"
+
+    # Ads volume configuration logic
+    if config.mute_ads:
+        config.ads_volume = 0
+    else:
+        config.ads_volume = get_volume_input(ADS_VOLUME_PROMPT)
 
     choice = get_yn_input(SKIP_ADS_PROMPT)
     config.skip_ads = choice == "y"
