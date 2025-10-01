@@ -63,7 +63,7 @@ def get_volume_input(prompt):
             if not user_input:
                 print(INVALID_VOLUME_INPUT)
                 continue
-            
+
             volume = int(user_input)
             if 0 <= volume <= 100:
                 return volume
