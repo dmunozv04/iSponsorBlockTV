@@ -45,6 +45,7 @@ class Config:
         self.auto_play = True
         self.join_name = "iSponsorBlockTV"
         self.use_proxy = False
+        self.ads_volume = 100  # Default ads volume to 100 (full volume)
         self.__load()
 
     def validate(self):
@@ -79,7 +80,7 @@ class Config:
                 for i in config:
                     if i not in config_file_blacklist_keys:
                         setattr(self, i, config[i])
-        except FileNotFoundError:
+        except (FileNotFoundError, json.JSONDecodeError):
             print("Could not load config file")
             # Create data directory if it doesn't exist (if we're not running in docker)
             if not os.path.exists(self.data_dir):
