@@ -141,7 +141,7 @@ jobs:
         hatch --version
 
     - name: Get artifact
-      uses: actions/download-artifact@v5
+      uses: actions/download-artifact@v6
       with:
         name: sdist-and-wheel
         path: ${{ github.workspace }}/dist
@@ -181,7 +181,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Get artifact
-      uses: actions/download-artifact@v5
+      uses: actions/download-artifact@v6
       with:
         name: sdist-and-wheel
         path: dist
@@ -200,7 +200,7 @@ jobs:
     if: github.event_name == 'release' && github.event.action == 'published'
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/download-artifact@v5
+    - uses: actions/download-artifact@v6
       name: Get artifact
       with:
         path: dist
