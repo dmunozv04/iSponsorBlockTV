@@ -46,7 +46,7 @@ jobs:
       run: python -m hatch build
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: sdist-and-wheel
         path: dist/*
@@ -165,7 +165,7 @@ jobs:
       continue-on-error: true # Continue if attestation fails (it will fail on forks)
 
     - name: Upload built binary package
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: binaries-${{ matrix.job.release_suffix }}
         path: dist/binary/*
