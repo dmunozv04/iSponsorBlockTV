@@ -39,7 +39,8 @@ Open an issue/pull request if you have tested a device that isn't listed here.
 *Ad muting won't work when using AirPlay to send the audio to another speaker.
 
 ** Shorts aren't fully supported due to limitations on YouTube's side.
-A single short can be seen by either selecting the "Disconnect" option in the warning shown
+A single short can be seen by either selecting the "Disconnect" option in the
+ warning shown
 or by long pressing the thumbnail to open the menu and clicking play from there
 
 ## Usage
