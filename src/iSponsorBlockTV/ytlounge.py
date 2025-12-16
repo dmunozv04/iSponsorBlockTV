@@ -36,11 +36,20 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         self.auto_play = True
         self.watchdog_running = False
         self.last_event_time = 0
+        self.ads_volume = 100
         if config:
             self.mute_ads = config.mute_ads
             self.skip_ads = config.skip_ads
             self.auto_play = config.auto_play
+            self.ads_volume = getattr(config, "ads_volume", 100)
         self._command_mutex = asyncio.Lock()
+
+    def should_handle_ads(self) -> bool:
+        """
+        Determine if ad handling should be active.
+        Returns True if either mute_ads is enabled OR ads_volume is less than 100.
+        """
+        return self.mute_ads or self.ads_volume < 100
 
     # Ensures that we still are subscribed to the lounge
     async def _watchdog(self):
@@ -114,28 +123,29 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             data = args[0]
             # print(data)
             # Unmute when the video starts playing
-            if self.mute_ads and data["state"] == "1":
-                create_task(self.mute(False, override=True))
+            if self.should_handle_ads() and data["state"] == "1":
+                create_task(self.handle_ads_end())
         elif event_type == "nowPlaying":
             data = args[0]
-            # Unmute when the video starts playing
-            if self.mute_ads and data.get("state", "0") == "1":
-                self.logger.info("Ad has ended, unmuting")
-                create_task(self.mute(False, override=True))
+            # Handle ad end when video starts playing
+            if self.should_handle_ads() and data.get("state", "0") == "1":
+                create_task(self.handle_ads_end())
         elif event_type == "onAdStateChange":
             data = args[0]
             if data["adState"] == "0" and data["currentTime"] != "0":  # Ad is not playing
-                self.logger.info("Ad has ended, unmuting")
-                create_task(self.mute(False, override=True))
-            elif (
-                self.skip_ads and data["isSkipEnabled"] == "true"
-            ):  # YouTube uses strings for booleans
-                self.logger.info("Ad can be skipped, skipping")
-                create_task(self.skip_ad())
-                create_task(self.mute(False, override=True))
-            elif self.mute_ads:  # Seen multiple other adStates, assuming they are all ads
-                self.logger.info("Ad has started, muting")
-                create_task(self.mute(True, override=True))
+                # Ad has ended - handle volume restoration or unmuting
+                if self.should_handle_ads():
+                    create_task(self.handle_ads_end())
+            elif data["adState"] != "0":  # Ad is playing
+                if (
+                    self.skip_ads and data["isSkipEnabled"] == "true"
+                ):  # YouTube uses strings for booleans
+                    self.logger.info("Ad can be skipped, skipping")
+                    create_task(self.skip_ad())
+                    if self.should_handle_ads():
+                        create_task(self.handle_ads_end())
+                elif self.should_handle_ads():  # Ad is playing - handle muting or volume control
+                    create_task(self.handle_ads_start())
         # Manages volume, useful since YouTube wants to know the volume
         # when unmuting (even if they already have it)
         elif event_type == "onVolumeChanged":
@@ -159,10 +169,10 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             ):  # YouTube uses strings for booleans
                 self.logger.info("Ad can be skipped, skipping")
                 create_task(self.skip_ad())
-                create_task(self.mute(False, override=True))
-            elif self.mute_ads:  # Seen multiple other adStates, assuming they are all ads
-                self.logger.info("Ad has started, muting")
-                create_task(self.mute(True, override=True))
+                if self.should_handle_ads():
+                    create_task(self.handle_ads_end())
+            elif self.should_handle_ads():  # Handle ad start for muting or volume control
+                create_task(self.handle_ads_start())
 
         elif event_type == "loungeStatus":
             data = args[0]
@@ -198,6 +208,41 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
     # Set the volume to a specific value (0-100)
     async def set_volume(self, volume: int) -> None:
         await self._command("setVolume", {"volume": volume})
+
+    async def handle_ads_start(self) -> None:
+        """
+        Handle ad start: either mute the ad or set configured ads volume.
+        """
+        try:
+            if self.mute_ads:
+                # Mute the ad completely
+                self.logger.info("Ad has started, muting")
+                await self.mute(True, override=True)
+            elif self.ads_volume < 100:
+                # Set configured ads volume (only if ads_volume < 100)
+                self.logger.info(f"Ad has started, setting volume to {self.ads_volume}%")
+                await self.set_volume(self.ads_volume)
+        except Exception as e:
+            self.logger.error(f"Failed to handle ad start: {e}")
+            # Don't re-raise the exception to avoid disrupting ad handling
+
+    async def handle_ads_end(self) -> None:
+        """
+        Handle ad end: restore original volume or unmute.
+        """
+        try:
+            if self.mute_ads:
+                # Unmute when ad ends
+                self.logger.info("Ad has ended, unmuting")
+                await self.mute(False, override=True)
+            elif self.ads_volume < 100:
+                # Restore original volume when ad ends (only if we changed it)
+                original_volume = self.volume_state.get("volume") or 100
+                self.logger.info(f"Ad has ended, restoring volume to {original_volume}%")
+                await self.set_volume(original_volume)
+        except Exception as e:
+            self.logger.error(f"Failed to handle ad end: {e}")
+            # Don't re-raise the exception to avoid disrupting ad handling
 
     async def mute(self, mute: bool, override: bool = False) -> None:
         """
