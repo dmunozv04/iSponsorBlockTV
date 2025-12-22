@@ -19,13 +19,13 @@ repos:
       - id: mixed-line-ending  # replaces or checks mixed line ending
       - id: trailing-whitespace  # checks for trailing whitespace
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.12
+    rev: v0.14.10
     hooks:
       - id: ruff
         args: [ --fix, --exit-non-zero-on-fix ]
       - id: ruff-format
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.45.0
+    rev: v0.47.0
     hooks:
       - id: markdownlint
         args: ["--fix"]
