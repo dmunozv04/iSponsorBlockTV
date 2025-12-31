@@ -10,6 +10,34 @@ export function GlobalSettings({ config, updateField }) {
                 <h3>Global Settings</h3>
             </div>
 
+            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                <label>Display Name</label>
+                <input
+                    type="text"
+                    placeholder="Enter display name"
+                    value={config.join_name || ''}
+                    onChange={e => updateField('join_name', e.target.value)}
+                    style={{ width: '100%', padding: '0.4rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                />
+            </div>
+
+            <div className="form-group">
+                <label>Minimum Skip Length (seconds)</label>
+                <input
+                    type="number"
+                    value={config.minimum_skip_length}
+                    onChange={e => {
+                        const val = parseInt(e.target.value)
+                        if (!isNaN(val)) updateField('minimum_skip_length', val)
+                        else if (e.target.value === '') updateField('minimum_skip_length', '')
+                    }}
+                    onBlur={() => {
+                        if (config.minimum_skip_length === '') updateField('minimum_skip_length', 0)
+                    }}
+                    style={{ width: '100%', padding: '0.4rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                />
+            </div>
+
             <Toggle label="Skip Sponsor Segments" checked={config.skip_categories?.includes('sponsor')} onChange={(checked) => {
                 const cats = new Set(config.skip_categories || [])
                 if (checked) cats.add('sponsor'); else cats.delete('sponsor')
@@ -51,10 +79,7 @@ export function GlobalSettings({ config, updateField }) {
 
 
 
-            <div className="form-group">
-                <label>Minimum Skip Length (seconds)</label>
-                <input type="number" value={config.minimum_skip_length || 0} onChange={e => updateField('minimum_skip_length', parseInt(e.target.value))} />
-            </div>
+
         </div>
     )
 }

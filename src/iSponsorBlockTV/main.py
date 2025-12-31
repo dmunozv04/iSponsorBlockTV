@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import time
-import os
+
 from signal import SIGINT, SIGTERM, signal
 from typing import Optional
 
@@ -23,7 +23,7 @@ class ConfigChangeHandler(FileSystemEventHandler):
     def on_modified(self, event):
         if event.src_path.endswith("config.json"):
             current_time = time.time()
-            if current_time - self.last_reload < 1:  # Debounce
+            if current_time - self.last_reload < 5:  # Debounce
                 return
             self.last_reload = current_time
             print("Config change detected, reloading...")

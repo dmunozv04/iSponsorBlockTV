@@ -1,4 +1,4 @@
-export function Header({ onSave, saving, hasChanges }) {
+export function Header({ onSave, onDiscard, saving, hasChanges }) {
     return (
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -7,8 +7,16 @@ export function Header({ onSave, saving, hasChanges }) {
                     <h1>iSponsorBlockTV</h1>
                 </div>
             </div>
-            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                {hasChanges && <span style={{ color: 'var(--accent-primary)', fontSize: '0.9rem', fontStyle: 'italic' }}>Unsaved Changes</span>}
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                {hasChanges && (
+                    <button
+                        className="btn-outline-danger"
+                        onClick={onDiscard}
+                        disabled={saving}
+                    >
+                        Discard Changes
+                    </button>
+                )}
                 <button
                     className="btn-primary"
                     onClick={onSave}

@@ -34,10 +34,20 @@ function App() {
   const handleSave = async () => {
     setSaving(true)
     try {
+      const configToSave = JSON.parse(JSON.stringify(config))
+      // Sanitize numeric fields that might be empty strings
+      if (configToSave.minimum_skip_length === '') configToSave.minimum_skip_length = 0
+      if (configToSave.devices) {
+        configToSave.devices = configToSave.devices.map(d => ({
+          ...d,
+          offset: d.offset === '' ? 0 : parseInt(d.offset)
+        }))
+      }
+
       const res = await fetch('/api/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config)
+        body: JSON.stringify(configToSave)
       })
       if (!res.ok) throw new Error('Failed to save config')
       toast.success('Configuration saved successfully!')
@@ -46,6 +56,13 @@ function App() {
       toast.error(err.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDiscard = () => {
+    if (originalConfig) {
+      setConfig(JSON.parse(JSON.stringify(originalConfig)))
+      toast.success('Changes discarded')
     }
   }
 
@@ -62,36 +79,18 @@ function App() {
   return (
     <div className="container">
       <Toaster position="bottom-right" />
-      <Header onSave={handleSave} saving={saving} hasChanges={hasChanges} />
+      <Header onSave={handleSave} onDiscard={handleDiscard} saving={saving} hasChanges={hasChanges} />
 
       <div className="grid-cols-2">
-        <GlobalSettings config={config} updateField={updateField} />
+        <div className="container" style={{ gap: '1rem' }}>
+          <div className="container" style={{ gap: '1rem' }}>
+            <GlobalSettings config={config} updateField={updateField} />
+          </div>
+        </div>
 
         <div className="container" style={{ gap: '1rem' }}>
           <DeviceList config={config} updateField={updateField} />
-          <ChannelWhitelist config={config} updateField={updateField} />
-
-          <div className="card">
-            <div className="card-header">
-              <h3>Display Name</h3>
-            </div>
-            <div className="form-group">
-              <label>Join Name</label>
-              <input type="text" value={config.join_name || ''} onChange={e => updateField('join_name', e.target.value)} />
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-header">
-              <h3>Raw Data</h3>
-            </div>
-            <details>
-              <summary style={{ cursor: 'pointer', color: 'var(--accent-primary)' }}>View JSON</summary>
-              <pre style={{ overflow: 'auto', maxHeight: '300px', fontSize: '12px' }}>
-                {JSON.stringify(config, null, 2)}
-              </pre>
-            </details>
-          </div>
+          <ChannelWhitelist config={config} originalConfig={originalConfig} updateField={updateField} />
         </div>
       </div>
     </div>

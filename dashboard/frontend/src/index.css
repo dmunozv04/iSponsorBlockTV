@@ -1,14 +1,14 @@
 :root {
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-tertiary: #334155;
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --accent-primary: #3b82f6;
-  --accent-hover: #2563eb;
+  --bg-primary: #333333;
+  --bg-secondary: #181818;
+  --bg-tertiary: #242424;
+  --text-primary: white;
+  --text-secondary: #dfdfdf;
+  --accent-primary: #c00000;
+  --accent-hover: #fc0303;
   --success: #10b981;
   --danger: #ef4444;
-  --border-color: #334155;
+  --border-color: #484848;
   --radius: 8px;
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
@@ -191,6 +191,22 @@ input:checked+.slider:before {
 
 .btn-primary:hover:not(:disabled) {
   background-color: var(--accent-hover);
+}
+
+.btn-outline-danger {
+  background: transparent;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-outline-danger:hover:not(:disabled) {
+  background-color: var(--danger);
+  color: white;
 }
 
 .grid-cols-2 {

@@ -4,17 +4,18 @@ import toast from 'react-hot-toast'
 export function DeviceList({ config, updateField }) {
     const [pairing, setPairing] = useState(false)
     const [pairingCode, setPairingCode] = useState('')
-    const [pairingError, setPairingError] = useState(null)
+
     const [pairingName, setPairingName] = useState('')
     const [pairingOffset, setPairingOffset] = useState(0)
 
     // Editing State
     const [editingDeviceIdx, setEditingDeviceIdx] = useState(null)
-    const [editForm, setEditForm] = useState({ name: '', offset: 0 })
+    const [editForm, setEditForm] = useState({ name: '', offset: 0, screen_id: '' })
+    const [showDeviceId, setShowDeviceId] = useState(false)
 
     const handlePairDevice = async () => {
         setPairing(true)
-        setPairingError(null)
+
         try {
             const res = await fetch('/api/pair', {
                 method: 'POST',
@@ -22,7 +23,7 @@ export function DeviceList({ config, updateField }) {
                 body: JSON.stringify({
                     code: pairingCode,
                     name: pairingName,
-                    offset: pairingOffset
+                    offset: pairingOffset === '' ? 0 : parseInt(pairingOffset)
                 })
             })
             if (!res.ok) {
@@ -33,10 +34,12 @@ export function DeviceList({ config, updateField }) {
             const updatedDevices = [...(config.devices || []), newDevice]
             updateField('devices', updatedDevices)
             setPairingName('')
+            setPairingCode('')
             setPairingOffset(0)
             toast.success(`Successfully paired with ${newDevice.name}!`)
         } catch (err) {
-            setPairingError(err.message)
+            console.error(err)
+            toast.error(err.message || "Failed to pair device")
         } finally {
             setPairing(false)
         }
@@ -44,7 +47,8 @@ export function DeviceList({ config, updateField }) {
 
     const handleEditClick = (index, device) => {
         setEditingDeviceIdx(index)
-        setEditForm({ name: device.name || '', offset: device.offset || 0 })
+        setEditForm({ name: device.name || '', offset: device.offset || 0, screen_id: device.screen_id || '' })
+        setShowDeviceId(false)
     }
 
     const handleCancelEdit = () => {
@@ -57,14 +61,15 @@ export function DeviceList({ config, updateField }) {
         updatedDevices[index] = {
             ...updatedDevices[index],
             name: editForm.name,
-            offset: editForm.offset
+            offset: editForm.offset,
+            screen_id: editForm.screen_id
         }
         updateField('devices', updatedDevices)
         setEditingDeviceIdx(null)
+        setShowDeviceId(false)
     }
 
     const handleDeleteDevice = (index) => {
-        if (!confirm("Are you sure you want to delete this device?")) return;
         const updatedDevices = config.devices.filter((_, i) => i !== index)
         updateField('devices', updatedDevices)
         if (editingDeviceIdx === index) {
@@ -99,18 +104,56 @@ export function DeviceList({ config, updateField }) {
                                     onChange={e => setEditForm(prev => ({ ...prev, name: e.target.value }))}
                                     style={{ width: '100%', marginBottom: '0.5rem', padding: '0.4rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
                                 />
+                                <label style={{ fontSize: '0.8em', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Device ID</label>
+                                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                    <input
+                                        type={showDeviceId ? "text" : "password"}
+                                        placeholder="Device ID"
+                                        value={editForm.screen_id}
+                                        readOnly
+                                        style={{ width: '100%', padding: '0.4rem', paddingRight: '35px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', cursor: 'default', opacity: 0.9 }}
+                                    />
+                                    <button
+                                        onClick={() => setShowDeviceId(!showDeviceId)}
+                                        style={{
+                                            position: 'absolute',
+                                            right: '5px',
+                                            background: 'transparent',
+                                            border: 'none',
+                                            color: 'var(--text-secondary)',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            padding: '2px'
+                                        }}
+                                        title={showDeviceId ? "Hide ID" : "Show ID"}
+                                    >
+                                        {showDeviceId ? (
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                                        ) : (
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                        )}
+                                    </button>
+                                </div>
                                 <label style={{ fontSize: '0.8em', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Offset (ms)</label>
                                 <input
                                     type="number"
                                     placeholder="Offset (ms)"
                                     value={editForm.offset}
-                                    onChange={e => setEditForm(prev => ({ ...prev, offset: parseInt(e.target.value) || 0 }))}
+                                    onChange={e => {
+                                        const val = parseInt(e.target.value)
+                                        if (!isNaN(val)) setEditForm(prev => ({ ...prev, offset: val }))
+                                        else if (e.target.value === '') setEditForm(prev => ({ ...prev, offset: '' }))
+                                    }}
+                                    onBlur={() => {
+                                        if (editForm.offset === '') setEditForm(prev => ({ ...prev, offset: 0 }))
+                                    }}
                                     style={{ width: '100%', padding: '0.4rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
                                 />
                             </div>
                             <div style={{ display: 'flex', gap: '0.5rem', alignSelf: 'flex-end', marginTop: '0.5rem' }}>
                                 <button className="btn-primary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem' }} onClick={() => handleSaveEdit(idx)}>
-                                    Save
+                                    Done
                                 </button>
                                 <button style={{
                                     padding: '0.25rem 0.75rem',
@@ -129,7 +172,6 @@ export function DeviceList({ config, updateField }) {
                         <>
                             <div style={{ flex: 1 }}>
                                 <div style={{ fontWeight: 'bold' }}>{device.name || 'Unnamed Device'}</div>
-                                <div style={{ fontSize: '0.8em', color: 'var(--text-secondary)' }}>ID: {device.screen_id}</div>
                                 <div style={{ fontSize: '0.8em', color: 'var(--text-secondary)' }}>Offset: {device.offset} ms</div>
                             </div>
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -145,9 +187,7 @@ export function DeviceList({ config, updateField }) {
                                     opacity: 0.7,
                                     transition: 'opacity 0.2s'
                                 }}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                        <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z" />
-                                    </svg>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" /></svg>
                                 </button>
                                 <button onClick={() => handleDeleteDevice(idx)} title="Delete Device" style={{
                                     background: 'transparent',
@@ -161,10 +201,7 @@ export function DeviceList({ config, updateField }) {
                                     opacity: 0.7,
                                     transition: 'opacity 0.2s'
                                 }}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" />
-                                        <path fillRule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z" />
-                                    </svg>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" /></svg>
                                 </button>
                             </div>
                         </>
@@ -198,13 +235,19 @@ export function DeviceList({ config, updateField }) {
                         type="number"
                         placeholder="Offset (ms)"
                         value={pairingOffset}
-                        onChange={e => setPairingOffset(parseInt(e.target.value) || 0)}
+                        onChange={e => {
+                            const val = parseInt(e.target.value)
+                            if (!isNaN(val)) setPairingOffset(val)
+                            else if (e.target.value === '') setPairingOffset('')
+                        }}
+                        onBlur={() => {
+                            if (pairingOffset === '') setPairingOffset(0)
+                        }}
                     />
                 </div>
                 <button className="btn-primary" style={{ width: '100%', marginTop: '0.5rem' }} onClick={handlePairDevice} disabled={pairing}>
                     {pairing ? 'Pairing...' : 'Pair Device'}
                 </button>
-                {pairingError && <p style={{ color: 'var(--danger)', fontSize: '0.8rem', marginTop: '0.5rem' }}>{pairingError}</p>}
             </div>
         </div>
     )

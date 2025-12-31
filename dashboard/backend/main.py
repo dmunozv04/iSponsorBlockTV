@@ -1,8 +1,32 @@
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 import json
 import os
+import sys
+import aiohttp
+import traceback
+
+sys.path.append("/app/src")
+try:
+    from iSponsorBlockTV.ytlounge import YtLoungeApi
+except ImportError:
+    # Fallback for local dev if not in docker or path setup differently
+    try:
+        sys.path.append(os.path.join(os.path.dirname(__file__), "../../src"))
+        from iSponsorBlockTV.ytlounge import YtLoungeApi
+    except ImportError:
+        print("Warning: Could not import YtLoungeApi. Pairing will fail.")
+        YtLoungeApi = None
+
+try:
+    from iSponsorBlockTV.api_helpers import ApiHelper
+    from iSponsorBlockTV.helpers import Config
+except ImportError:
+    print("Error importing ApiHelper or Config:")
+    traceback.print_exc()
+    ApiHelper = None
+    Config = None
 
 app = FastAPI()
 
@@ -38,14 +62,6 @@ def update_config(config: dict):
 # Serve React App
 app.mount("/assets", StaticFiles(directory="/app/static/assets"), name="assets")
 
-# Import correct ytlounge from src
-import sys
-
-sys.path.append("/app/src")
-from iSponsorBlockTV.ytlounge import YtLoungeApi
-import asyncio
-import aiohttp
-
 
 @app.post("/api/pair")
 async def pair_device(data: dict):
@@ -58,17 +74,31 @@ async def pair_device(data: dict):
 
     try:
         # Sanitize code
-        pairing_code = int(str(code).replace("-", "").replace(" ", ""))
+        try:
+            pairing_code = int(str(code).replace("-", "").replace(" ", ""))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid pairing code format. Digits only.")
+
         try:
             offset = int(offset)
-        except:
+        except (ValueError, TypeError):
             offset = 0
 
         async with aiohttp.ClientSession() as session:
             api = YtLoungeApi(screen_id=None, config=None, api_helper=None)
             await api.change_web_session(session)
 
-            paired = await api.pair(pairing_code)
+            try:
+                paired = await api.pair(pairing_code)
+            except Exception as e:
+                # Catch specific API errors if possible, otherwise generic cleanup
+                err_msg = str(e)
+                if "404" in err_msg:
+                    raise HTTPException(
+                        status_code=400, detail="Invalid pairing code or code expired."
+                    )
+                raise e
+
             if not paired:
                 raise HTTPException(
                     status_code=400, detail="Pairing failed. Check code and try again."
@@ -79,9 +109,59 @@ async def pair_device(data: dict):
                 "screen_id": api.auth.screen_id,
                 "offset": offset,
             }
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Pairing error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Strip technical details if it looks like a server/network error
+        raise HTTPException(status_code=500, detail=f"Server Error: {str(e)}")
+
+
+@app.get("/api/channels/search")
+async def search_channels(query: str):
+    if not query:
+        return []
+
+    current_apikey = None
+    if os.path.exists(CONFIG_PATH):
+        try:
+            with open(CONFIG_PATH, "r") as f:
+                config_data = json.load(f)
+                current_apikey = config_data.get("apikey")
+        except Exception:
+            pass
+
+    if not current_apikey:
+        raise HTTPException(status_code=400, detail="API Key is missing from backend config")
+
+    if not ApiHelper:
+        raise HTTPException(
+            status_code=500, detail="Backend not properly initialized (ApiHelper missing)"
+        )
+
+    # Create a mock config object for ApiHelper
+    class MockConfig:
+        def __init__(self, key):
+            self.apikey = key
+            self.skip_categories = []
+            self.channel_whitelist = []
+            self.skip_count_tracking = False
+            self.devices = []
+            self.minimum_skip_length = 0
+
+    mock_config = MockConfig(current_apikey)
+
+    async with aiohttp.ClientSession() as session:
+        api = ApiHelper(mock_config, session)
+        try:
+            results = await api.search_channels(query)
+            formatted_results = [{"id": r[0], "name": r[1], "subscribers": r[2]} for r in results]
+            return formatted_results
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        except Exception as e:
+            print(f"Search error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/{full_path:path}")

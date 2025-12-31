@@ -57,14 +57,10 @@ class Config:
                     f"{github_wiki_base_url}/Migrate-from-V1-to-V2"
                 ),
             )
-            print("Exiting in 10 seconds...")
-            time.sleep(10)
-            sys.exit()
+            # Raise error to stop starting, but don't exit if it's a reload
+            raise ValueError("Deprecated 'atvs' config option present.")
         if not self.devices:
-            print("No devices found, please add at least one device")
-            print("Exiting in 10 seconds...")
-            time.sleep(10)
-            sys.exit()
+            raise ValueError("No devices found, please add at least one device")
         self.devices = [Device(i) for i in self.devices]
         if not self.apikey and self.channel_whitelist:
             raise ValueError("No youtube API key found and channel whitelist is not empty")
