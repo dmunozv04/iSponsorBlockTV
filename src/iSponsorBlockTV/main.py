@@ -179,9 +179,7 @@ def handle_signal(signum, frame):
 async def main_async(config, debug, http_tracing):
     loop = asyncio.get_running_loop()
 
-    # Observe config changes
     reload_event = asyncio.Event()
-    # Assuming config.data_dir is set and valid
     config_dir = config.data_dir
     event_handler = ConfigChangeHandler(loop, reload_event, config)
     observer = Observer()
@@ -192,22 +190,11 @@ async def main_async(config, debug, http_tracing):
     signal(SIGINT, handle_signal)
 
     while True:
-        # Reload config from file
-        # We need to manually reload because the Config object might cache or simply existing logic doesn't re-read
-        # Ideally we re-instantiate or call a method to reload.
-        # Looking at helper.py Config.__init__ calls __load. We can access __load via name mangling or just make a new one.
-        # But we want to reuse the same object reference if possible, or just create a new one.
-        # Since 'config' is passed in, we can try to re-trigger its load.
-        # The Config class has `_Config__load`.
         try:
-            # Force reload of config
             config._Config__load()
-            # Re-validate to process devices
             config.validate()
         except Exception as e:
             print(f"Error reloading config: {e}")
-            # If reload fails, maybe wait and try again or continue?
-            # For now, let's just proceed with old config or what we have.
 
         tasks = []
         devices = []
@@ -237,11 +224,9 @@ async def main_async(config, debug, http_tracing):
             tasks.append(loop.create_task(device.loop()))
             tasks.append(loop.create_task(device.refresh_auth_loop()))
 
-        # Create a task to wait for reload event
         reload_waiter = loop.create_task(reload_event.wait())
 
         try:
-            # Wait for either tasks to complete (unexpected) or reload event
             done, pending = await asyncio.wait(
                 tasks + [reload_waiter], return_when=asyncio.FIRST_COMPLETED
             )
@@ -263,7 +248,6 @@ async def main_async(config, debug, http_tracing):
         except Exception as e:
             print(f"Unexpected error: {e}")
 
-        # Cleanup before next iteration
         await finish(devices, web_session, tcp_connector)
         for task in tasks:
             task.cancel()
