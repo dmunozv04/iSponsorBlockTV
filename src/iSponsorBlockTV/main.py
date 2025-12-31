@@ -1,13 +1,33 @@
 import asyncio
 import logging
 import time
+import os
 from signal import SIGINT, SIGTERM, signal
 from typing import Optional
 
 import aiohttp
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 from . import api_helpers, ytlounge
 from .debug_helpers import AiohttpTracer
+
+
+class ConfigChangeHandler(FileSystemEventHandler):
+    def __init__(self, loop, reload_event, config):
+        self.loop = loop
+        self.reload_event = reload_event
+        self.config = config
+        self.last_reload = 0
+
+    def on_modified(self, event):
+        if event.src_path.endswith("config.json"):
+            current_time = time.time()
+            if current_time - self.last_reload < 1:  # Debounce
+                return
+            self.last_reload = current_time
+            print("Config change detected, reloading...")
+            self.loop.call_soon_threadsafe(self.reload_event.set)
 
 
 class DeviceListener:
@@ -146,8 +166,10 @@ class DeviceListener:
 
 async def finish(devices, web_session, tcp_connector):
     await asyncio.gather(*(device.cancel() for device in devices), return_exceptions=True)
-    await web_session.close()
-    await tcp_connector.close()
+    if web_session:
+        await web_session.close()
+    if tcp_connector:
+        await tcp_connector.close()
 
 
 def handle_signal(signum, frame):
@@ -155,50 +177,99 @@ def handle_signal(signum, frame):
 
 
 async def main_async(config, debug, http_tracing):
-    loop = asyncio.get_event_loop_policy().get_event_loop()
-    tasks = []  # Save the tasks so the interpreter doesn't garbage collect them
-    devices = []  # Save the devices to close them later
-    if debug:
-        loop.set_debug(True)
+    loop = asyncio.get_running_loop()
 
-    tcp_connector = aiohttp.TCPConnector(ttl_dns_cache=300)
+    # Observe config changes
+    reload_event = asyncio.Event()
+    # Assuming config.data_dir is set and valid
+    config_dir = config.data_dir
+    event_handler = ConfigChangeHandler(loop, reload_event, config)
+    observer = Observer()
+    observer.schedule(event_handler, config_dir, recursive=False)
+    observer.start()
 
-    # Configure session with tracing if enabled
-    if http_tracing:
-        root_logger = logging.getLogger("aiohttp_trace")
-        tracer = AiohttpTracer(root_logger)
-        trace_config = aiohttp.TraceConfig()
-        trace_config.on_request_start.append(tracer.on_request_start)
-        trace_config.on_response_chunk_received.append(tracer.on_response_chunk_received)
-        trace_config.on_request_end.append(tracer.on_request_end)
-        trace_config.on_request_exception.append(tracer.on_request_exception)
-        web_session = aiohttp.ClientSession(
-            trust_env=config.use_proxy, connector=tcp_connector, trace_configs=[trace_config]
-        )
-    else:
-        web_session = aiohttp.ClientSession(trust_env=config.use_proxy, connector=tcp_connector)
-
-    api_helper = api_helpers.ApiHelper(config, web_session)
-    for i in config.devices:
-        device = DeviceListener(api_helper, config, i, debug, web_session)
-        devices.append(device)
-        await device.initialize_web_session()
-        tasks.append(loop.create_task(device.loop()))
-        tasks.append(loop.create_task(device.refresh_auth_loop()))
     signal(SIGTERM, handle_signal)
     signal(SIGINT, handle_signal)
-    try:
-        await asyncio.gather(*tasks)
-    except KeyboardInterrupt:
-        print("Cancelling tasks and exiting...")
+
+    while True:
+        # Reload config from file
+        # We need to manually reload because the Config object might cache or simply existing logic doesn't re-read
+        # Ideally we re-instantiate or call a method to reload.
+        # Looking at helper.py Config.__init__ calls __load. We can access __load via name mangling or just make a new one.
+        # But we want to reuse the same object reference if possible, or just create a new one.
+        # Since 'config' is passed in, we can try to re-trigger its load.
+        # The Config class has `_Config__load`.
+        try:
+            # Force reload of config
+            config._Config__load()
+            # Re-validate to process devices
+            config.validate()
+        except Exception as e:
+            print(f"Error reloading config: {e}")
+            # If reload fails, maybe wait and try again or continue?
+            # For now, let's just proceed with old config or what we have.
+
+        tasks = []
+        devices = []
+        tcp_connector = aiohttp.TCPConnector(ttl_dns_cache=300)
+
+        # Configure session with tracing if enabled
+        if http_tracing:
+            root_logger = logging.getLogger("aiohttp_trace")
+            tracer = AiohttpTracer(root_logger)
+            trace_config = aiohttp.TraceConfig()
+            trace_config.on_request_start.append(tracer.on_request_start)
+            trace_config.on_response_chunk_received.append(tracer.on_response_chunk_received)
+            trace_config.on_request_end.append(tracer.on_request_end)
+            trace_config.on_request_exception.append(tracer.on_request_exception)
+            web_session = aiohttp.ClientSession(
+                trust_env=config.use_proxy, connector=tcp_connector, trace_configs=[trace_config]
+            )
+        else:
+            web_session = aiohttp.ClientSession(trust_env=config.use_proxy, connector=tcp_connector)
+
+        api_helper = api_helpers.ApiHelper(config, web_session)
+
+        for i in config.devices:
+            device = DeviceListener(api_helper, config, i, debug, web_session)
+            devices.append(device)
+            await device.initialize_web_session()
+            tasks.append(loop.create_task(device.loop()))
+            tasks.append(loop.create_task(device.refresh_auth_loop()))
+
+        # Create a task to wait for reload event
+        reload_waiter = loop.create_task(reload_event.wait())
+
+        try:
+            # Wait for either tasks to complete (unexpected) or reload event
+            done, pending = await asyncio.wait(
+                tasks + [reload_waiter], return_when=asyncio.FIRST_COMPLETED
+            )
+
+            if reload_waiter in done:
+                print("Reloading invoked. Stopping current tasks...")
+            else:
+                print("Tasks finished unexpectedly. Restarting...")
+
+        except KeyboardInterrupt:
+            print("Stopping...")
+            observer.stop()
+            observer.join()
+            await finish(devices, web_session, tcp_connector)
+            for task in tasks:
+                task.cancel()
+            return  # Exit main loop
+
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+
+        # Cleanup before next iteration
         await finish(devices, web_session, tcp_connector)
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
-    finally:
-        await web_session.close()
-        await tcp_connector.close()
-        print("Exited")
+
+        reload_event.clear()
 
 
 def main(config, debug, http_tracing):

@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+pydantic
+aiohttp
+pyytlounge
+async-cache
+docker
