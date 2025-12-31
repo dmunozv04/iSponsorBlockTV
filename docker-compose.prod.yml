@@ -1,0 +1,21 @@
+services:
+  iSponsorBlockTV:
+    image: ghcr.io/chrisstoll1/isponsorblocktv:latest
+    container_name: iSponsorBlockTV
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data
+    environment:
+      - TZ=UTC  # Set your timezone ideally
+
+  dashboard:
+    image: ghcr.io/chrisstoll1/isponsorblocktv-dashboard:latest
+    container_name: iSponsorBlockTV-dashboard
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - iSponsorBlockTV
