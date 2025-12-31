@@ -14,9 +14,12 @@ export function GlobalSettings({ config, updateField }) {
                 <label>Display Name</label>
                 <input
                     type="text"
-                    placeholder="Enter display name"
-                    value={config.join_name || ''}
+                    placeholder="iSponsorBlockTV"
+                    value={config.join_name ?? 'iSponsorBlockTV'}
                     onChange={e => updateField('join_name', e.target.value)}
+                    onBlur={e => {
+                        if (!e.target.value.trim()) updateField('join_name', 'iSponsorBlockTV')
+                    }}
                     style={{ width: '100%', padding: '0.4rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
                 />
             </div>
@@ -25,7 +28,7 @@ export function GlobalSettings({ config, updateField }) {
                 <label>Minimum Skip Length (seconds)</label>
                 <input
                     type="number"
-                    value={config.minimum_skip_length}
+                    value={config.minimum_skip_length ?? 0}
                     onChange={e => {
                         const val = parseInt(e.target.value)
                         if (!isNaN(val)) updateField('minimum_skip_length', val)

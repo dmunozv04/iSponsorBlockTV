@@ -60,7 +60,7 @@ class Config:
             # Raise error to stop starting, but don't exit if it's a reload
             raise ValueError("Deprecated 'atvs' config option present.")
         if not self.devices:
-            raise ValueError("No devices found, please add at least one device")
+            print("No devices found, please add at least one device")
         self.devices = [Device(i) for i in self.devices]
         if not self.apikey and self.channel_whitelist:
             raise ValueError("No youtube API key found and channel whitelist is not empty")
