@@ -60,6 +60,7 @@ def update_config(config: dict):
 
 app.mount("/assets", StaticFiles(directory="/app/static/assets"), name="assets")
 
+
 @app.post("/api/pair")
 async def pair_device(data: dict):
     code = data.get("code")

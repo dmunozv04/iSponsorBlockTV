@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./data:/app/data
-  
+
   dashboard:
     build:
       context: .
