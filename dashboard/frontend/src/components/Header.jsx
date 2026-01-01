@@ -1,13 +1,13 @@
 export function Header({ onSave, onDiscard, saving, hasChanges }) {
     return (
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <img src="/LogoSponsorBlocker256px.png" alt="SponsorBlock Logo" style={{ width: '50px', height: 'auto' }} />
+        <header className="header-container">
+            <div className="header-brand">
+                <img src="/LogoSponsorBlocker256px.png" alt="SponsorBlock Logo" />
                 <div>
                     <h1>iSponsorBlockTV</h1>
                 </div>
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <div className="header-actions">
                 {hasChanges && (
                     <button
                         className="btn-outline-danger"

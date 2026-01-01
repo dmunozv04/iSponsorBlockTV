@@ -11,7 +11,6 @@ sys.path.append("/app/src")
 try:
     from iSponsorBlockTV.ytlounge import YtLoungeApi
 except ImportError:
-    # Fallback for local dev if not in docker or path setup differently
     try:
         sys.path.append(os.path.join(os.path.dirname(__file__), "../../src"))
         from iSponsorBlockTV.ytlounge import YtLoungeApi
@@ -59,9 +58,7 @@ def update_config(config: dict):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# Serve React App
 app.mount("/assets", StaticFiles(directory="/app/static/assets"), name="assets")
-
 
 @app.post("/api/pair")
 async def pair_device(data: dict):
@@ -73,7 +70,6 @@ async def pair_device(data: dict):
         raise HTTPException(status_code=400, detail="Pairing code required")
 
     try:
-        # Sanitize code
         try:
             pairing_code = int(str(code).replace("-", "").replace(" ", ""))
         except ValueError:
@@ -91,7 +87,6 @@ async def pair_device(data: dict):
             try:
                 paired = await api.pair(pairing_code)
             except Exception as e:
-                # Catch specific API errors if possible, otherwise generic cleanup
                 err_msg = str(e)
                 if "404" in err_msg:
                     raise HTTPException(
@@ -113,7 +108,6 @@ async def pair_device(data: dict):
         raise
     except Exception as e:
         print(f"Pairing error: {e}")
-        # Strip technical details if it looks like a server/network error
         raise HTTPException(status_code=500, detail=f"Server Error: {str(e)}")
 
 
@@ -139,7 +133,6 @@ async def search_channels(query: str):
             status_code=500, detail="Backend not properly initialized (ApiHelper missing)"
         )
 
-    # Create a mock config object for ApiHelper
     class MockConfig:
         def __init__(self, key):
             self.apikey = key

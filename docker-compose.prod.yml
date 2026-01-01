@@ -5,8 +5,6 @@ services:
     restart: unless-stopped
     volumes:
       - ./data:/app/data
-    environment:
-      - TZ=UTC  # Set your timezone ideally
 
   dashboard:
     image: ghcr.io/chrisstoll1/isponsorblocktv-dashboard:latest
