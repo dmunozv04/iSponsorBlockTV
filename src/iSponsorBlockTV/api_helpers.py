@@ -86,7 +86,7 @@ class ApiHelper:
         async with self.web_session.get(url, params=params) as resp:
             data = await resp.json()
         if "error" in data:
-            return channels
+            raise ValueError(data["error"]["message"])
 
         for i in data["items"]:
             # Get channel subscription number
@@ -103,7 +103,7 @@ class ApiHelper:
                 sub_count = "Hidden"
             else:
                 sub_count = int(channel_data["items"][0]["statistics"]["subscriberCount"])
-                sub_count = format(sub_count, "_")
+                sub_count = format(sub_count, ",")
 
             channels.append((i["snippet"]["channelId"], i["snippet"]["channelTitle"], sub_count))
         return channels
