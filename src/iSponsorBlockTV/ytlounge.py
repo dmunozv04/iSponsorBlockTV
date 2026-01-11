@@ -343,7 +343,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                     return False
                 lines = text.splitlines()
                 async for events in self._parse_event_chunks(as_aiter(lines)):
-                    self._process_events(events)
+                    await self._process_events(events)
                 self._command_offset = 1
                 return self.connected()
             except:
