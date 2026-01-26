@@ -33,6 +33,7 @@ Uninstall:
 ```
 
 Optional flags:
+
 - `--remove-data` removes `/var/lib/isponsorblocktv`
 - `--remove-install` removes `/opt/isponsorblocktv`
 - `--remove-user` removes the `isponsorblocktv` user/group
