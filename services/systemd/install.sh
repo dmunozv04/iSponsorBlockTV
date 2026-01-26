@@ -18,6 +18,48 @@ if [[ ! -d "$INSTALL_DIR" ]]; then
   exit 1
 fi
 
+DEPS=(python3 python3-venv python3-pip)
+missing=()
+if command -v apt-get >/dev/null 2>&1; then
+  for dep in "${DEPS[@]}"; do
+    if ! dpkg -s "$dep" >/dev/null 2>&1; then
+      missing+=("$dep")
+    fi
+  done
+  if (( ${#missing[@]} )); then
+    echo "Installing dependencies: ${missing[*]}"
+    apt-get update
+    apt-get install -y "${missing[@]}"
+  fi
+else
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "python3 is required. Please install: ${DEPS[*]}" >&2
+    exit 1
+  fi
+  if ! python3 -m venv -h >/dev/null 2>&1; then
+    echo "python3-venv is required. Please install: ${DEPS[*]}" >&2
+    exit 1
+  fi
+  if ! command -v pip3 >/dev/null 2>&1; then
+    echo "python3-pip is required. Please install: ${DEPS[*]}" >&2
+    exit 1
+  fi
+fi
+
+if [[ ! -x "${INSTALL_DIR}/venv/bin/python" ]]; then
+  echo "Creating virtualenv at ${INSTALL_DIR}/venv"
+  if ! python3 -m venv "${INSTALL_DIR}/venv"; then
+    echo "Failed to create virtualenv. Is python3-venv installed?" >&2
+    exit 1
+  fi
+fi
+
+if [[ ! -x "${INSTALL_DIR}/venv/bin/iSponsorBlockTV" ]]; then
+  echo "Installing iSponsorBlockTV into virtualenv"
+  "${INSTALL_DIR}/venv/bin/pip" install --upgrade pip
+  "${INSTALL_DIR}/venv/bin/pip" install "${INSTALL_DIR}"
+fi
+
 if ! id "$USER_NAME" >/dev/null 2>&1; then
   useradd --system --home "$DATA_DIR" --create-home "$USER_NAME"
 fi
