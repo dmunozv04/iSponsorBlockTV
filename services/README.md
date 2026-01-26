@@ -25,3 +25,15 @@ default data dir via `/etc/profile.d/isponsorblocktv.sh` and `/etc/environment`.
 
 If `apt-get` is available, the installer will install `python3`, `python3-venv`,
 and `python3-pip`. Otherwise, ensure those packages are installed beforehand.
+
+Uninstall:
+
+```
+/opt/isponsorblocktv/services/systemd/uninstall.sh
+```
+
+Optional flags:
+- `--remove-data` removes `/var/lib/isponsorblocktv`
+- `--remove-install` removes `/opt/isponsorblocktv`
+- `--remove-user` removes the `isponsorblocktv` user/group
+- `--purge` removes both plus the `isponsorblocktv` user/group
