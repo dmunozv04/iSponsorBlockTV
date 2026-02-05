@@ -1,52 +1,47 @@
-import { useState } from 'react'
-import { Card, Form, Input, Button, Typography, message, Space } from 'antd'
-import { UserOutlined, LockOutlined } from '@ant-design/icons'
-import { useAuth } from '../contexts/AuthContext'
+import { useState } from "react";
+import { Card, Form, Input, Button, Typography, message, Space } from "antd";
+import { UserOutlined, LockOutlined } from "@ant-design/icons";
+import { useAuth } from "../contexts/AuthContext";
 
-const { Title, Text } = Typography
+const { Title, Text } = Typography;
 
 export default function LoginPage() {
-  const [loading, setLoading] = useState(false)
-  const { login } = useAuth()
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
 
   const onFinish = async (values: { username: string; password: string }) => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const success = await login(values.username, values.password)
+      const success = await login(values.username, values.password);
       if (success) {
-        message.success('Login successful!')
+        message.success("Login successful!");
       } else {
-        message.error('Invalid username or password')
+        message.error("Invalid username or password");
       }
     } catch {
-      message.error('Login failed. Please try again.')
+      message.error("Login failed. Please try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div
       style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#141414',
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#141414",
       }}
     >
-      <Card
-        style={{ width: 400, background: '#1f1f1f' }}
-        bordered={false}
-      >
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
-          <div style={{ textAlign: 'center' }}>
+      <Card style={{ width: 400, background: "#1f1f1f" }} bordered={false}>
+        <Space direction="vertical" size="large" style={{ width: "100%" }}>
+          <div style={{ textAlign: "center" }}>
             <Title level={2} style={{ marginBottom: 8 }}>
               iSponsorBlockTV
             </Title>
-            <Text type="secondary">
-              Sign in to continue
-            </Text>
+            <Text type="secondary">Sign in to continue</Text>
           </div>
 
           <Form
@@ -57,7 +52,9 @@ export default function LoginPage() {
           >
             <Form.Item
               name="username"
-              rules={[{ required: true, message: 'Please enter your username' }]}
+              rules={[
+                { required: true, message: "Please enter your username" },
+              ]}
             >
               <Input
                 prefix={<UserOutlined />}
@@ -68,7 +65,9 @@ export default function LoginPage() {
 
             <Form.Item
               name="password"
-              rules={[{ required: true, message: 'Please enter your password' }]}
+              rules={[
+                { required: true, message: "Please enter your password" },
+              ]}
             >
               <Input.Password
                 prefix={<LockOutlined />}
@@ -92,5 +91,5 @@ export default function LoginPage() {
         </Space>
       </Card>
     </div>
-  )
+  );
 }

@@ -1,51 +1,52 @@
-import { useState } from 'react'
-import { Card, Form, Input, Button, Typography, message, Space } from 'antd'
-import { UserOutlined, LockOutlined } from '@ant-design/icons'
-import { useAuth } from '../contexts/AuthContext'
+import { useState } from "react";
+import { Card, Form, Input, Button, Typography, message, Space } from "antd";
+import { UserOutlined, LockOutlined } from "@ant-design/icons";
+import { useAuth } from "../contexts/AuthContext";
 
-const { Title, Text } = Typography
+const { Title, Text } = Typography;
 
 export default function SetupPage() {
-  const [loading, setLoading] = useState(false)
-  const { setupAuth } = useAuth()
+  const [loading, setLoading] = useState(false);
+  const { setupAuth } = useAuth();
 
-  const onFinish = async (values: { username: string; password: string; confirmPassword: string }) => {
+  const onFinish = async (values: {
+    username: string;
+    password: string;
+    confirmPassword: string;
+  }) => {
     if (values.password !== values.confirmPassword) {
-      message.error('Passwords do not match')
-      return
+      message.error("Passwords do not match");
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     try {
-      const success = await setupAuth(values.username, values.password)
+      const success = await setupAuth(values.username, values.password);
       if (success) {
-        message.success('Setup complete!')
+        message.success("Setup complete!");
       } else {
-        message.error('Setup failed. Please try again.')
+        message.error("Setup failed. Please try again.");
       }
     } catch {
-      message.error('Setup failed. Please try again.')
+      message.error("Setup failed. Please try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div
       style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#141414',
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#141414",
       }}
     >
-      <Card
-        style={{ width: 400, background: '#1f1f1f' }}
-        bordered={false}
-      >
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
-          <div style={{ textAlign: 'center' }}>
+      <Card style={{ width: 400, background: "#1f1f1f" }} bordered={false}>
+        <Space direction="vertical" size="large" style={{ width: "100%" }}>
+          <div style={{ textAlign: "center" }}>
             <Title level={2} style={{ marginBottom: 8 }}>
               iSponsorBlockTV
             </Title>
@@ -63,8 +64,8 @@ export default function SetupPage() {
             <Form.Item
               name="username"
               rules={[
-                { required: true, message: 'Please enter a username' },
-                { min: 3, message: 'Username must be at least 3 characters' },
+                { required: true, message: "Please enter a username" },
+                { min: 3, message: "Username must be at least 3 characters" },
               ]}
             >
               <Input
@@ -77,8 +78,8 @@ export default function SetupPage() {
             <Form.Item
               name="password"
               rules={[
-                { required: true, message: 'Please enter a password' },
-                { min: 8, message: 'Password must be at least 8 characters' },
+                { required: true, message: "Please enter a password" },
+                { min: 8, message: "Password must be at least 8 characters" },
               ]}
             >
               <Input.Password
@@ -91,7 +92,7 @@ export default function SetupPage() {
             <Form.Item
               name="confirmPassword"
               rules={[
-                { required: true, message: 'Please confirm your password' },
+                { required: true, message: "Please confirm your password" },
               ]}
             >
               <Input.Password
@@ -116,5 +117,5 @@ export default function SetupPage() {
         </Space>
       </Card>
     </div>
-  )
+  );
 }

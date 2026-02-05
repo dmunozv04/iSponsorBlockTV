@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from "react";
 import {
   Card,
   Form,
@@ -19,28 +19,35 @@ import {
   Popconfirm,
   Row,
   Col,
-} from 'antd'
+} from "antd";
 import {
   SaveOutlined,
   PlusOutlined,
   DeleteOutlined,
   SearchOutlined,
-} from '@ant-design/icons'
-import { configApi, channelApi } from '../api'
-import { Config, Category, ChannelWhitelist, ChannelSearchResult } from '../types'
+} from "@ant-design/icons";
+import { configApi, channelApi } from "../api";
+import {
+  Config,
+  Category,
+  ChannelWhitelist,
+  ChannelSearchResult,
+} from "../types";
 
-const { Title, Text } = Typography
+const { Title, Text } = Typography;
 
 export default function SettingsPage() {
-  const [config, setConfig] = useState<Config | null>(null)
-  const [categories, setCategories] = useState<Category[]>([])
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [channelModalOpen, setChannelModalOpen] = useState(false)
-  const [channelSearchResults, setChannelSearchResults] = useState<ChannelSearchResult[]>([])
-  const [searching, setSearching] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [form] = Form.useForm()
+  const [config, setConfig] = useState<Config | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [channelModalOpen, setChannelModalOpen] = useState(false);
+  const [channelSearchResults, setChannelSearchResults] = useState<
+    ChannelSearchResult[]
+  >([]);
+  const [searching, setSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [form] = Form.useForm();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -48,9 +55,9 @@ export default function SettingsPage() {
         const [configData, categoriesData] = await Promise.all([
           configApi.get(),
           configApi.getCategories(),
-        ])
-        setConfig(configData)
-        setCategories(categoriesData)
+        ]);
+        setConfig(configData);
+        setCategories(categoriesData);
         form.setFieldsValue({
           skip_categories: configData.skip_categories,
           skip_count_tracking: configData.skip_count_tracking,
@@ -61,98 +68,102 @@ export default function SettingsPage() {
           join_name: configData.join_name,
           apikey: configData.apikey,
           use_proxy: configData.use_proxy,
-        })
+        });
       } catch (error) {
-        message.error('Failed to load settings')
+        message.error("Failed to load settings");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
-    fetchData()
-  }, [form])
+    };
+    fetchData();
+  }, [form]);
 
   const handleSave = async (values: Partial<Config>) => {
-    setSaving(true)
+    setSaving(true);
     try {
       // Include whitelist from config state
       await configApi.update({
         ...values,
         channel_whitelist: config?.channel_whitelist,
-      })
-      message.success('Settings saved')
+      });
+      message.success("Settings saved");
       // Refresh config
-      const newConfig = await configApi.get()
-      setConfig(newConfig)
+      const newConfig = await configApi.get();
+      setConfig(newConfig);
     } catch (error) {
-      message.error('Failed to save settings')
+      message.error("Failed to save settings");
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const handleSearchChannels = async () => {
-    if (!searchQuery.trim()) return
+    if (!searchQuery.trim()) return;
 
-    setSearching(true)
+    setSearching(true);
     try {
-      const results = await channelApi.search(searchQuery)
-      setChannelSearchResults(results)
+      const results = await channelApi.search(searchQuery);
+      setChannelSearchResults(results);
     } catch (error) {
-      message.error('Channel search failed. Make sure you have a YouTube API key configured.')
+      message.error(
+        "Channel search failed. Make sure you have a YouTube API key configured.",
+      );
     } finally {
-      setSearching(false)
+      setSearching(false);
     }
-  }
+  };
 
   const handleAddChannel = async (channel: ChannelSearchResult) => {
-    if (!config) return
+    if (!config) return;
 
     const newWhitelist = [
       ...config.channel_whitelist,
       { id: channel.id, name: channel.name },
-    ]
+    ];
 
     try {
-      await configApi.update({ channel_whitelist: newWhitelist })
-      setConfig({ ...config, channel_whitelist: newWhitelist })
-      message.success(`Added ${channel.name} to whitelist`)
+      await configApi.update({ channel_whitelist: newWhitelist });
+      setConfig({ ...config, channel_whitelist: newWhitelist });
+      message.success(`Added ${channel.name} to whitelist`);
     } catch (error) {
-      message.error('Failed to add channel')
+      message.error("Failed to add channel");
     }
-  }
+  };
 
   const handleRemoveChannel = async (channelId: string) => {
-    if (!config) return
+    if (!config) return;
 
-    const newWhitelist = config.channel_whitelist.filter((c) => c.id !== channelId)
+    const newWhitelist = config.channel_whitelist.filter(
+      (c) => c.id !== channelId,
+    );
 
     try {
-      await configApi.update({ channel_whitelist: newWhitelist })
-      setConfig({ ...config, channel_whitelist: newWhitelist })
-      message.success('Channel removed from whitelist')
+      await configApi.update({ channel_whitelist: newWhitelist });
+      setConfig({ ...config, channel_whitelist: newWhitelist });
+      message.success("Channel removed from whitelist");
     } catch (error) {
-      message.error('Failed to remove channel')
+      message.error("Failed to remove channel");
     }
-  }
+  };
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: 40 }}>
+      <div style={{ textAlign: "center", padding: 40 }}>
         <Spin size="large" />
       </div>
-    )
+    );
   }
 
   const whitelistColumns = [
     {
-      title: 'Channel Name',
-      dataIndex: 'name',
-      key: 'name',
+      title: "Channel Name",
+      dataIndex: "name",
+      key: "name",
     },
     {
-      title: 'Channel ID',
-      dataIndex: 'id',
-      key: 'id',
+      title: "Channel ID",
+      dataIndex: "id",
+      key: "id",
       render: (id: string) => (
         <Text copyable type="secondary" style={{ fontSize: 12 }}>
           {id}
@@ -160,8 +171,8 @@ export default function SettingsPage() {
       ),
     },
     {
-      title: 'Actions',
-      key: 'actions',
+      title: "Actions",
+      key: "actions",
       render: (_: unknown, record: ChannelWhitelist) => (
         <Popconfirm
           title="Remove channel from whitelist?"
@@ -173,7 +184,7 @@ export default function SettingsPage() {
         </Popconfirm>
       ),
     },
-  ]
+  ];
 
   return (
     <div>
@@ -219,7 +230,7 @@ export default function SettingsPage() {
                 name="minimum_skip_length"
                 help="Skip only segments longer than this duration"
               >
-                <InputNumber min={0} max={60} style={{ width: '100%' }} />
+                <InputNumber min={0} max={60} style={{ width: "100%" }} />
               </Form.Item>
 
               <Form.Item
@@ -227,7 +238,8 @@ export default function SettingsPage() {
                 valuePropName="checked"
                 help="Report skipped segments to SponsorBlock (anonymous)"
               >
-                <Switch /> <Text style={{ marginLeft: 8 }}>Report skipped segments</Text>
+                <Switch />{" "}
+                <Text style={{ marginLeft: 8 }}>Report skipped segments</Text>
               </Form.Item>
             </Card>
 
@@ -265,7 +277,8 @@ export default function SettingsPage() {
                 valuePropName="checked"
                 help="Enable YouTube autoplay on devices"
               >
-                <Switch /> <Text style={{ marginLeft: 8 }}>Enable Autoplay</Text>
+                <Switch />{" "}
+                <Text style={{ marginLeft: 8 }}>Enable Autoplay</Text>
               </Form.Item>
 
               <Form.Item
@@ -273,7 +286,8 @@ export default function SettingsPage() {
                 valuePropName="checked"
                 help="Use system proxy for network requests"
               >
-                <Switch /> <Text style={{ marginLeft: 8 }}>Use System Proxy</Text>
+                <Switch />{" "}
+                <Text style={{ marginLeft: 8 }}>Use System Proxy</Text>
               </Form.Item>
             </Card>
 
@@ -296,13 +310,13 @@ export default function SettingsPage() {
             <Button
               icon={<PlusOutlined />}
               onClick={() => setChannelModalOpen(true)}
-              disabled={!form.getFieldValue('apikey')}
+              disabled={!form.getFieldValue("apikey")}
             >
               Add Channel
             </Button>
           }
         >
-          <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+          <Text type="secondary" style={{ display: "block", marginBottom: 16 }}>
             Channels on this list will not have their segments skipped.
           </Text>
           <Table
@@ -312,7 +326,7 @@ export default function SettingsPage() {
             size="small"
             pagination={false}
             locale={{
-              emptyText: 'No channels whitelisted',
+              emptyText: "No channels whitelisted",
             }}
           />
         </Card>
@@ -335,14 +349,14 @@ export default function SettingsPage() {
         title="Add Channel to Whitelist"
         open={channelModalOpen}
         onCancel={() => {
-          setChannelModalOpen(false)
-          setChannelSearchResults([])
-          setSearchQuery('')
+          setChannelModalOpen(false);
+          setChannelSearchResults([]);
+          setSearchQuery("");
         }}
         footer={null}
         width={600}
       >
-        <Space.Compact style={{ width: '100%', marginBottom: 16 }}>
+        <Space.Compact style={{ width: "100%", marginBottom: 16 }}>
           <Input
             placeholder="Search for a channel..."
             value={searchQuery}
@@ -360,15 +374,17 @@ export default function SettingsPage() {
         </Space.Compact>
 
         {searching ? (
-          <div style={{ textAlign: 'center', padding: 40 }}>
+          <div style={{ textAlign: "center", padding: 40 }}>
             <Spin />
           </div>
         ) : (
           <List
             dataSource={channelSearchResults}
-            locale={{ emptyText: 'Search for channels to add to whitelist' }}
+            locale={{ emptyText: "Search for channels to add to whitelist" }}
             renderItem={(channel) => {
-              const alreadyAdded = config?.channel_whitelist.some((c) => c.id === channel.id)
+              const alreadyAdded = config?.channel_whitelist.some(
+                (c) => c.id === channel.id,
+              );
               return (
                 <List.Item
                   actions={[
@@ -390,11 +406,11 @@ export default function SettingsPage() {
                     description={`${channel.subscribers} subscribers`}
                   />
                 </List.Item>
-              )
+              );
             }}
           />
         )}
       </Modal>
     </div>
-  )
+  );
 }
