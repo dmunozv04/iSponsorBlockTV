@@ -104,7 +104,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await authApi.setup(user, password);
       // After setup, log in
-      return await login(user, password);
+      const success = await login(user, password);
+      if (success) {
+        setNeedsSetup(false);
+      }
+      return success;
     } catch (error) {
       console.error("Setup failed:", error);
       return false;

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Card, Form, Input, Button, Typography, message, Space } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
 const { Title, Text } = Typography;
@@ -8,6 +9,7 @@ const { Title, Text } = Typography;
 export default function SetupPage() {
   const [loading, setLoading] = useState(false);
   const { setupAuth } = useAuth();
+  const navigate = useNavigate();
 
   const onFinish = async (values: {
     username: string;
@@ -24,6 +26,7 @@ export default function SetupPage() {
       const success = await setupAuth(values.username, values.password);
       if (success) {
         message.success("Setup complete!");
+        navigate("/");
       } else {
         message.error("Setup failed. Please try again.");
       }
