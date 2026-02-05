@@ -1,11 +1,14 @@
 services:
-  iSponsorBlockTV:
-    image: ghcr.io/dmunozv04/isponsorblocktv
-    container_name: iSponsorBlockTV
+  isponsorblocktv:
+    image: isponsorblocktv-web
+    build: .
+    container_name: isponsorblocktv-web
     restart: unless-stopped
     ports:
       - "42069:42069"
     environment:
       - ISPONSORBLOCKTV_PORT=42069
     volumes:
-      - /PATH_TO_YOUR_DATA_DIR:/app/data
+      - ./data:/app/data
+    # This command ensures we start the Web Interface, not the old CLI tool
+    command: python -m iSponsorBlockTV.web
