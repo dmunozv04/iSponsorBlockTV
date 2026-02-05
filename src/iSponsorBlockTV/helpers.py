@@ -45,6 +45,8 @@ class Config:
         self.auto_play = True
         self.join_name = "iSponsorBlockTV"
         self.use_proxy = False
+        self.web_username = ""
+        self.web_password_hash = ""
         self.__load()
 
     def validate(self):

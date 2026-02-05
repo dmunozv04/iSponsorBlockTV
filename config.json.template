@@ -21,5 +21,7 @@
         "name": ""
         }
     ],
-    "use_proxy": false
+    "use_proxy": false,
+    "web_username": "",
+    "web_password_hash": ""
 }

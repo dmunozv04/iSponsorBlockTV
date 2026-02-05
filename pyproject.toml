@@ -24,10 +24,15 @@ files = ["requirements.txt"]
 
 [project.scripts]
 "iSponsorBlockTV" = "iSponsorBlockTV.__main__:main"
+"isponsorblocktv-web" = "iSponsorBlockTV.web.__main__:main"
 
 [build-system]
 requires = ["hatchling", "hatch-requirements-txt"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/iSponsorBlockTV"]
+artifacts = ["src/iSponsorBlockTV/web/static/**"]
 
 [tool.ruff]
 line-length = 100
