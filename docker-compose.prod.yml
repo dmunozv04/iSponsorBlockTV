@@ -1,16 +1,13 @@
 services:
   iSponsorBlockTV:
-    build: .
-    image: isponsorblocktv:local
+    image: ghcr.io/chrisstoll1/isponsorblocktv:latest
     container_name: iSponsorBlockTV
     restart: unless-stopped
     volumes:
       - ./data:/app/data
 
   dashboard:
-    build:
-      context: .
-      dockerfile: dashboard/Dockerfile
+    image: ghcr.io/chrisstoll1/isponsorblocktv-dashboard:latest
     container_name: iSponsorBlockTV-dashboard
     restart: unless-stopped
     ports:
@@ -18,3 +15,5 @@ services:
     volumes:
       - ./data:/app/data
       - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - iSponsorBlockTV
