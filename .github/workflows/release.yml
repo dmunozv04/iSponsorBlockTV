@@ -46,7 +46,7 @@ jobs:
       run: python -m hatch build
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v7
       with:
         name: sdist-and-wheel
         path: dist/*
@@ -141,7 +141,7 @@ jobs:
         hatch --version
 
     - name: Get artifact
-      uses: actions/download-artifact@v6
+      uses: actions/download-artifact@v8
       with:
         name: sdist-and-wheel
         path: ${{ github.workspace }}/dist
@@ -159,13 +159,13 @@ jobs:
         mv dist/binary/iSponsorBlockTV* dist/binary/iSponsorBlockTV-${{ matrix.job.release_suffix }}
 
     - name: Attest build provenance
-      uses: actions/attest-build-provenance@v3
+      uses: actions/attest-build-provenance@v4
       with:
         subject-path: dist/binary/*
       continue-on-error: true # Continue if attestation fails (it will fail on forks)
 
     - name: Upload built binary package
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v7
       with:
         name: binaries-${{ matrix.job.release_suffix }}
         path: dist/binary/*
@@ -181,7 +181,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Get artifact
-      uses: actions/download-artifact@v6
+      uses: actions/download-artifact@v8
       with:
         name: sdist-and-wheel
         path: dist
@@ -200,7 +200,7 @@ jobs:
     if: github.event_name == 'release' && github.event.action == 'published'
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/download-artifact@v6
+    - uses: actions/download-artifact@v8
       name: Get artifact
       with:
         path: dist
