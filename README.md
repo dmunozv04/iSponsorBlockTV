@@ -23,18 +23,18 @@ Open an issue/pull request if you have tested a device that isn't listed here.
 
 | Device             | Status |
 |:-------------------|:------:|
-| Apple TV           |   ✅*   |
-| Samsung TV (Tizen) |   ✅    |
-| LG TV (WebOS)      |   ✅    |
-| Android TV         |   ✅    |
-| Chromecast         |   ✅    |
-| Google TV          |   ✅    |
-| Roku               |   ✅    |
-| Fire TV            |   ✅    |
-| CCwGTV             |   ✅    |
-| Nintendo Switch    |   ✅    |
-| Xbox One/Series    |   ✅    |
-| Playstation 4/5    |   ✅    |
+| Apple TV           |  ✅*   |
+| Samsung TV (Tizen) |  ✅    |
+| LG TV (WebOS)      |  ✅    |
+| Android TV         |  ✅    |
+| Chromecast         |  ✅    |
+| Google TV          |  ✅    |
+| Roku               |  ✅    |
+| Fire TV            |  ✅    |
+| CCwGTV             |  ✅    |
+| Nintendo Switch    |  ✅    |
+| Xbox One/Series    |  ✅    |
+| Playstation 4/5    |  ✅    |
 
 *Ad muting won't work when using AirPlay to send the audio to another speaker.
 
