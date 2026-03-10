@@ -6,6 +6,7 @@ import os
 import sys
 import aiohttp
 import traceback
+from typing import Optional
 
 sys.path.append("/app/src")
 try:
@@ -31,19 +32,55 @@ app = FastAPI()
 
 CONFIG_PATH = os.environ.get("CONFIG_PATH", "/app/data/config.json")
 
+DEFAULT_CONFIG = {
+    "devices": [],
+    "apikey": "",
+    "skip_categories": ["sponsor"],
+    "channel_whitelist": [],
+    "skip_count_tracking": True,
+    "mute_ads": False,
+    "skip_ads": False,
+    "minimum_skip_length": 1,
+    "auto_play": True,
+    "join_name": "iSponsorBlockTV",
+    "use_proxy": False,
+}
+
+
+def normalize_config(config: Optional[dict]):
+    config = config or {}
+    normalized = {**DEFAULT_CONFIG, **config}
+
+    for key in ["devices", "skip_categories", "channel_whitelist"]:
+        if normalized.get(key) is None:
+            normalized[key] = DEFAULT_CONFIG[key]
+
+    for key in ["apikey", "join_name"]:
+        if normalized.get(key) is None:
+            normalized[key] = DEFAULT_CONFIG[key]
+
+    for key in ["skip_count_tracking", "mute_ads", "skip_ads", "auto_play", "use_proxy"]:
+        if key not in config or config.get(key) is None:
+            normalized[key] = DEFAULT_CONFIG[key]
+
+    if normalized.get("minimum_skip_length") is None:
+        normalized["minimum_skip_length"] = DEFAULT_CONFIG["minimum_skip_length"]
+
+    return normalized
+
 
 @app.get("/api/config")
 def get_config():
     if not os.path.exists(CONFIG_PATH):
         if os.path.exists("/app/config.json.template"):
             with open("/app/config.json.template", "r") as f:
-                return json.load(f)
-        return {}
+                return normalize_config(json.load(f))
+        return normalize_config({})
 
     try:
         with open(CONFIG_PATH, "r") as f:
             config = json.load(f)
-        return config
+        return normalize_config(config)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -51,8 +88,9 @@ def get_config():
 @app.post("/api/config")
 def update_config(config: dict):
     try:
+        normalized_config = normalize_config(config)
         with open(CONFIG_PATH, "w") as f:
-            json.dump(config, f, indent=4)
+            json.dump(normalized_config, f, indent=4)
         return {"status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

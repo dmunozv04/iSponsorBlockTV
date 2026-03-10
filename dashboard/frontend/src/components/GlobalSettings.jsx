@@ -7,7 +7,7 @@ export function GlobalSettings({ config, updateField }) {
     return (
         <div className="card">
             <div className="card-header">
-                <h3>Global Settings</h3>
+                <h3>Configuration</h3>
             </div>
 
             <div className="form-group" style={{ marginBottom: '1.5rem' }}>

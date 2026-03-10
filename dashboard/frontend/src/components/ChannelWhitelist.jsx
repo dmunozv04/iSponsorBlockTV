@@ -2,7 +2,7 @@
 import React, { useState } from 'react'
 import toast from 'react-hot-toast'
 
-function ChannelAdder({ onAdd, config }) {
+function ChannelAdder({ onAdd }) {
     const [searchTerm, setSearchTerm] = useState('')
     const [searchResults, setSearchResults] = useState([])
     const [loading, setLoading] = useState(false)
@@ -26,7 +26,7 @@ function ChannelAdder({ onAdd, config }) {
                 try {
                     const errorData = await res.json()
                     if (errorData.detail) errorMessage = errorData.detail
-                } catch (e) {
+                } catch {
                     // Ignore JSON parse error, stick to default message
                 }
                 toast.error(errorMessage)
@@ -205,7 +205,7 @@ export function ChannelWhitelist({ config, originalConfig, updateField }) {
 
                     <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
                         <h4 style={{ marginBottom: '0.5rem', fontSize: '0.9rem' }}>Add Channel</h4>
-                        <ChannelAdder config={config} onAdd={(newChannel) => {
+                        <ChannelAdder onAdd={(newChannel) => {
                             const updatedWhitelist = [...(config.channel_whitelist || []), newChannel]
                             updateField('channel_whitelist', updatedWhitelist)
                         }} />

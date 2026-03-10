@@ -124,6 +124,100 @@ select:focus {
   color: var(--text-secondary);
 }
 
+.button-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.accordion-toggle {
+  width: 100%;
+  margin-bottom: 0.5rem;
+  padding: 0.85rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.accordion-toggle:hover {
+  border-color: var(--accent-primary);
+}
+
+.accordion-icon {
+  transition: transform 0.2s ease;
+}
+
+.accordion-icon.expanded {
+  transform: rotate(180deg);
+}
+
+.btn-secondary {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-weight: 500;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  border-color: var(--accent-primary);
+  color: white;
+}
+
+.btn-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  opacity: 0.45;
+  transition: opacity 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-icon:hover:not(:disabled) {
+  opacity: 1;
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+}
+
+.editor-shell {
+  position: relative;
+}
+
+.editor-copy-button {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 1;
+  backdrop-filter: blur(8px);
+}
+
+.config-json-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.code-textarea {
+  width: 100%;
+  min-height: 320px;
+  resize: vertical;
+  padding-top: 0.75rem;
+  font-family: 'Consolas', 'SFMono-Regular', monospace;
+  line-height: 1.5;
+}
+
 .switch {
   position: relative;
   display: inline-block;
@@ -218,6 +312,10 @@ input:checked+.slider:before {
 @media (max-width: 768px) {
   .grid-cols-2 {
     grid-template-columns: 1fr;
+  }
+
+  .config-json-header {
+    flex-direction: column;
   }
 }
 

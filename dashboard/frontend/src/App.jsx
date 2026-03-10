@@ -3,6 +3,7 @@ import { Header } from './components/Header'
 import { GlobalSettings } from './components/GlobalSettings'
 import { DeviceList } from './components/DeviceList'
 import { ChannelWhitelist } from './components/ChannelWhitelist'
+import { ConfigJson } from './components/ConfigJson'
 import toast, { Toaster } from 'react-hot-toast'
 
 function App() {
@@ -35,7 +36,6 @@ function App() {
     setSaving(true)
     try {
       const configToSave = JSON.parse(JSON.stringify(config))
-      // Sanitize numeric fields that might be empty strings
       if (configToSave.minimum_skip_length === '') configToSave.minimum_skip_length = 0
       if (configToSave.devices) {
         configToSave.devices = configToSave.devices.map(d => ({
@@ -70,6 +70,10 @@ function App() {
     setConfig(prev => ({ ...prev, [key]: value }))
   }
 
+  const replaceConfig = (nextConfig) => {
+    setConfig(nextConfig)
+  }
+
   const hasChanges = JSON.stringify(config) !== JSON.stringify(originalConfig)
 
   if (loading) return <div className="container" style={{ alignItems: 'center', marginTop: '4rem' }}>Loading configuration...</div>
@@ -85,6 +89,7 @@ function App() {
         <div className="container" style={{ gap: '1rem' }}>
           <div className="container" style={{ gap: '1rem' }}>
             <GlobalSettings config={config} updateField={updateField} />
+            <ConfigJson config={config} replaceConfig={replaceConfig} />
           </div>
         </div>
 
