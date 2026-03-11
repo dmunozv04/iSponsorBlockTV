@@ -76,7 +76,9 @@ class Config:
                     if i not in config_file_blacklist_keys:
                         setattr(self, i, config[i])
         except FileNotFoundError:
-            print("Could not load config file")
+            print(
+                f"No config file found, using defaults. Config will be saved to {self.config_file}"
+            )
             # Create data directory if it doesn't exist (if we're not running in docker)
             if not os.path.exists(self.data_dir):
                 if not os.getenv("iSPBTV_docker"):
@@ -170,7 +172,24 @@ def cli(ctx, data, debug, http_tracing, setup, setup_cli):
 def setup_command(ctx):
     """Setup the program graphically"""
     config = Config(ctx.obj["data_dir"])
+    config_path = config.config_file
+    before_mtime_ns = None
+    try:
+        before_mtime_ns = os.stat(config_path).st_mtime_ns
+    except FileNotFoundError:
+        pass
     setup_wizard.main(config)
+    after_mtime_ns = None
+    try:
+        after_mtime_ns = os.stat(config_path).st_mtime_ns
+    except FileNotFoundError:
+        pass
+    if after_mtime_ns is None:
+        print(f"No config file was saved to {config_path}")
+    elif before_mtime_ns is None or after_mtime_ns != before_mtime_ns:
+        print(f"Config saved to {config_path}")
+    else:
+        print(f"Config unchanged at {config_path}")
     sys.exit()
 
 
