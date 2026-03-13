@@ -1,13 +1,13 @@
 services:
   iSponsorBlockTV:
-    image: ghcr.io/chrisstoll1/isponsorblocktv:latest
+    image: ghcr.io/dmunozv04/isponsorblocktv:latest
     container_name: iSponsorBlockTV
     restart: unless-stopped
     volumes:
       - ./data:/app/data
 
   dashboard:
-    image: ghcr.io/chrisstoll1/isponsorblocktv-dashboard:latest
+    image: ghcr.io/dmunozv04/isponsorblocktv-dashboard:latest
     container_name: iSponsorBlockTV-dashboard
     restart: unless-stopped
     ports:
