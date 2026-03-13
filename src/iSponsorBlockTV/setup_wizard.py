@@ -300,6 +300,10 @@ class AddDevice(ModalWithClickExit):
         self.devices_discovered_dial = []
         asyncio.create_task(self.task_discover_devices())
 
+    async def on_unmount(self) -> None:
+        if not self.web_session.closed:
+            await self.web_session.close()
+
     async def task_discover_devices(self):
         devices_found = await self.api_helper.discover_youtube_devices_dial()
         try:
@@ -387,8 +391,12 @@ class AddChannel(ModalWithClickExit):
     def __init__(self, config, **kwargs) -> None:
         super().__init__(**kwargs)
         self.config = config
-        web_session = aiohttp.ClientSession(trust_env=config.use_proxy)
-        self.api_helper = api_helpers.ApiHelper(config, web_session)
+        self.web_session = aiohttp.ClientSession(trust_env=config.use_proxy)
+        self.api_helper = api_helpers.ApiHelper(config, self.web_session)
+
+    async def on_unmount(self) -> None:
+        if not self.web_session.closed:
+            await self.web_session.close()
 
     def compose(self) -> ComposeResult:
         with Container(id="add-channel-container"):
