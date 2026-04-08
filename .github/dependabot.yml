@@ -21,11 +21,3 @@ updates:
       all:
         patterns:
         - "*"
-  - package-ecosystem: "pre-commit"
-    directory: "/"
-    schedule:
-      interval: "monthly"
-    groups:
-      all:
-        patterns:
-        - "*"
