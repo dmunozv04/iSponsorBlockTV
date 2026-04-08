@@ -120,7 +120,7 @@ def main(config, debug: bool) -> None:
     config.apikey = apikey
 
     skip_categories = config.skip_categories
-    if skip_categories:
+    if skip_categories is not None:
         choice = get_yn_input(CHANGE_SKIP_CATEGORIES_PROMPT)
         if choice == "y":
             categories = input(ENTER_SKIP_CATEGORIES_PROMPT)

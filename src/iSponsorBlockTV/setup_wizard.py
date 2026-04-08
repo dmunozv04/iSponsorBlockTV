@@ -691,9 +691,10 @@ class SkipCategoriesManager(Vertical):
         yield Label("Skip Categories", classes="title")
         yield Label("Select the categories you want to skip", classes="subtitle")
         skip_categories_parsed = []
+        configured = self.config.skip_categories or []
         for i in skip_categories:
             name, value = i
-            if value in self.config.skip_categories:
+            if value in configured:
                 skip_categories_parsed.append((name, value, True))
             else:
                 skip_categories_parsed.append((name, value, False))
