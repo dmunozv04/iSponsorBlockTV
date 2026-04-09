@@ -29,3 +29,5 @@ repos:
     hooks:
       - id: markdownlint
         args: ["--fix"]
+ci:
+  autoupdate_schedule: monthly
