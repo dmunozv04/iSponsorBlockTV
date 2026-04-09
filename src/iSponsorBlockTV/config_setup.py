@@ -57,7 +57,7 @@ async def pair_device(config, web_session: aiohttp.ClientSession, api_helper):
         print("Pairing...")
         paired_device = await api_helper.pair_with_code(pairing_code)
         if not paired_device:
-            print("Failed to pair device")
+            print("Failed to pair device. Try restarting the YouTube app")
             return
         device = {
             "screen_id": paired_device["screen_id"],
@@ -65,10 +65,6 @@ async def pair_device(config, web_session: aiohttp.ClientSession, api_helper):
         }
         print(f"Paired device: {device['name']}")
         return device
-    except aiohttp.client_exceptions.ContentTypeError:
-        print(
-            "Failed to pair device: try force closing the YouTube app on your device and trying again."
-        )
     except Exception as e:
         print(f"Failed to pair device: {e}")
         return
