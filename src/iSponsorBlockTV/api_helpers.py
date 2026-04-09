@@ -234,8 +234,11 @@ class ApiHelper:
                 params = {"UUID": i}
                 await self.web_session.post(url, params=params)
 
-    async def discover_youtube_devices_dial(self):
-        """Discovers YouTube devices using DIAL"""
-        dial_screens = await dial_client.discover(self.web_session)
-        # print(dial_screens)
-        return dial_screens
+    async def discover_youtube_devices_dial(self, active=True):
+        """Discovers YouTube devices using DIAL.
+
+        Yields devices as they are discovered instead of waiting for the full
+        discovery cycle to finish.
+        """
+        async for device in dial_client.discover(self.web_session, self, active=active):
+            yield device
