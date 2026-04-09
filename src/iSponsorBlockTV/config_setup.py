@@ -66,7 +66,9 @@ async def pair_device(config, web_session: aiohttp.ClientSession, api_helper):
         print(f"Paired device: {device['name']}")
         return device
     except aiohttp.client_exceptions.ContentTypeError:
-        print("Failed to pair device: try force closing the YouTube app on your device and trying again.")
+        print(
+            "Failed to pair device: try force closing the YouTube app on your device and trying again."
+        )
     except Exception as e:
         print(f"Failed to pair device: {e}")
         return
