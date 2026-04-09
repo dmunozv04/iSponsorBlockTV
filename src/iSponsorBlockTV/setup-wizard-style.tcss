@@ -184,6 +184,27 @@ Element > .element-remove {
 #add-device-dial-container{
     height: auto;
 }
+#dial-search-row {
+    height: 2;
+    width: 100%;
+    align: left middle;
+    padding: 1 1 0 1;
+    margin: 0 0 1 0;
+}
+
+#dial-searching-indicator {
+    width: 1fr;
+}
+
+#dial-retry-search-button {
+    padding: 0;
+    align: left middle;
+    text-align: center;
+    width: 14;
+    min-width: 8;
+    margin: 0 1 0 0;
+    border: none;
+}
 #pairing-code-input.-valid {
     border: tall $success 60%;
 }

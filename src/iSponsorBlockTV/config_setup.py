@@ -2,7 +2,7 @@ import asyncio
 
 import aiohttp
 
-from . import api_helpers, ytlounge
+from . import api_helpers
 
 # Constants for user input prompts
 USE_PROXY_PROMPT = "Do you want to use system-wide proxy? (y/N)"
@@ -50,22 +50,18 @@ async def create_web_session(use_proxy):
     return aiohttp.ClientSession(trust_env=use_proxy)
 
 
-async def pair_device(web_session: aiohttp.ClientSession):
+async def pair_device(config, web_session: aiohttp.ClientSession, api_helper):
     try:
-        lounge_controller = ytlounge.YtLoungeApi()
-        await lounge_controller.change_web_session(web_session)
+        api_helper = api_helpers.ApiHelper(config, web_session)
         pairing_code = input(PAIRING_CODE_PROMPT)
-        pairing_code = int(
-            pairing_code.replace("-", "").replace(" ", "")
-        )  # remove dashes and spaces
         print("Pairing...")
-        paired = await lounge_controller.pair(pairing_code)
-        if not paired:
-            print("Failed to pair device")
+        paired_device = await api_helper.pair_with_code(pairing_code)
+        if not paired_device:
+            print("Failed to pair device. Try restarting the YouTube app")
             return
         device = {
-            "screen_id": lounge_controller.auth.screen_id,
-            "name": lounge_controller.screen_name,
+            "screen_id": paired_device["screen_id"],
+            "name": paired_device["name"],
         }
         print(f"Paired device: {device['name']}")
         return device
@@ -96,9 +92,10 @@ def main(config, debug: bool) -> None:
             del config["atvs"]
 
     devices = config.devices
+    api_helper = api_helpers.ApiHelper(config, web_session)
     choice = get_yn_input(ADD_MORE_DEVICES_PROMPT.format(num_devices=len(devices)))
     while choice == "y":
-        device = loop.run_until_complete(pair_device(web_session))
+        device = loop.run_until_complete(pair_device(config, web_session, api_helper))
         if device:
             devices.append(device)
         choice = get_yn_input(ADD_MORE_DEVICES_PROMPT.format(num_devices=len(devices)))

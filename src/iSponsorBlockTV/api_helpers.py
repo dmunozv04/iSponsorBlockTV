@@ -3,6 +3,7 @@ from hashlib import sha256
 
 from aiohttp import ClientSession
 from cache import AsyncLRU
+from pyytlounge.wrapper import api_base
 
 from . import constants, dial_client
 from .conditional_ttl_cache import AsyncConditionalTTL
@@ -28,6 +29,37 @@ class ApiHelper:
         self.web_session = web_session
         self.num_devices = len(config.devices)
         self.minimum_skip_length = config.minimum_skip_length
+
+    @staticmethod
+    def _normalize_pairing_code(pairing_code):
+        return str(pairing_code).replace("-", "").replace(" ", "")
+
+    async def pair_with_code(self, pairing_code):
+        normalized_code = self._normalize_pairing_code(pairing_code)
+        pair_url = f"{api_base}/pairing/get_screen"
+        pair_data = {"pairing_code": normalized_code}
+
+        async with self.web_session.post(url=pair_url, data=pair_data) as response:
+            if response.status != 200:
+                return None
+            try:
+                pair_response = await response.json()
+            except BaseException:
+                return None
+
+        screen = pair_response.get("screen")
+        if not screen:
+            return None
+
+        screen_id = screen.get("screenId")
+        if not screen_id:
+            return None
+
+        return {
+            "screen_id": screen_id,
+            "name": screen.get("name"),
+            "lounge_token": screen.get("loungeToken"),
+        }
 
     # Not used anymore, maybe it can stay here a little longer
     @AsyncLRU(maxsize=10)
@@ -202,8 +234,11 @@ class ApiHelper:
                 params = {"UUID": i}
                 await self.web_session.post(url, params=params)
 
-    async def discover_youtube_devices_dial(self):
-        """Discovers YouTube devices using DIAL"""
-        dial_screens = await dial_client.discover(self.web_session)
-        # print(dial_screens)
-        return dial_screens
+    async def discover_youtube_devices_dial(self, active=True):
+        """Discovers YouTube devices using DIAL.
+
+        Yields devices as they are discovered instead of waiting for the full
+        discovery cycle to finish.
+        """
+        async for device in dial_client.discover(self.web_session, self, active=active):
+            yield device
