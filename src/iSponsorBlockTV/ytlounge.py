@@ -134,10 +134,9 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 create_task(self.skip_ad())
                 create_task(self.mute(False, override=True))
             elif data["adState"] == "1082":  # Livestream side-by-side-ad finished
-                #TODO: Remove this when confirmed working
+                # TODO: Remove this when confirmed working
                 self.logger.debug(
-                    "Suspected side-by-side ad end detected"
-                    "on livestream, unmuting. (adState=1082)"
+                    "Suspected side-by-side ad end detectedon livestream, unmuting. (adState=1082)"
                 )
                 self.logger.info("Ad has ended, unmuting")
                 create_task(self.mute(False, override=True))
