@@ -589,12 +589,10 @@ class EditDevice(ModalWithClickExit):
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "device-id-view":
-            if "Show" in event.button.label:
-                event.button.label = "Hide id"
-                self.query_one("#device-id-input").password = False
-            else:
-                event.button.label = "Show id"
-                self.query_one("#device-id-input").password = True
+            device_id_input: Input = self.query_one("#device-id-input")
+            is_currently_hidden = device_id_input.password
+            device_id_input.password = not is_currently_hidden
+            event.button.label = "Hide id" if is_currently_hidden else "Show id"
 
 
 class DevicesManager(Vertical):
