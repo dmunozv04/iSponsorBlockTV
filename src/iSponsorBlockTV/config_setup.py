@@ -99,7 +99,7 @@ def main(config, debug: bool) -> None:
     api_helper = api_helpers.ApiHelper(config, web_session)
     choice = get_yn_input(ADD_MORE_DEVICES_PROMPT.format(num_devices=len(devices)))
     while choice == "y":
-        device = loop.run_until_complete(pair_device(config, web_session))
+        device = loop.run_until_complete(pair_device(config, web_session, api_helper))
         if device:
             devices.append(device)
         choice = get_yn_input(ADD_MORE_DEVICES_PROMPT.format(num_devices=len(devices)))
