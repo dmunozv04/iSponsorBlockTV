@@ -36,7 +36,7 @@ class Config:
 
         self.devices = []
         self.apikey = ""
-        self.skip_categories = []  # These are the categories on the config file
+        self.skip_categories = None  # None = absent from config; [] = explicitly empty
         self.channel_whitelist = []
         self.skip_count_tracking = True
         self.mute_ads = False
@@ -68,7 +68,7 @@ class Config:
         self.devices = [Device(i) for i in self.devices]
         if not self.apikey and self.channel_whitelist:
             raise ValueError("No youtube API key found and channel whitelist is not empty")
-        if not self.skip_categories:
+        if self.skip_categories is None:
             self.skip_categories = ["sponsor"]
             print("No categories found, using default: sponsor")
 
