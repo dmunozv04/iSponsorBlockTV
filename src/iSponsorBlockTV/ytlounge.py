@@ -100,6 +100,28 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         self.subscribe_task_watchdog = asyncio.create_task(self._watchdog())
         return self.subscribe_task
 
+    # ---------------------------------------------------------------
+    # Safe task creation — logs exceptions from fire-and-forget tasks
+    # instead of silently swallowing them.
+    # ---------------------------------------------------------------
+
+    def _create_task(self, coro):
+        """Wrapper around create_task that logs exceptions."""
+        task = create_task(coro)
+        task.add_done_callback(self._on_task_done)
+        return task
+
+    def _on_task_done(self, task: asyncio.Task) -> None:
+        if task.cancelled():
+            return
+        exc = task.exception()
+        if exc is not None:
+            self.logger.warning("Background task failed: %s: %s", type(exc).__name__, exc)
+
+    # ---------------------------------------------------------------
+    # Event processing — hardened against incomplete event data
+    # ---------------------------------------------------------------
+
     # Process a lounge subscription event
     # skipcq: PY-R1000
     def _process_event(self, event_type: str, args: List[Any]):
@@ -107,68 +129,86 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         # Update last event time for the watchdog
         self.last_event_time = asyncio.get_event_loop().time()
 
+        try:
+            self._handle_event(event_type, args)
+        except Exception as exc:
+            # A single malformed event must not kill the entire handler.
+            # Log and move on so subsequent events (ad skip, unmute, etc.)
+            # continue to work.
+            self.logger.warning(
+                "Event '%s' dropped (incomplete data): %s: %s",
+                event_type,
+                type(exc).__name__,
+                exc,
+            )
+
+        super()._process_event(event_type, args)
+
+    def _handle_event(self, event_type: str, args: List[Any]):
+        """Route a single lounge event. Raises on missing keys so the
+        caller (_process_event) can log and continue."""
+
         # A bunch of events useful to detect ads playing,
         # and the next video before it starts playing
         # (that way we can get the segments)
         if event_type == "onStateChange":
             data = args[0]
-            # print(data)
             # Unmute when the video starts playing
-            if self.mute_ads and data["state"] == "1":
-                create_task(self.mute(False, override=True))
+            if self.mute_ads and data.get("state") == "1":
+                self._create_task(self.mute(False, override=True))
         elif event_type == "nowPlaying":
             data = args[0]
             # Unmute when the video starts playing
             if self.mute_ads and data.get("state", "0") == "1":
                 self.logger.info("Ad has ended, unmuting")
-                create_task(self.mute(False, override=True))
+                self._create_task(self.mute(False, override=True))
         elif event_type == "onAdStateChange":
             data = args[0]
-            if data["adState"] == "0" and data["currentTime"] != "0":  # Ad is not playing
+            ad_state = data.get("adState", "")
+            current_time = data.get("currentTime", "0")
+            is_skip = data.get("isSkipEnabled", "false")
+            if ad_state == "0" and current_time != "0":  # Ad is not playing
                 self.logger.info("Ad has ended, unmuting")
-                create_task(self.mute(False, override=True))
-            elif (
-                self.skip_ads and data["isSkipEnabled"] == "true"
-            ):  # YouTube uses strings for booleans
+                self._create_task(self.mute(False, override=True))
+            elif self.skip_ads and is_skip == "true":
                 self.logger.info("Ad can be skipped, skipping")
-                create_task(self.skip_ad())
-                create_task(self.mute(False, override=True))
+                self._create_task(self.skip_ad())
+                self._create_task(self.mute(False, override=True))
             elif self.mute_ads:  # Seen multiple other adStates, assuming they are all ads
                 self.logger.info("Ad has started, muting")
-                create_task(self.mute(True, override=True))
+                self._create_task(self.mute(True, override=True))
         # Manages volume, useful since YouTube wants to know the volume
         # when unmuting (even if they already have it)
         elif event_type == "onVolumeChanged":
             self.volume_state = args[0]
         # Gets segments for the next video before it starts playing
         elif event_type == "autoplayUpNext":
-            if len(args) > 0 and (vid_id := args[0]["videoId"]):  # if video id is not empty
+            if len(args) > 0 and (vid_id := args[0].get("videoId")):
                 self.logger.info(f"Getting segments for next video: {vid_id}")
-                create_task(self.api_helper.get_segments(vid_id))
+                self._create_task(self.api_helper.get_segments(vid_id))
 
-        # #Used to know if an ad is skippable or not
+        # Used to know if an ad is skippable or not
         elif event_type == "adPlaying":
             data = args[0]
             # Gets segments for the next video (after the ad) before it starts playing
-            if vid_id := data["contentVideoId"]:
+            if vid_id := data.get("contentVideoId"):
                 self.logger.info(f"Getting segments for next video: {vid_id}")
-                create_task(self.api_helper.get_segments(vid_id))
+                self._create_task(self.api_helper.get_segments(vid_id))
 
-            if (
-                self.skip_ads and data["isSkipEnabled"] == "true"
-            ):  # YouTube uses strings for booleans
+            is_skip = data.get("isSkipEnabled", "false")
+            if self.skip_ads and is_skip == "true":
                 self.logger.info("Ad can be skipped, skipping")
-                create_task(self.skip_ad())
-                create_task(self.mute(False, override=True))
+                self._create_task(self.skip_ad())
+                self._create_task(self.mute(False, override=True))
             elif self.mute_ads:  # Seen multiple other adStates, assuming they are all ads
                 self.logger.info("Ad has started, muting")
-                create_task(self.mute(True, override=True))
+                self._create_task(self.mute(True, override=True))
 
         elif event_type == "loungeStatus":
             data = args[0]
-            devices = json.loads(data["devices"])
+            devices = json.loads(data.get("devices", "[]"))
             for device in devices:
-                if device["type"] == "LOUNGE_SCREEN":
+                if device.get("type") == "LOUNGE_SCREEN":
                     device_info = json.loads(device.get("deviceInfo", "{}"))
                     if device_info.get("clientName", "") in youtube_client_blacklist:
                         self._sid = None
@@ -179,21 +219,19 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 data = args[0]
                 video_id_saved = data.get("videoId", None)
                 self.shorts_disconnected = False
-                create_task(self.play_video(video_id_saved))
+                self._create_task(self.play_video(video_id_saved))
         elif event_type == "loungeScreenDisconnected":
             if args:  # Sometimes it's empty
                 data = args[0]
-                if data["reason"] == "disconnectedByUserScreenInitiated":  # Short playing?
+                if data.get("reason") == "disconnectedByUserScreenInitiated":
                     self.shorts_disconnected = True
         elif event_type == "onAutoplayModeChanged":
-            create_task(self.set_auto_play_mode(self.auto_play))
+            self._create_task(self.set_auto_play_mode(self.auto_play))
 
         elif event_type == "onPlaybackSpeedChanged":
             data = args[0]
             self.playback_speed = float(data.get("playbackSpeed", "1"))
-            create_task(self.get_now_playing())
-
-        super()._process_event(event_type, args)
+            self._create_task(self.get_now_playing())
 
     # Set the volume to a specific value (0-100)
     async def set_volume(self, volume: int) -> None:
