@@ -1,12 +1,17 @@
 import html
 from hashlib import sha256
+from asyncio import FIRST_COMPLETED, Task, create_task, wait
+from typing import AsyncIterator, Collection, TypeVar
 
 from aiohttp import ClientSession
 from cache import AsyncLRU
 from pyytlounge.wrapper import api_base
 
-from . import constants, dial_client
+from . import chromecast_client, constants, dial_client
 from .conditional_ttl_cache import AsyncConditionalTTL
+
+
+_T = TypeVar("_T")
 
 
 def list_to_tuple(function):
@@ -17,6 +22,33 @@ def list_to_tuple(function):
         return result
 
     return wrapper
+
+
+async def _await_next(iterator: AsyncIterator[_T]) -> _T:
+    return await iterator.__anext__()
+
+
+def _as_task(iterator: AsyncIterator[_T]) -> Task[_T]:
+    return create_task(_await_next(iterator))
+
+
+async def merge_iterators(iterators: Collection[AsyncIterator[_T]]) -> AsyncIterator[_T]:
+    pending_tasks = {_as_task(iterator): iterator for iterator in iterators}
+    try:
+        while pending_tasks:
+            done, _ = await wait(pending_tasks, return_when=FIRST_COMPLETED)
+            for task in done:
+                iterator = pending_tasks.pop(task)
+                try:
+                    yield task.result()
+                except StopAsyncIteration:
+                    continue
+                except Exception:
+                    continue
+                pending_tasks[_as_task(iterator)] = iterator
+    finally:
+        for task in pending_tasks:
+            task.cancel()
 
 
 # Class that handles all the api calls and their cache
@@ -235,10 +267,20 @@ class ApiHelper:
                 await self.web_session.post(url, params=params)
 
     async def discover_youtube_devices_dial(self, active=True):
-        """Discovers YouTube devices using DIAL.
+        """Discovers YouTube devices using DIAL and Chromecast discovery.
 
         Yields devices as they are discovered instead of waiting for the full
         discovery cycle to finish.
         """
-        async for device in dial_client.discover(self.web_session, self, active=active):
+        seen_screen_ids = set()
+        async for device in merge_iterators(
+            [
+                dial_client.discover(self.web_session, self, active=active),
+                chromecast_client.discover(self.web_session, self, active=active),
+            ]
+        ):
+            screen_id = device.get("screen_id")
+            if not screen_id or screen_id in seen_screen_ids:
+                continue
+            seen_screen_ids.add(screen_id)
             yield device
