@@ -424,20 +424,20 @@ class AddDevice(ModalWithClickExit):
         except asyncio.CancelledError:
             raise
         finally:
-            if discovery_generation != self.discovery_generation:
-                return
-            try:
-                searching_indicator = self.query_one("#dial-searching-indicator")
-                retry_button = self.query_one("#dial-retry-search-button")
-                list_widget = self.query_one("#dial-devices-list")
-            except NoMatches:
-                return
-            searching_indicator.display = True
-            searching_indicator.update("Device search complete")
-            retry_button.disabled = False
-            if device_count == 0:
-                list_widget.clear_options()
-                list_widget.add_option(("No devices found", "", False))
+            if discovery_generation == self.discovery_generation:
+                try:
+                    searching_indicator = self.query_one("#dial-searching-indicator")
+                    retry_button = self.query_one("#dial-retry-search-button")
+                    list_widget = self.query_one("#dial-devices-list")
+                except NoMatches:
+                    pass
+                else:
+                    searching_indicator.display = True
+                    searching_indicator.update("Device search complete")
+                    retry_button.disabled = False
+                    if device_count == 0:
+                        list_widget.clear_options()
+                        list_widget.add_option(("No devices found", "", False))
 
     @on(Button.Pressed, "#dial-retry-search-button")
     def retry_discovery(self, event: Button.Pressed) -> None:
