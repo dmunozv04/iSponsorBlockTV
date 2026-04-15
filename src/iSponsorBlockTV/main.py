@@ -29,13 +29,13 @@ class DeviceListener:
             await asyncio.sleep(60 * 60 * 24)  # Refresh every 24 hours
             try:
                 await self.lounge_controller.refresh_auth()
-            except BaseException:
+            except Exception:
                 pass
 
     async def is_available(self):
         try:
             return await self.lounge_controller.is_available()
-        except BaseException:
+        except Exception:
             return False
 
     # Main subscription loop
@@ -46,14 +46,14 @@ class DeviceListener:
                 try:
                     self.logger.debug("Refreshing auth")
                     await lounge_controller.refresh_auth()
-                except BaseException:
+                except Exception:
                     await asyncio.sleep(10)
             while not (await self.is_available()) and not self.cancelled:
                 self.logger.debug("Waiting for device to be available")
                 await asyncio.sleep(10)
             try:
                 await lounge_controller.connect()
-            except BaseException:
+            except Exception:
                 pass
             while not lounge_controller.connected() and not self.cancelled:
                 # Doesn't connect to the device if it's a kids profile (it's broken)
@@ -61,7 +61,7 @@ class DeviceListener:
                 await asyncio.sleep(10)
                 try:
                     await lounge_controller.connect()
-                except BaseException:
+                except Exception:
                     pass
             self.logger.info(
                 "Connected to device %s (%s)", lounge_controller.screen_name, self.name
@@ -70,7 +70,7 @@ class DeviceListener:
                 self.logger.debug("Subscribing to lounge")
                 sub = await lounge_controller.subscribe_monitored(self)
                 await sub
-            except BaseException:
+            except Exception:
                 pass
 
     # Method called on playback state change
@@ -78,7 +78,7 @@ class DeviceListener:
         time_start = time.monotonic()
         try:
             self.task.cancel()
-        except BaseException:
+        except Exception:
             pass
         self.task = asyncio.create_task(self.process_playstatus(state, time_start))
 
@@ -155,7 +155,7 @@ def handle_signal(signum, frame):
 
 
 async def main_async(config, debug, http_tracing):
-    loop = asyncio.get_event_loop_policy().get_event_loop()
+    loop = asyncio.get_running_loop()
     tasks = []  # Save the tasks so the interpreter doesn't garbage collect them
     devices = []  # Save the devices to close them later
     if debug:
