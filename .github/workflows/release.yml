@@ -206,6 +206,6 @@ jobs:
         path: dist
         merge-multiple: true
     - name: Add assets to release
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         files: dist/*
