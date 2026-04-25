@@ -20,6 +20,11 @@ available on YouTube ads.
 
 Check the [wiki](https://github.com/dmunozv04/iSponsorBlockTV/wiki/Installation)
 
+### Service Installation
+
+Linux systemd units and installers live in `services/`.
+See `services/README.md` for details.
+
 ## Compatibility
 
 Legend: ✅ = Working, ❌ = Not working, ❔ = Not tested
