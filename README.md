@@ -11,10 +11,10 @@ or intros) in YouTube videos using the [SponsorBlock](https://sponsor.ajay.app/)
 API. It can also auto mute and press the "Skip Ad" button the moment it becomes
 available on YouTube ads.
 
-[!WARNING]
-YouTube appers to have changed the screen ID code format and is in the process
-of revoking all existing codes. This means that you'll have to pair your
-device again. You can find information on how to do that in the wiki.
+> [!WARNING]
+> YouTube appers to have changed the screen ID code format and is in the process
+> of revoking all existing codes. This means that you'll have to pair your
+> device again. You can find information on how to do that in the wiki.
 
 ## Installation
 
