@@ -2,10 +2,13 @@
 
 import asyncio
 from typing import Any
+import logging
 
 import pychromecast
 from pychromecast.controllers.youtube import YouTubeController
 from pychromecast import Chromecast
+
+logger = logging.getLogger(__name__)
 
 
 def _build_device_from_cast(cast: Chromecast) -> dict[str, Any] | None:
@@ -14,12 +17,18 @@ def _build_device_from_cast(cast: Chromecast) -> dict[str, Any] | None:
 
         yt_controller = YouTubeController()
         cast.register_handler(yt_controller)
-        yt_controller.update_screen_id()
+        try:
+            yt_controller.update_screen_id()
+        except Exception:
+            logger.exception("YouTubeController.update_screen_id() failed")
 
         # Give the controller a moment to process status messages.
         cast.wait(timeout=2)
-        screen_id = yt_controller._screen_id
+        screen_id = getattr(yt_controller, "_screen_id", None)
         if not screen_id:
+            logger.debug(
+                "No YouTube MDX screen_id for cast=%s", getattr(cast, "name", cast)
+            )
             return None
 
         try:
@@ -36,6 +45,7 @@ def _build_device_from_cast(cast: Chromecast) -> dict[str, Any] | None:
             "offset": 0,
         }
     except Exception:
+        logger.exception("Error while building device from cast")
         return None
     finally:
         try:
@@ -57,6 +67,7 @@ async def discover(web_session, api_helper=None, active=True):
     discovered_casts: asyncio.Queue = asyncio.Queue()
 
     def on_cast_discovered(cast) -> None:
+        print(f"Discovered cast: {cast}")
         loop.call_soon_threadsafe(discovered_casts.put_nowait, cast)
 
     browser = pychromecast.get_chromecasts(
@@ -73,12 +84,16 @@ async def discover(web_session, api_helper=None, active=True):
         while True:
             if not active and pending_tasks:
                 pass
-            elif loop.time() >= discovery_deadline and discovered_casts.empty() and not pending_tasks:
+            elif (
+                loop.time() >= discovery_deadline and discovered_casts.empty() and not pending_tasks
+            ):
                 break
 
             try:
                 cast = await asyncio.wait_for(discovered_casts.get(), timeout=0.5)
-                pending_tasks.add(asyncio.create_task(asyncio.to_thread(_build_device_from_cast, cast)))
+                pending_tasks.add(
+                    asyncio.create_task(asyncio.to_thread(_build_device_from_cast, cast))
+                )
                 discovery_deadline = max(discovery_deadline, loop.time() + 1)
             except asyncio.TimeoutError:
                 pass
@@ -102,3 +117,19 @@ async def discover(web_session, api_helper=None, active=True):
         for task in pending_tasks:
             task.cancel()
         await asyncio.to_thread(browser.stop_discovery)
+
+
+if __name__ == "__main__":
+    import json
+
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
+    logger.debug("Starting chromecast discovery test...")
+
+    async def main():
+        async for device in discover(None):
+            print(json.dumps(device, indent=2))
+
+    asyncio.run(main())
