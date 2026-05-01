@@ -27,6 +27,14 @@ class Device:
     def __validate(self):
         if not self.screen_id:
             raise ValueError("No screen id found")
+        if len(self.screen_id) == 26:
+            logging.getLogger().warning(
+                "The screen id %s is 26 characters long, which is the old format.YouTube is "
+                "revoking the old format screen ids; it's likely that this device has stopped "
+                "working or will stop working soon. Pair the device again to get the new id. "
+                "Please read this for more information on how to do so and what this means: "
+                f"{github_wiki_base_url}/new-screen-ID-format"
+            , self.screen_id)
 
 
 class Config:
