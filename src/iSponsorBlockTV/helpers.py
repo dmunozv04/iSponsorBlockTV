@@ -33,8 +33,9 @@ class Device:
                 "revoking the old format screen ids; it's likely that this device has stopped "
                 "working or will stop working soon. Pair the device again to get the new id. "
                 "Please read this for more information on how to do so and what this means: "
-                f"{github_wiki_base_url}/new-screen-ID-format"
-            , self.screen_id)
+                f"{github_wiki_base_url}/new-screen-ID-format",
+                self.screen_id,
+            )
 
 
 class Config:
