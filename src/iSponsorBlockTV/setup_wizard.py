@@ -15,6 +15,7 @@ from textual.containers import (
 )
 from textual.css.query import NoMatches
 from textual.events import Click
+from textual.reactive import reactive
 from textual.screen import Screen
 from textual.validation import Function
 from textual.widgets import (
@@ -30,11 +31,10 @@ from textual.widgets import (
     SelectionList,
     Static,
 )
-from textual.widgets.selection_list import Selection
 from textual_slider import Slider
 
 # Local imports
-from . import api_helpers, ytlounge
+from . import api_helpers
 from .constants import skip_categories
 
 
@@ -230,6 +230,10 @@ class AddDevice(ModalWithClickExit):
     or with lan discovery."""
 
     BINDINGS = [("escape", "dismiss({})", "Return")]
+    DEFAULT_DEVICE_NAME_PLACEHOLDER = "Device Name (auto filled if empty/optional)"
+    pairing_info_text = reactive("")
+    pairing_name_placeholder = reactive(DEFAULT_DEVICE_NAME_PLACEHOLDER)
+    pairing_can_add = reactive(False)
 
     def __init__(self, config, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -237,6 +241,11 @@ class AddDevice(ModalWithClickExit):
         self.web_session = aiohttp.ClientSession(trust_env=config.use_proxy)
         self.api_helper = api_helpers.ApiHelper(config, self.web_session)
         self.devices_discovered_dial = []
+        self.discovery_task = None
+        self.discovery_generation = 0
+        self.pairing_validation_task = None
+        self.pairing_validation_generation = 0
+        self.validated_paired_device = None
 
     def compose(self) -> ComposeResult:
         with Container(id="add-device-container"):
@@ -262,7 +271,7 @@ class AddDevice(ModalWithClickExit):
                         ],
                     )
                     yield Input(
-                        placeholder="Device Name (auto filled if empty/optional)",
+                        placeholder=self.pairing_name_placeholder,
                         id="device-name-input",
                     )
                     yield Button(
@@ -278,12 +287,23 @@ class AddDevice(ModalWithClickExit):
                             "Make sure your device is on the same network as this"
                             " computer\nIf it isn't showing up, try restarting the"
                             " app.\nIf running in docker, make sure to use"
-                            " `--network=host`\nTo refresh the list, close and open the"
-                            " dialog again\n[b][u]If it still doesn't work, "
+                            " `--network=host`\n[b][u]If it still doesn't work, "
                             "pair using a pairing code (it's much more reliable)"
                         ),
                         classes="subtitle",
                     )
+                    with Horizontal(id="dial-search-row"):
+                        yield Label(
+                            "Searching for devices...",
+                            id="dial-searching-indicator",
+                            classes="subtitle",
+                        )
+                        yield Button(
+                            "Start search",
+                            id="dial-retry-search-button",
+                            variant="primary",
+                            disabled=True,
+                        )
                     yield SelectionList(
                         ("Searching for devices...", "", False),
                         id="dial-devices-list",
@@ -297,31 +317,133 @@ class AddDevice(ModalWithClickExit):
                     )
 
     async def on_mount(self) -> None:
+        self.query_one("#add-device-pin-button", Button).focus()
         self.devices_discovered_dial = []
-        asyncio.create_task(self.task_discover_devices())
+        self._start_discovery()
+
+    def _start_discovery(self) -> None:
+        self.discovery_generation += 1
+        self.discovery_task = asyncio.create_task(
+            self.task_discover_devices(self.discovery_generation)
+        )
 
     async def on_unmount(self) -> None:
+        if self.discovery_task and not self.discovery_task.done():
+            self.discovery_task.cancel()
+            try:
+                await self.discovery_task
+            except asyncio.CancelledError:
+                pass
+        if self.pairing_validation_task and not self.pairing_validation_task.done():
+            self.pairing_validation_task.cancel()
+            try:
+                await self.pairing_validation_task
+            except asyncio.CancelledError:
+                pass
         if not self.web_session.closed:
             await self.web_session.close()
 
-    async def task_discover_devices(self):
-        devices_found = await self.api_helper.discover_youtube_devices_dial()
+    async def task_validate_pairing_code(
+        self, pairing_code: str, pairing_validation_generation: int
+    ) -> None:
+        try:
+            paired_device = await self.api_helper.pair_with_code(pairing_code)
+        except asyncio.CancelledError:
+            return
+        except Exception:
+            paired_device = None
+
+        if pairing_validation_generation != self.pairing_validation_generation:
+            return
+
+        if paired_device:
+            self.validated_paired_device = paired_device
+            self.pairing_can_add = True
+            paired_name = paired_device.get("name")
+            if paired_name:
+                self.pairing_name_placeholder = f"Device Name ({paired_name})"
+            else:
+                self.pairing_name_placeholder = self.DEFAULT_DEVICE_NAME_PLACEHOLDER
+            self.pairing_info_text = "[#00ff00]Pairing code valid"
+        else:
+            self.validated_paired_device = None
+            self.pairing_can_add = False
+            self.pairing_name_placeholder = self.DEFAULT_DEVICE_NAME_PLACEHOLDER
+            self.pairing_info_text = (
+                "[#ff0000]Pairing code not valid. Try restarting the YouTube app"
+            )
+
+    def watch_pairing_info_text(self, pairing_info_text: str) -> None:
+        try:
+            self.query_one("#add-device-info", Label).update(pairing_info_text)
+        except NoMatches:
+            pass
+
+    def watch_pairing_name_placeholder(self, pairing_name_placeholder: str) -> None:
+        try:
+            self.query_one("#device-name-input", Input).placeholder = pairing_name_placeholder
+        except NoMatches:
+            pass
+
+    def watch_pairing_can_add(self, pairing_can_add: bool) -> None:
+        try:
+            self.query_one("#add-device-pin-add-button", Button).disabled = not pairing_can_add
+        except NoMatches:
+            pass
+
+    async def task_discover_devices(self, discovery_generation: int):
         try:
             list_widget: SelectionList = self.query_one("#dial-devices-list")
+            searching_indicator: Label = self.query_one("#dial-searching-indicator")
+            retry_button: Button = self.query_one("#dial-retry-search-button")
         except NoMatches:
             # The widget was not found, probably the screen was dismissed
             return
+        searching_indicator.display = True
+        searching_indicator.update("Searching for devices...")
+        retry_button.disabled = True
+        self.query_one("#add-device-dial-add-button").disabled = True
+        list_widget.disabled = True
         list_widget.clear_options()
-        if devices_found:
-            # print(devices_found)
-            devices_found_parsed = []
-            for index, i in enumerate(devices_found):
-                devices_found_parsed.append(Selection(i["name"], index, False))
-            list_widget.add_options(devices_found_parsed)
-            self.query_one("#dial-devices-list").disabled = False
-            self.devices_discovered_dial = devices_found
-        else:
-            list_widget.add_option(("No devices found", "", False))
+        device_count = 0
+        try:
+            async for device in self.api_helper.discover_youtube_devices_dial():
+                try:
+                    list_widget = self.query_one("#dial-devices-list")
+                    searching_indicator = self.query_one("#dial-searching-indicator")
+                    retry_button = self.query_one("#dial-retry-search-button")
+                except NoMatches:
+                    # The widget was not found, probably the screen was dismissed
+                    return
+                if device_count == 0:
+                    list_widget.clear_options()
+                    list_widget.disabled = False
+                list_widget.add_option((device["name"], device_count, False))
+                self.devices_discovered_dial.append(device)
+                device_count += 1
+
+        finally:
+            if discovery_generation == self.discovery_generation:
+                try:
+                    searching_indicator = self.query_one("#dial-searching-indicator")
+                    retry_button = self.query_one("#dial-retry-search-button")
+                    list_widget = self.query_one("#dial-devices-list")
+                except NoMatches:
+                    pass
+                else:
+                    searching_indicator.display = True
+                    searching_indicator.update("Device search complete")
+                    retry_button.disabled = False
+                    if device_count == 0:
+                        list_widget.clear_options()
+                        list_widget.add_option(("No devices found", "", False))
+
+    @on(Button.Pressed, "#dial-retry-search-button")
+    def retry_discovery(self, event: Button.Pressed) -> None:
+        if self.discovery_task and not self.discovery_task.done():
+            self.discovery_task.cancel()
+        self.devices_discovered_dial = []
+        self._start_discovery()
 
     @on(Button.Pressed, "#add-device-switch-buttons > *")
     def handle_switch_buttons(self, event: Button.Pressed) -> None:
@@ -331,42 +453,53 @@ class AddDevice(ModalWithClickExit):
 
     @on(Input.Changed, "#pairing-code-input")
     def changed_pairing_code(self, event: Input.Changed):
-        self.query_one("#add-device-pin-add-button").disabled = not event.validation_result.is_valid
+        self.validated_paired_device = None
+        self.pairing_can_add = False
+        self.pairing_name_placeholder = self.DEFAULT_DEVICE_NAME_PLACEHOLDER
+
+        if self.pairing_validation_task and not self.pairing_validation_task.done():
+            self.pairing_validation_task.cancel()
+
+        if not event.validation_result.is_valid:
+            self.pairing_info_text = ""
+            return
+
+        self.pairing_validation_generation += 1
+        self.pairing_info_text = "Validating pairing code..."
+        self.pairing_validation_task = asyncio.create_task(
+            self.task_validate_pairing_code(
+                event.input.value,
+                self.pairing_validation_generation,
+            )
+        )
 
     @on(Input.Submitted, "#pairing-code-input")
     @on(Button.Pressed, "#add-device-pin-add-button")
     async def handle_add_device_pin(self) -> None:
-        self.query_one("#add-device-pin-add-button").disabled = True
-        lounge_controller = ytlounge.YtLoungeApi(
-            "iSponsorBlockTV",
-        )
-        await lounge_controller.change_web_session(self.web_session)
-        pairing_code = self.query_one("#pairing-code-input").value
-        pairing_code = int(
-            pairing_code.replace("-", "").replace(" ", "")
-        )  # remove dashes and spaces
+        self.pairing_can_add = False
         device_name = self.query_one("#device-name-input").value
-        paired = False
-        try:
-            paired = await lounge_controller.pair(pairing_code)
-        except BaseException:
-            pass
-        if paired:
+        if self.pairing_validation_task and not self.pairing_validation_task.done():
+            try:
+                await self.pairing_validation_task
+            except asyncio.CancelledError:
+                pass
+
+        paired_device = self.validated_paired_device
+        if paired_device:
             device = {
-                "screen_id": lounge_controller.auth.screen_id,
-                "name": device_name if device_name else lounge_controller.screen_name,
+                "screen_id": paired_device["screen_id"],
+                "name": device_name if device_name else paired_device.get("name"),
                 "offset": 0,
             }
             self.query_one("#pairing-code-input").value = ""
             self.query_one("#device-name-input").value = ""
-            self.query_one("#add-device-info").update(
-                f"[#00ff00][b]Successfully added {device['name']}"
-            )
+            self.pairing_info_text = f"[#00ff00][b]Successfully added {device['name']}"
             self.dismiss([device])
         else:
             self.query_one("#pairing-code-input").value = ""
-            self.query_one("#add-device-pin-add-button").disabled = False
-            self.query_one("#add-device-info").update("[#ff0000]Failed to add device")
+            self.validated_paired_device = None
+            self.pairing_can_add = True
+            self.pairing_info_text = "[#ff0000]Failed to add device"
 
     @on(Button.Pressed, "#add-device-dial-add-button")
     def handle_add_device_dial(self) -> None:
@@ -589,12 +722,10 @@ class EditDevice(ModalWithClickExit):
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "device-id-view":
-            if "Show" in event.button.label:
-                event.button.label = "Hide id"
-                self.query_one("#device-id-input").password = False
-            else:
-                event.button.label = "Show id"
-                self.query_one("#device-id-input").password = True
+            device_id_input: Input = self.query_one("#device-id-input")
+            is_currently_hidden = device_id_input.password
+            device_id_input.password = not is_currently_hidden
+            event.button.label = "Hide id" if is_currently_hidden else "Show id"
 
 
 class DevicesManager(Vertical):

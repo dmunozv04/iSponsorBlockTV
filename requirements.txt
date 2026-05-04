@@ -8,3 +8,6 @@ textual==8.2.3
 textual-slider==0.2.0
 xmltodict==1.0.4
 rich_click==1.9.7
+yarl==1.23.0
+zeroconf==0.148.0
+pychromecast==14.0.7

@@ -1,11 +1,17 @@
 import html
 from hashlib import sha256
+from asyncio import FIRST_COMPLETED, Task, create_task, wait
+from typing import AsyncIterator, Collection, TypeVar
 
 from aiohttp import ClientSession
 from cache import AsyncLRU
+from pyytlounge.wrapper import api_base
 
-from . import constants, dial_client
+from . import chromecast_client, constants, dial_client
 from .conditional_ttl_cache import AsyncConditionalTTL
+
+
+_T = TypeVar("_T")
 
 
 def list_to_tuple(function):
@@ -18,6 +24,33 @@ def list_to_tuple(function):
     return wrapper
 
 
+async def _await_next(iterator: AsyncIterator[_T]) -> _T:
+    return await iterator.__anext__()
+
+
+def _as_task(iterator: AsyncIterator[_T]) -> Task[_T]:
+    return create_task(_await_next(iterator))
+
+
+async def merge_iterators(iterators: Collection[AsyncIterator[_T]]) -> AsyncIterator[_T]:
+    pending_tasks = {_as_task(iterator): iterator for iterator in iterators}
+    try:
+        while pending_tasks:
+            done, _ = await wait(pending_tasks, return_when=FIRST_COMPLETED)
+            for task in done:
+                iterator = pending_tasks.pop(task)
+                try:
+                    yield task.result()
+                except StopAsyncIteration:
+                    continue
+                except Exception:
+                    continue
+                pending_tasks[_as_task(iterator)] = iterator
+    finally:
+        for task in pending_tasks:
+            task.cancel()
+
+
 # Class that handles all the api calls and their cache
 class ApiHelper:
     def __init__(self, config, web_session: ClientSession) -> None:
@@ -28,6 +61,37 @@ class ApiHelper:
         self.web_session = web_session
         self.num_devices = len(config.devices)
         self.minimum_skip_length = config.minimum_skip_length
+
+    @staticmethod
+    def _normalize_pairing_code(pairing_code):
+        return str(pairing_code).replace("-", "").replace(" ", "")
+
+    async def pair_with_code(self, pairing_code):
+        normalized_code = self._normalize_pairing_code(pairing_code)
+        pair_url = f"{api_base}/pairing/get_screen"
+        pair_data = {"pairing_code": normalized_code}
+
+        async with self.web_session.post(url=pair_url, data=pair_data) as response:
+            if response.status != 200:
+                return None
+            try:
+                pair_response = await response.json()
+            except BaseException:
+                return None
+
+        screen = pair_response.get("screen")
+        if not screen:
+            return None
+
+        screen_id = screen.get("screenId")
+        if not screen_id:
+            return None
+
+        return {
+            "screen_id": screen_id,
+            "name": screen.get("name"),
+            "lounge_token": screen.get("loungeToken"),
+        }
 
     # Not used anymore, maybe it can stay here a little longer
     @AsyncLRU(maxsize=10)
@@ -204,8 +268,21 @@ class ApiHelper:
                 params = {"UUID": i}
                 await self.web_session.post(url, params=params)
 
-    async def discover_youtube_devices_dial(self):
-        """Discovers YouTube devices using DIAL"""
-        dial_screens = await dial_client.discover(self.web_session)
-        # print(dial_screens)
-        return dial_screens
+    async def discover_youtube_devices_dial(self, active=True):
+        """Discovers YouTube devices using DIAL and Chromecast discovery.
+
+        Yields devices as they are discovered instead of waiting for the full
+        discovery cycle to finish.
+        """
+        seen_screen_ids = set()
+        async for device in merge_iterators(
+            [
+                dial_client.discover(self.web_session, self, active=active),
+                chromecast_client.discover(active=active),
+            ]
+        ):
+            screen_id = device.get("screen_id")
+            if not screen_id or screen_id in seen_screen_ids:
+                continue
+            seen_screen_ids.add(screen_id)
+            yield device
