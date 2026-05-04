@@ -1,6 +1,6 @@
 [project]
 name = "iSponsorBlockTV"
-version = "2.6.1"
+version = "2.8.1"
 authors = [
     {"name" = "dmunozv04"}
 ]
