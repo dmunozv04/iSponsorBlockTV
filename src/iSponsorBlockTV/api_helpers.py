@@ -278,7 +278,7 @@ class ApiHelper:
         async for device in merge_iterators(
             [
                 dial_client.discover(self.web_session, self, active=active),
-                chromecast_client.discover(self.web_session, self, active=active),
+                chromecast_client.discover(active=active),
             ]
         ):
             screen_id = device.get("screen_id")

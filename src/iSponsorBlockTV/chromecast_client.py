@@ -53,7 +53,7 @@ def _build_device_from_cast(cast: Chromecast) -> dict[str, Any] | None:
             pass
 
 
-async def discover(web_session, api_helper=None, active=True):
+async def discover(active=True):
     """Discover Chromecast devices and yield YouTube MDX-capable screens.
 
     The signature mirrors the newer DIAL discovery generator so callers can
