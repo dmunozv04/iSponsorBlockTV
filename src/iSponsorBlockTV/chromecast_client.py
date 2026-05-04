@@ -1,5 +1,6 @@
 """Chromecast discovery using Cast protocol via pychromecast."""
 
+# skipcq: PYL-R0401
 import asyncio
 from typing import Any
 import logging
@@ -26,9 +27,7 @@ def _build_device_from_cast(cast: Chromecast) -> dict[str, Any] | None:
         cast.wait(timeout=2)
         screen_id = getattr(yt_controller, "_screen_id", None)
         if not screen_id:
-            logger.debug(
-                "No YouTube MDX screen_id for cast=%s", getattr(cast, "name", cast)
-            )
+            logger.debug("No YouTube MDX screen_id for cast=%s", getattr(cast, "name", cast))
             return None
 
         try:
@@ -60,9 +59,6 @@ async def discover(web_session, api_helper=None, active=True):
     The signature mirrors the newer DIAL discovery generator so callers can
     consume both sources with the same `async for` pattern.
     """
-    del web_session
-    del api_helper
-
     loop = asyncio.get_running_loop()
     discovered_casts: asyncio.Queue = asyncio.Queue()
 

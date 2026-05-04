@@ -4,11 +4,17 @@ import asyncio
 import logging
 import secrets
 import socket
+from typing import TYPE_CHECKING, AsyncIterator, Dict, Any, Optional, Set, Tuple
 
 import ssdp
 import xmltodict
 from ssdp import network
 from yarl import URL
+
+from aiohttp import ClientSession
+
+if TYPE_CHECKING:
+    from .api_helpers import ApiHelper
 
 
 logger = logging.getLogger(__name__)
@@ -56,7 +62,9 @@ logger = logging.getLogger(__name__)
 # https://github.com/codingjoe/ssdp/blob/main/ssdp/__main__.py
 
 
-def get_ip():
+def get_ip() -> str:
+    """Gets the local IP address of the machine by connecting to a non-routable address.
+    Needed for SSDP discovery to work on windows and machines with multiple interfaces."""
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.settimeout(0)
     try:
@@ -73,7 +81,7 @@ def get_ip():
 class Handler(ssdp.aio.SSDP):
     def __init__(self):
         super().__init__()
-        self.devices_queue = asyncio.Queue()
+        self.devices_queue: asyncio.Queue[str] = asyncio.Queue()
 
     def clear(self):
         self.devices_queue = asyncio.Queue()
@@ -94,7 +102,7 @@ class Handler(ssdp.aio.SSDP):
         pass  # Don't log connection lost, expected on transport close
 
 
-def _extract_screen_id(youtube_service_xml):
+def _extract_screen_id(youtube_service_xml: str) -> Optional[str]:
     data = xmltodict.parse(youtube_service_xml)
     service_data = data.get("service", {})
     additional_data = service_data.get("additionalData", {})
@@ -105,7 +113,9 @@ def _generate_pairing_code() -> str:
     return "".join(str(secrets.randbelow(10)) for _ in range(12))
 
 
-async def find_youtube_app(web_session, api_helper, url_location, active=True):
+async def find_youtube_app(
+    web_session: ClientSession, api_helper: "ApiHelper", url_location: str, active: bool = True
+) -> Optional[Dict[str, Any]]:
     """Discover and validate a YouTube app on a DIAL device.
 
     Args:
@@ -167,7 +177,80 @@ async def find_youtube_app(web_session, api_helper, url_location, active=True):
     return None
 
 
-async def discover(web_session, api_helper, active=True):
+async def _send_search_requests(
+    search_request: ssdp.messages.SSDPRequest,
+    transport: asyncio.DatagramTransport,
+    target: Tuple[str, int],
+    active: bool,
+    discovery_complete_event: asyncio.Event,
+) -> None:
+    """Send M-SEARCH requests (active single run or passive polling)."""
+    try:
+        search_request.sendto(transport, target)
+        if active:
+            # Active mode: single discovery cycle
+            await asyncio.sleep(4)
+            discovery_complete_event.set()
+        else:
+            # Passive mode: poll indefinitely
+            poll_interval = 15  # seconds between polls
+            while True:
+                await asyncio.sleep(poll_interval)
+                logger.debug("Sending periodic M-SEARCH to discover new devices...")
+                search_request.sendto(transport, target)
+    except Exception:
+        discovery_complete_event.set()
+
+
+async def _process_devices(
+    handler: Handler,
+    web_session: ClientSession,
+    api_helper: "ApiHelper",
+    active: bool,
+    pending_tasks: Set[asyncio.Task],
+    result_queue: asyncio.Queue[Dict[str, Any]],
+    discovery_complete_event: asyncio.Event,
+    seen_screen_ids: Set[str],
+) -> None:
+    """Process devices from handler queue and validate them.
+
+    This function creates tasks for `find_youtube_app` and pushes validated
+    devices onto `result_queue`. `pending_tasks` is a shared mutable set so
+    the caller can observe outstanding work.
+    """
+    while (
+        not discovery_complete_event.is_set() or not handler.devices_queue.empty() or pending_tasks
+    ):
+        try:
+            # Try to get a device from the queue with timeout
+            url_location = await asyncio.wait_for(handler.devices_queue.get(), timeout=0.5)
+            # Always create a task - we'll deduplicate by screen_id after we have it
+            logger.debug("Discovered device at %s, processing...", url_location)
+            coro = find_youtube_app(web_session, api_helper, url_location, active=active)
+            task = asyncio.create_task(coro)
+            pending_tasks.add(task)
+        except asyncio.TimeoutError:
+            pass
+        except Exception:
+            pass
+
+        # Process completed tasks
+        done_tasks = {task for task in pending_tasks if task.done()}
+        for task in done_tasks:
+            pending_tasks.discard(task)
+            try:
+                device = await task
+                # Only yield if we haven't seen this screen_id before
+                if device and device["screen_id"] not in seen_screen_ids:
+                    seen_screen_ids.add(device["screen_id"])
+                    await result_queue.put(device)
+            except Exception:
+                pass
+
+
+async def discover(
+    web_session: ClientSession, api_helper: "ApiHelper", active: bool = True
+) -> AsyncIterator[Dict[str, Any]]:
     """Discover YouTube-capable devices on the local network via DIAL protocol.
 
     Sends out M-SEARCH SSDP requests and listens for responses from DIAL devices.
@@ -215,59 +298,24 @@ async def discover(web_session, api_helper, active=True):
         },
     )
 
-    discovery_complete = False
+    discovery_complete_event = asyncio.Event()
 
-    async def send_search_requests():
-        """Send M-SEARCH requests, once for active mode, or repeatedly for passive mode."""
-        nonlocal discovery_complete
-        try:
-            search_request.sendto(transport, target)
-            if active:
-                # Active mode: single discovery cycle
-                await asyncio.sleep(4)
-                discovery_complete = True
-            else:
-                # Passive mode: poll indefinitely
-                poll_interval = 15  # seconds between polls
-                while True:
-                    await asyncio.sleep(poll_interval)
-                    logger.debug("Sending periodic M-SEARCH to discover new devices...")
-                    search_request.sendto(transport, target)
-        except Exception:
-            discovery_complete = True
-
-    async def process_devices():
-        """Process devices from handler queue as they arrive."""
-        while not discovery_complete or not handler.devices_queue.empty() or pending_tasks:
-            try:
-                # Try to get a device from the queue with timeout
-                url_location = await asyncio.wait_for(handler.devices_queue.get(), timeout=0.5)
-                # Always create a task - we'll deduplicate by screen_id after we have it
-                logger.debug("Discovered device at %s, processing...", url_location)
-                coro = find_youtube_app(web_session, api_helper, url_location, active=active)
-                task = asyncio.create_task(coro)
-                pending_tasks.add(task)
-            except asyncio.TimeoutError:
-                pass
-            except Exception:
-                pass
-
-            # Process completed tasks
-            done_tasks = {task for task in pending_tasks if task.done()}
-            for task in done_tasks:
-                pending_tasks.discard(task)
-                try:
-                    device = await task
-                    # Only yield if we haven't seen this screen_id before
-                    if device and device["screen_id"] not in seen_screen_ids:
-                        seen_screen_ids.add(device["screen_id"])
-                        await result_queue.put(device)
-                except Exception:
-                    pass
-
-    # Start search request sender and device processor
-    search_task = asyncio.create_task(send_search_requests())
-    process_task = asyncio.create_task(process_devices())
+    # Start search request sender and device processor tasks
+    search_task = asyncio.create_task(
+        _send_search_requests(search_request, transport, target, active, discovery_complete_event)
+    )
+    process_task = asyncio.create_task(
+        _process_devices(
+            handler,
+            web_session,
+            api_helper,
+            active,
+            pending_tasks,
+            result_queue,
+            discovery_complete_event,
+            seen_screen_ids,
+        )
+    )
 
     try:
         # Yield results as they become available
@@ -279,7 +327,7 @@ async def discover(web_session, api_helper, active=True):
                     yield device
             except asyncio.TimeoutError:
                 # Check if we're done
-                if discovery_complete and result_queue.empty() and not pending_tasks:
+                if discovery_complete_event.is_set() and result_queue.empty() and not pending_tasks:
                     break
                 continue
     finally:

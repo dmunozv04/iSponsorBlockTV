@@ -421,8 +421,7 @@ class AddDevice(ModalWithClickExit):
                 list_widget.add_option((device["name"], device_count, False))
                 self.devices_discovered_dial.append(device)
                 device_count += 1
-        except asyncio.CancelledError:
-            raise
+
         finally:
             if discovery_generation == self.discovery_generation:
                 try:
