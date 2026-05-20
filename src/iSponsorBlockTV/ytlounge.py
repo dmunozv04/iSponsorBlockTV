@@ -240,8 +240,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         Pass an empty string to `language_code` to turn subtitles off.
         """
         return await self._command(
-            "setSubtitlesTrack", 
-            {"languageCode": language_code, "videoId": video_id}
+            "setSubtitlesTrack", {"languageCode": language_code, "videoId": video_id}
         )
 
     # Test to wrap the command function in a mutex to avoid race conditions with

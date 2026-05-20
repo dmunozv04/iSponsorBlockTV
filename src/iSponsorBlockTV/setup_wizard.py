@@ -1137,7 +1137,9 @@ class ISponsorBlockTVSetup(App):
             )
             yield ApiKeyManager(config=self.config, id="api-key-manager", classes="container")
             yield AutoPlayManager(config=self.config, id="autoplay-manager", classes="container")
-            yield SubtitlesTrackManager(config=self.config, id="subtitles-track-manager", classes="container")
+            yield SubtitlesTrackManager(
+                config=self.config, id="subtitles-track-manager", classes="container"
+            )
             yield UseProxyManager(config=self.config, id="useproxy-manager", classes="container")
 
     def on_mount(self) -> None:
