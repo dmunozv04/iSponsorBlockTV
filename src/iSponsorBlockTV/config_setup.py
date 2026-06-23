@@ -36,6 +36,9 @@ REPORT_SKIPPED_SEGMENTS_PROMPT = (
 MUTE_ADS_PROMPT = "Do you want to mute native YouTube ads automatically? (y/N) "
 SKIP_ADS_PROMPT = "Do you want to skip native YouTube ads automatically? (y/N) "
 AUTOPLAY_PROMPT = "Do you want to enable autoplay? (Y/n) "
+SUBTITLES_TRACK_PROMPT = (
+    "Enter preferred subtitles track language code (e.g. 'en', or leave empty to disable): "
+)
 
 
 def get_yn_input(prompt):
@@ -205,6 +208,9 @@ def main(config, debug: bool) -> None:
 
     choice = get_yn_input(AUTOPLAY_PROMPT)
     config.auto_play = choice != "n"
+
+    subtitles_track = input(SUBTITLES_TRACK_PROMPT)
+    config.subtitles_track = subtitles_track
 
     print("Config finished")
     config.save()
