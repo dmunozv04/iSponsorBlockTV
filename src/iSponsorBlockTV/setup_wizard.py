@@ -1037,6 +1037,7 @@ class AutoPlayManager(Vertical):
     def changed_skip(self, event: Checkbox.Changed):
         self.config.auto_play = event.checkbox.value
 
+
 class ClosedCaptionsManager(Vertical):
     """Manager for closed captions."""
 
@@ -1060,6 +1061,7 @@ class ClosedCaptionsManager(Vertical):
     @on(Input.Changed, "#closed-captions-input")
     def changed_closed_captions(self, event: Input.Changed):
         self.config.closed_captions = event.input.value
+
 
 class UseProxyManager(Vertical):
     """Manager for proxy use, allows enabling/disabling use of proxy."""
@@ -1159,7 +1161,9 @@ class ISponsorBlockTVSetup(App):
             )
             yield ApiKeyManager(config=self.config, id="api-key-manager", classes="container")
             yield AutoPlayManager(config=self.config, id="autoplay-manager", classes="container")
-            yield ClosedCaptionsManager(config=self.config, id="closed-captions-manager", classes="container")
+            yield ClosedCaptionsManager(
+                config=self.config, id="closed-captions-manager", classes="container"
+            )
             yield UseProxyManager(config=self.config, id="useproxy-manager", classes="container")
             yield SponsorBlockApiUrlManager(
                 config=self.config, id="sponsorblock-api-url-manager", classes="container"
