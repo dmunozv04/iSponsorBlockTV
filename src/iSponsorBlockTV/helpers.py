@@ -52,6 +52,7 @@ class Config:
         self.skip_ads = False
         self.minimum_skip_length = 1
         self.auto_play = True
+        self.closed_captions = ""
         self.join_name = "iSponsorBlockTV"
         self.use_proxy = False
         self.sponsorblock_api_url = SponsorBlock_api
