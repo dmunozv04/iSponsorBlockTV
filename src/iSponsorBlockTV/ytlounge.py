@@ -175,7 +175,8 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             # Set Closed Captions when the video starts playing
             if self.closed_captions and data.get("state", "0") == "1":
                 self.logger.info(
-                    f"Setting closed captions to {self.closed_captions} for video: {data.get('videoId')}"
+                    f"Setting closed captions to {self.closed_captions} "
+                    f"for video: {data.get('videoId')}"
                 )
                 create_task(self.set_closed_captions(self.closed_captions, data.get("videoId")))
         elif event_type == "onAdStateChange":
