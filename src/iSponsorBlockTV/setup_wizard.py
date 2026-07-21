@@ -1121,6 +1121,9 @@ class MqttManager(Vertical):
             placeholder="Broker host/IP",
             id="mqtt-broker-input",
             value=str(self.mqtt.get("broker") or ""),
+            validators=[
+                Function(self._broker_ok, "Broker host/IP is required when MQTT is enabled")
+            ],
         )
         yield Input(
             placeholder="Port (default 1883)",
@@ -1160,9 +1163,16 @@ class MqttManager(Vertical):
             value=str(ha.get("discovery_prefix") or "homeassistant"),
         )
 
+    def _broker_ok(self, value: str) -> bool:
+        # The broker is only required once MQTT itself is enabled.
+        return not self.mqtt.get("enabled") or bool(value.strip())
+
     @on(Checkbox.Changed, "#mqtt-enabled-switch")
     def changed_enabled(self, event: Checkbox.Changed):
         self.mqtt["enabled"] = event.checkbox.value
+        # Re-check the broker now that "required" may have flipped.
+        broker = self.query_one("#mqtt-broker-input", Input)
+        broker.validate(broker.value)
 
     @on(Input.Changed, "#mqtt-broker-input")
     def changed_broker(self, event: Input.Changed):
@@ -1175,7 +1185,7 @@ class MqttManager(Vertical):
 
     @on(Input.Changed, "#mqtt-username-input")
     def changed_username(self, event: Input.Changed):
-        self.mqtt["username"] = event.input.value
+        self.mqtt["username"] = event.input.value.strip()
 
     @on(Input.Changed, "#mqtt-password-input")
     def changed_password(self, event: Input.Changed):

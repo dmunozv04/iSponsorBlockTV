@@ -94,7 +94,7 @@ def configure_mqtt(config) -> None:
     if port_in.isdigit():
         config.mqtt["port"] = int(port_in)
     config.mqtt["username"] = input(MQTT_USERNAME_PROMPT).strip()
-    config.mqtt["password"] = input(MQTT_PASSWORD_PROMPT).strip()
+    config.mqtt["password"] = input(MQTT_PASSWORD_PROMPT)
     config.mqtt["tls"] = get_yn_input(MQTT_TLS_PROMPT) == "y"
     base_topic = input(MQTT_BASE_TOPIC_PROMPT).strip()
     if base_topic:
