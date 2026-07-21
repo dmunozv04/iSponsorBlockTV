@@ -103,24 +103,29 @@ class DeviceListener:
     # Processes the playback state change
     async def process_playstatus(self, state, time_start):
         self._current_video_id = state.videoId or ""
+        # Announce now_playing BEFORE the (network, cancellable) segment fetch, so it
+        # isn't lost when this task is superseded by the next state change. Track the
+        # id we've *announced* - not every id seen - since a video first arrives in a
+        # non-playing (buffering) state, which would otherwise dedupe it away.
+        if (
+            self.notifier
+            and state.state.value == 1
+            and state.videoId
+            and state.videoId != self._last_now_playing_id
+        ):
+            self._last_now_playing_id = state.videoId
+            self.notifier.emit(
+                "now_playing",
+                self.screen_id,
+                self.name,
+                video_id=state.videoId,
+                duration=(getattr(state, "duration", 0) or None),
+            )
         segments = []
         if state.videoId:
             segments = await self.api_helper.get_segments(state.videoId)
         if state.state.value == 1:  # Playing
             self.logger.info("Playing video %s with %d segments", state.videoId, len(segments))
-            # Announce now_playing once per video, when it actually starts playing.
-            # A video can first arrive in a non-playing state (buffering), so track
-            # the id we've announced - not every id we've seen - or it gets deduped away.
-            if self.notifier and state.videoId and state.videoId != self._last_now_playing_id:
-                self._last_now_playing_id = state.videoId
-                self.notifier.emit(
-                    "now_playing",
-                    self.screen_id,
-                    self.name,
-                    video_id=state.videoId,
-                    duration=(getattr(state, "duration", 0) or None),
-                    segments=len(segments),
-                )
             if segments:  # If there are segments
                 await self.time_to_segment(segments, state.currentTime, time_start)
 
