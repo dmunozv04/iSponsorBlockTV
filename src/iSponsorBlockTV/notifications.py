@@ -186,8 +186,8 @@ class Notifier:
                         # (the Last Will only fires on an unclean disconnect).
                         await client.publish(self.availability_topic, "offline", qos=1, retain=True)
                         return
-            except asyncio.CancelledError:
-                raise
+            # No explicit CancelledError handler: it subclasses BaseException, so it is
+            # not caught below and propagates naturally to end the task on cancellation.
             except aiomqtt.MqttError as e:
                 self.logger.warning(
                     "MQTT connection error (%s); reconnecting in %ss",
