@@ -19,6 +19,7 @@ class DeviceListener:
         self.screen_id = device.screen_id
         self.notifier = notifier
         self._current_video_id = ""
+        self._last_now_playing_id = ""
         self.cancelled = False
         self.logger = logging.getLogger(f"iSponsorBlockTV-{device.screen_id}")
         self.web_session = web_session
@@ -101,14 +102,17 @@ class DeviceListener:
 
     # Processes the playback state change
     async def process_playstatus(self, state, time_start):
-        previous_video_id = self._current_video_id
         self._current_video_id = state.videoId or ""
         segments = []
         if state.videoId:
             segments = await self.api_helper.get_segments(state.videoId)
         if state.state.value == 1:  # Playing
             self.logger.info("Playing video %s with %d segments", state.videoId, len(segments))
-            if self.notifier and state.videoId and state.videoId != previous_video_id:
+            # Announce now_playing once per video, when it actually starts playing.
+            # A video can first arrive in a non-playing state (buffering), so track
+            # the id we've announced - not every id we've seen - or it gets deduped away.
+            if self.notifier and state.videoId and state.videoId != self._last_now_playing_id:
+                self._last_now_playing_id = state.videoId
                 self.notifier.emit(
                     "now_playing",
                     self.screen_id,
