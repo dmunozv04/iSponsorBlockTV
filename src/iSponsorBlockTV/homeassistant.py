@@ -69,6 +69,15 @@ def discovery_messages(discovery_prefix, base_topic, availability_topic, device_
         ),
         cfg(
             "sensor",
+            "channel",
+            {
+                "name": "Channel",
+                "state_topic": f"{dev_base}/channel",
+                "icon": "mdi:account-box",
+            },
+        ),
+        cfg(
+            "sensor",
             "playback_state",
             {
                 "name": "State",

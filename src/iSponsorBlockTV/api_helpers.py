@@ -138,11 +138,11 @@ class ApiHelper:
         return data["snippet"]["channelId"]
 
     @AsyncLRU(maxsize=100)
-    async def get_video_title(self, vid_id):
-        """Resolve a video's title via the YouTube Data API (needs an API key).
+    async def get_video_metadata(self, vid_id):
+        """Resolve a video's title and channel via the YouTube Data API (needs a key).
 
-        Cached; returns None if there is no key, on any error, or if the video is
-        not found - callers treat None as "no title available".
+        Returns a dict {"title": ..., "channel": ...}. Cached; returns None if there
+        is no key, on any error, or if the video is not found.
         """
         if not self.apikey:
             return None
@@ -158,7 +158,8 @@ class ApiHelper:
         items = data.get("items") or []
         if not items:
             return None
-        return items[0].get("snippet", {}).get("title")
+        snippet = items[0].get("snippet", {})
+        return {"title": snippet.get("title"), "channel": snippet.get("channelTitle")}
 
     @AsyncLRU(maxsize=10)
     async def search_channels(self, channel):

@@ -160,6 +160,15 @@ class Notifier:
             f"{self._base_topic}/{slugify(device_id)}/playback_state", str(value)
         )
 
+    def set_channel(self, device_id: str, value: str) -> None:
+        """Set the channel sensor - the resolved channel name, or an empty string
+        when idle. Fire-and-forget; no-op when disabled."""
+        if not self.enabled:
+            return
+        self._publish_state(
+            f"{self._base_topic}/{slugify(device_id)}/channel", str(value)
+        )
+
     async def _run(self) -> None:
         will = aiomqtt.Will(
             topic=self.availability_topic, payload="offline", qos=1, retain=True

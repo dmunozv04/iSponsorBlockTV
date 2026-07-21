@@ -105,6 +105,7 @@ class DeviceListener:
             if self.notifier and not self.cancelled:
                 self.notifier.emit("device_disconnected", self.screen_id, self.name)
                 self.notifier.set_now_playing(self.screen_id, "")
+                self.notifier.set_channel(self.screen_id, "")
                 self._last_now_playing_id = ""
                 if self._last_playback_state != "stopped":
                     self._last_playback_state = "stopped"
@@ -145,15 +146,16 @@ class DeviceListener:
                 video_id=state.videoId,
                 duration=(getattr(state, "duration", 0) or None),
             )
-            self._start_title_resolution(state.videoId)
+            self._start_metadata_resolution(state.videoId)
         elif (
             self.notifier
             and self._last_now_playing_id
             and (state.state.value == -1 or not state.videoId)  # Stopped / no video
         ):
-            # Playback stopped -> blank the now_playing sensor (empty = not playing).
+            # Playback stopped -> blank the now_playing + channel sensors (empty = idle).
             self._last_now_playing_id = ""
             self.notifier.set_now_playing(self.screen_id, "")
+            self.notifier.set_channel(self.screen_id, "")
         segments = []
         if state.videoId:
             segments = await self.api_helper.get_segments(state.videoId)
@@ -205,24 +207,27 @@ class DeviceListener:
                 skipped_to=round(end_position, 3),
             )
 
-    def _start_title_resolution(self, video_id):
-        # Resolve the video's title in the background and update the now_playing
-        # sensor to it. Its own task, so the API lookup is never cancelled with
+    def _start_metadata_resolution(self, video_id):
+        # Resolve the video's title + channel in the background and update the
+        # sensors. Its own task, so the API lookup is never cancelled with
         # process_playstatus and never blocks the skip path. No-op without an API key.
         if not (self.notifier and getattr(self.api_helper, "apikey", "")):
             return
         if self._title_task and not self._title_task.done():
             self._title_task.cancel()
-        self._title_task = asyncio.create_task(self._resolve_title(video_id))
+        self._title_task = asyncio.create_task(self._resolve_metadata(video_id))
 
-    async def _resolve_title(self, video_id):
+    async def _resolve_metadata(self, video_id):
         try:
-            title = await self.api_helper.get_video_title(video_id)
+            meta = await self.api_helper.get_video_metadata(video_id)
         except BaseException:
-            title = None
+            meta = None
         # Only apply if this is still the current video (user may have moved on).
-        if title and self.notifier and video_id == self._last_now_playing_id:
-            self.notifier.set_now_playing(self.screen_id, title)
+        if meta and self.notifier and video_id == self._last_now_playing_id:
+            if meta.get("title"):
+                self.notifier.set_now_playing(self.screen_id, meta["title"])
+            if meta.get("channel"):
+                self.notifier.set_channel(self.screen_id, meta["channel"])
 
     async def cancel(self):
         self.cancelled = True
