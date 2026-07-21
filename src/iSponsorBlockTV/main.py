@@ -320,9 +320,7 @@ async def main_async(config, debug, http_tracing):
     # Bounded, best-effort graceful cleanup (incl. MQTT "offline"); a hung network
     # call can't block the exit.
     with contextlib.suppress(BaseException):
-        await asyncio.wait_for(
-            finish(devices, notifier, web_session, tcp_connector), timeout=8
-        )
+        await asyncio.wait_for(finish(devices, notifier, web_session, tcp_connector), timeout=8)
     print("Exited")
     # The device loops swallow cancellation, so the interpreter's own task cleanup
     # can still wedge on one that refuses to stop. We've cleaned up gracefully above;

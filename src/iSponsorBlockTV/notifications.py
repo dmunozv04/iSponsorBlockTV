@@ -146,32 +146,24 @@ class Notifier:
         no-op when disabled."""
         if not self.enabled:
             return
-        self._publish_state(
-            f"{self._base_topic}/{slugify(device_id)}/title", str(value)
-        )
+        self._publish_state(f"{self._base_topic}/{slugify(device_id)}/title", str(value))
 
     def set_playback_state(self, device_id: str, value: str) -> None:
         """Set the playback_state sensor (playing / paused / stopped / ...).
         Fire-and-forget; no-op when disabled."""
         if not self.enabled:
             return
-        self._publish_state(
-            f"{self._base_topic}/{slugify(device_id)}/playback_state", str(value)
-        )
+        self._publish_state(f"{self._base_topic}/{slugify(device_id)}/playback_state", str(value))
 
     def set_channel(self, device_id: str, value: str) -> None:
         """Set the channel sensor - the resolved channel name, or an empty string
         when idle. Fire-and-forget; no-op when disabled."""
         if not self.enabled:
             return
-        self._publish_state(
-            f"{self._base_topic}/{slugify(device_id)}/channel", str(value)
-        )
+        self._publish_state(f"{self._base_topic}/{slugify(device_id)}/channel", str(value))
 
     async def _run(self) -> None:
-        will = aiomqtt.Will(
-            topic=self.availability_topic, payload="offline", qos=1, retain=True
-        )
+        will = aiomqtt.Will(topic=self.availability_topic, payload="offline", qos=1, retain=True)
         tls_params = aiomqtt.TLSParameters() if self._tls else None
         while not self._stop_event.is_set():
             try:
@@ -184,21 +176,15 @@ class Notifier:
                     will=will,
                     tls_params=tls_params,
                 ) as client:
-                    self.logger.info(
-                        "Connected to MQTT broker %s:%s", self._broker, self._port
-                    )
-                    await client.publish(
-                        self.availability_topic, "online", qos=1, retain=True
-                    )
+                    self.logger.info("Connected to MQTT broker %s:%s", self._broker, self._port)
+                    await client.publish(self.availability_topic, "online", qos=1, retain=True)
                     await self._publish_discovery(client)
                     await self._republish_state(client)
                     await self._drain(client)
                     if self._stop_event.is_set():
                         # Graceful shutdown: mark offline before the clean disconnect
                         # (the Last Will only fires on an unclean disconnect).
-                        await client.publish(
-                            self.availability_topic, "offline", qos=1, retain=True
-                        )
+                        await client.publish(self.availability_topic, "offline", qos=1, retain=True)
                         return
             except asyncio.CancelledError:
                 raise
@@ -216,9 +202,7 @@ class Notifier:
                 )
             if not self._stop_event.is_set():
                 try:
-                    await asyncio.wait_for(
-                        self._stop_event.wait(), timeout=self.RECONNECT_DELAY
-                    )
+                    await asyncio.wait_for(self._stop_event.wait(), timeout=self.RECONNECT_DELAY)
                 except asyncio.TimeoutError:
                     pass
 
