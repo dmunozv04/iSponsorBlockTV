@@ -28,6 +28,19 @@ def slugify(value: str) -> str:
     return slug or "device"
 
 
+def _device_list(config):
+    """Extract (screen_id, name) pairs from config.devices (dicts or objects)."""
+    result = []
+    for d in getattr(config, "devices", None) or []:
+        if isinstance(d, dict):
+            screen_id, name = d.get("screen_id"), d.get("name")
+        else:
+            screen_id, name = getattr(d, "screen_id", None), getattr(d, "name", None)
+        if screen_id:
+            result.append((screen_id, name))
+    return result
+
+
 class Notifier:
     QUEUE_MAXSIZE = 200
     RECONNECT_DELAY = 10  # seconds between reconnect attempts
@@ -44,9 +57,16 @@ class Notifier:
         self._client_id: str = f"isponsorblocktv-{slugify(self._base_topic)}"
         self.logger = logger or logging.getLogger("iSponsorBlockTV-mqtt")
 
+        ha = mqtt.get("home_assistant") or {}
+        self._ha_enabled: bool = self.enabled and bool(ha.get("enabled"))
+        self._discovery_prefix: str = (ha.get("discovery_prefix") or "homeassistant").strip("/")
+        self._devices = _device_list(config)
+
         self._queue: asyncio.Queue = asyncio.Queue(maxsize=self.QUEUE_MAXSIZE)
         self._task: Optional[asyncio.Task] = None
         self._stop_event: asyncio.Event = asyncio.Event()
+        self._skip_counts: dict = {}
+        self._state: dict = {}
 
     @property
     def availability_topic(self) -> str:
@@ -96,12 +116,31 @@ class Notifier:
         payload = {"event_type": event_type, "device": device_name or did}
         payload.update({k: v for k, v in fields.items() if v is not None})
         self._enqueue(self.event_topic(did), json.dumps(payload), retain=False)
+        self._update_state(did, event_type, fields)
 
     def _enqueue(self, topic: str, payload: str, retain: bool = False) -> None:
         try:
             self._queue.put_nowait((topic, payload, retain))
         except asyncio.QueueFull:
             self.logger.debug("MQTT queue full; dropping message to %s", topic)
+
+    def _publish_state(self, topic: str, payload: str) -> None:
+        # Retained state, remembered so it can be re-published after a reconnect
+        # (in case the broker lost its retained messages).
+        self._state[topic] = payload
+        self._enqueue(topic, payload, retain=True)
+
+    def _update_state(self, device_id: str, event_type: str, fields: dict) -> None:
+        base = f"{self._base_topic}/{device_id}"
+        if event_type == "segment_skipped":
+            self._skip_counts[device_id] = self._skip_counts.get(device_id, 0) + 1
+            self._publish_state(f"{base}/segments_skipped", str(self._skip_counts[device_id]))
+        elif event_type == "now_playing":
+            self._publish_state(f"{base}/now_playing", str(fields.get("video_id") or ""))
+        elif event_type == "device_connected":
+            self._publish_state(f"{base}/connected", "ON")
+        elif event_type == "device_disconnected":
+            self._publish_state(f"{base}/connected", "OFF")
 
     async def _run(self) -> None:
         will = aiomqtt.Will(
@@ -125,6 +164,8 @@ class Notifier:
                     await client.publish(
                         self.availability_topic, "online", qos=1, retain=True
                     )
+                    await self._publish_discovery(client)
+                    await self._republish_state(client)
                     await self._drain(client)
                     if self._stop_event.is_set():
                         # Graceful shutdown: mark offline before the clean disconnect
@@ -174,3 +215,29 @@ class Notifier:
                     return
         finally:
             stop_wait.cancel()
+
+    async def _publish_discovery(self, client) -> None:
+        if not self._ha_enabled or not self._devices:
+            return
+        from . import homeassistant  # isolate the HA-specific config building
+
+        count = 0
+        for screen_id, name in self._devices:
+            for topic, payload in homeassistant.discovery_messages(
+                self._discovery_prefix,
+                self._base_topic,
+                self.availability_topic,
+                slugify(screen_id),
+                name,
+            ):
+                await client.publish(topic, payload, qos=1, retain=True)
+                count += 1
+        self.logger.info(
+            "Published Home Assistant discovery: %d entities across %d device(s)",
+            count,
+            len(self._devices),
+        )
+
+    async def _republish_state(self, client) -> None:
+        for topic, payload in list(self._state.items()):
+            await client.publish(topic, payload, qos=0, retain=True)
