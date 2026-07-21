@@ -179,6 +179,14 @@ async def main_async(config, debug, http_tracing):
         web_session = aiohttp.ClientSession(trust_env=config.use_proxy, connector=tcp_connector)
 
     api_helper = api_helpers.ApiHelper(config, web_session)
+
+    notifier = None
+    if config.mqtt.get("enabled"):
+        from .notifications import Notifier  # lazy import: only load aiomqtt when enabled
+
+        notifier = Notifier(config, logging.getLogger("iSponsorBlockTV-mqtt"))
+        await notifier.start()
+
     for i in config.devices:
         device = DeviceListener(api_helper, config, i, debug, web_session)
         devices.append(device)
@@ -196,6 +204,8 @@ async def main_async(config, debug, http_tracing):
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
     finally:
+        if notifier:
+            await notifier.stop()
         await web_session.close()
         await tcp_connector.close()
         print("Exited")
