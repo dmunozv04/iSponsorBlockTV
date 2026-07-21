@@ -69,6 +69,15 @@ def discovery_messages(discovery_prefix, base_topic, availability_topic, device_
         ),
         cfg(
             "sensor",
+            "playback_state",
+            {
+                "name": "State",
+                "state_topic": f"{dev_base}/playback_state",
+                "icon": "mdi:play-pause",
+            },
+        ),
+        cfg(
+            "sensor",
             "segments_skipped",
             {
                 "name": "Segments skipped",

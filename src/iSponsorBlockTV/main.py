@@ -9,6 +9,16 @@ import aiohttp
 from . import api_helpers, ytlounge
 from .debug_helpers import AiohttpTracer
 
+# pyytlounge State value -> friendly status for the playback_state sensor.
+PLAYBACK_STATES = {
+    -1: "stopped",
+    0: "buffering",
+    1: "playing",
+    2: "paused",
+    3: "starting",
+    1081: "advertisement",
+}
+
 
 class DeviceListener:
     def __init__(self, api_helper, config, device, debug: bool, web_session, notifier=None):
@@ -20,6 +30,8 @@ class DeviceListener:
         self.notifier = notifier
         self._current_video_id = ""
         self._last_now_playing_id = ""
+        self._last_playback_state = ""
+        self._title_task: Optional[asyncio.Task] = None
         self.cancelled = False
         self.logger = logging.getLogger(f"iSponsorBlockTV-{device.screen_id}")
         self.web_session = web_session
@@ -90,6 +102,11 @@ class DeviceListener:
                 pass
             if self.notifier and not self.cancelled:
                 self.notifier.emit("device_disconnected", self.screen_id, self.name)
+                self.notifier.set_now_playing(self.screen_id, "")
+                self._last_now_playing_id = ""
+                if self._last_playback_state != "stopped":
+                    self._last_playback_state = "stopped"
+                    self.notifier.set_playback_state(self.screen_id, "stopped")
 
     # Method called on playback state change
     async def __call__(self, state):
@@ -103,6 +120,11 @@ class DeviceListener:
     # Processes the playback state change
     async def process_playstatus(self, state, time_start):
         self._current_video_id = state.videoId or ""
+        if self.notifier:
+            playback_state = PLAYBACK_STATES.get(state.state.value, "unknown")
+            if playback_state != self._last_playback_state:
+                self._last_playback_state = playback_state
+                self.notifier.set_playback_state(self.screen_id, playback_state)
         # Announce now_playing BEFORE the (network, cancellable) segment fetch, so it
         # isn't lost when this task is superseded by the next state change. Track the
         # id we've *announced* - not every id seen - since a video first arrives in a
@@ -121,6 +143,15 @@ class DeviceListener:
                 video_id=state.videoId,
                 duration=(getattr(state, "duration", 0) or None),
             )
+            self._start_title_resolution(state.videoId)
+        elif (
+            self.notifier
+            and self._last_now_playing_id
+            and (state.state.value == -1 or not state.videoId)  # Stopped / no video
+        ):
+            # Playback stopped -> blank the now_playing sensor (empty = not playing).
+            self._last_now_playing_id = ""
+            self.notifier.set_now_playing(self.screen_id, "")
         segments = []
         if state.videoId:
             segments = await self.api_helper.get_segments(state.videoId)
@@ -172,11 +203,32 @@ class DeviceListener:
                 skipped_to=round(end_position, 3),
             )
 
+    def _start_title_resolution(self, video_id):
+        # Resolve the video's title in the background and update the now_playing
+        # sensor to it. Its own task, so the API lookup is never cancelled with
+        # process_playstatus and never blocks the skip path. No-op without an API key.
+        if not (self.notifier and getattr(self.api_helper, "apikey", "")):
+            return
+        if self._title_task and not self._title_task.done():
+            self._title_task.cancel()
+        self._title_task = asyncio.create_task(self._resolve_title(video_id))
+
+    async def _resolve_title(self, video_id):
+        try:
+            title = await self.api_helper.get_video_title(video_id)
+        except BaseException:
+            title = None
+        # Only apply if this is still the current video (user may have moved on).
+        if title and self.notifier and video_id == self._last_now_playing_id:
+            self.notifier.set_now_playing(self.screen_id, title)
+
     async def cancel(self):
         self.cancelled = True
         await self.lounge_controller.disconnect()
         if self.task:
             self.task.cancel()
+        if self._title_task:
+            self._title_task.cancel()
         if self.lounge_controller.subscribe_task_watchdog:
             self.lounge_controller.subscribe_task_watchdog.cancel()
         if self.lounge_controller.subscribe_task:

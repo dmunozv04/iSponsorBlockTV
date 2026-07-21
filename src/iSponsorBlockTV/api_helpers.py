@@ -137,6 +137,29 @@ class ApiHelper:
             return
         return data["snippet"]["channelId"]
 
+    @AsyncLRU(maxsize=100)
+    async def get_video_title(self, vid_id):
+        """Resolve a video's title via the YouTube Data API (needs an API key).
+
+        Cached; returns None if there is no key, on any error, or if the video is
+        not found - callers treat None as "no title available".
+        """
+        if not self.apikey:
+            return None
+        params = {"id": vid_id, "key": self.apikey, "part": "snippet"}
+        url = constants.Youtube_api + "videos"
+        try:
+            async with self.web_session.get(url, params=params) as resp:
+                data = await resp.json()
+        except BaseException:
+            return None
+        if not isinstance(data, dict) or "error" in data:
+            return None
+        items = data.get("items") or []
+        if not items:
+            return None
+        return items[0].get("snippet", {}).get("title")
+
     @AsyncLRU(maxsize=10)
     async def search_channels(self, channel):
         channels = []

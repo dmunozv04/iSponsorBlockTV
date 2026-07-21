@@ -142,6 +142,24 @@ class Notifier:
         elif event_type == "device_disconnected":
             self._publish_state(f"{base}/connected", "OFF")
 
+    def set_now_playing(self, device_id: str, value: str) -> None:
+        """Directly set the now_playing sensor state - a resolved title, or an idle
+        string when playback stops. Fire-and-forget; no-op when disabled."""
+        if not self.enabled:
+            return
+        self._publish_state(
+            f"{self._base_topic}/{slugify(device_id)}/now_playing", str(value)
+        )
+
+    def set_playback_state(self, device_id: str, value: str) -> None:
+        """Set the playback_state sensor (playing / paused / stopped / ...).
+        Fire-and-forget; no-op when disabled."""
+        if not self.enabled:
+            return
+        self._publish_state(
+            f"{self._base_topic}/{slugify(device_id)}/playback_state", str(value)
+        )
+
     async def _run(self) -> None:
         will = aiomqtt.Will(
             topic=self.availability_topic, payload="offline", qos=1, retain=True
