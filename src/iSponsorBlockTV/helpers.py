@@ -126,8 +126,8 @@ class Config:
             raise ValueError("mqtt.enabled is true but mqtt.broker is empty")
         try:
             port = int(mqtt.get("port", 1883))
-        except (TypeError, ValueError):
-            raise ValueError("mqtt.port must be an integer")
+        except (TypeError, ValueError) as err:
+            raise ValueError("mqtt.port must be an integer") from err
         if not 0 < port < 65536:
             raise ValueError("mqtt.port must be between 1 and 65535")
 
