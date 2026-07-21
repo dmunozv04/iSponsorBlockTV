@@ -237,7 +237,12 @@ class ApiHelper:
                 )  # If all segments are locked, ignore ttl
                 segment = i["segment"]
                 UUID = i["UUID"]
-                segment_dict = {"start": segment[0], "end": segment[1], "UUID": [UUID]}
+                segment_dict = {
+                    "start": segment[0],
+                    "end": segment[1],
+                    "UUID": [UUID],
+                    "category": i.get("category"),
+                }
                 try:
                     # Get segment before to check if they are too close to each other
                     segment_before_end = segments[-1]["end"]

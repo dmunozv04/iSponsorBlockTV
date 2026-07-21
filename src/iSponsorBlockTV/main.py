@@ -11,16 +11,24 @@ from .debug_helpers import AiohttpTracer
 
 
 class DeviceListener:
-    def __init__(self, api_helper, config, device, debug: bool, web_session):
+    def __init__(self, api_helper, config, device, debug: bool, web_session, notifier=None):
         self.task: Optional[asyncio.Task] = None
         self.api_helper = api_helper
         self.offset = device.offset
         self.name = device.name
+        self.screen_id = device.screen_id
+        self.notifier = notifier
+        self._current_video_id = ""
         self.cancelled = False
         self.logger = logging.getLogger(f"iSponsorBlockTV-{device.screen_id}")
         self.web_session = web_session
         self.lounge_controller = ytlounge.YtLoungeApi(
-            device.screen_id, config, api_helper, self.logger
+            device.screen_id,
+            config,
+            api_helper,
+            self.logger,
+            notifier=notifier,
+            device_name=device.name,
         )
 
     # Ensures that we have a valid auth token
@@ -66,12 +74,21 @@ class DeviceListener:
             self.logger.info(
                 "Connected to device %s (%s)", lounge_controller.screen_name, self.name
             )
+            if self.notifier:
+                self.notifier.emit(
+                    "device_connected",
+                    self.screen_id,
+                    self.name,
+                    screen_name=lounge_controller.screen_name,
+                )
             try:
                 self.logger.debug("Subscribing to lounge")
                 sub = await lounge_controller.subscribe_monitored(self)
                 await sub
             except BaseException:
                 pass
+            if self.notifier and not self.cancelled:
+                self.notifier.emit("device_disconnected", self.screen_id, self.name)
 
     # Method called on playback state change
     async def __call__(self, state):
@@ -84,11 +101,22 @@ class DeviceListener:
 
     # Processes the playback state change
     async def process_playstatus(self, state, time_start):
+        previous_video_id = self._current_video_id
+        self._current_video_id = state.videoId or ""
         segments = []
         if state.videoId:
             segments = await self.api_helper.get_segments(state.videoId)
         if state.state.value == 1:  # Playing
             self.logger.info("Playing video %s with %d segments", state.videoId, len(segments))
+            if self.notifier and state.videoId and state.videoId != previous_video_id:
+                self.notifier.emit(
+                    "now_playing",
+                    self.screen_id,
+                    self.name,
+                    video_id=state.videoId,
+                    duration=(getattr(state, "duration", 0) or None),
+                    segments=len(segments),
+                )
             if segments:  # If there are segments
                 await self.time_to_segment(segments, state.currentTime, time_start)
 
@@ -113,16 +141,27 @@ class DeviceListener:
                 (start_next_segment - position - (time.monotonic() - time_start))
                 / self.lounge_controller.playback_speed
             ) - self.offset
-            await self.skip(time_to_next, next_segment["end"], next_segment["UUID"])
+            await self.skip(time_to_next, next_segment, start_next_segment)
 
     # Skips to the next segment (waits for the time to pass)
-    async def skip(self, time_to, position, uuids):
+    async def skip(self, time_to, segment, start_position):
         await asyncio.sleep(time_to)
-        self.logger.info("Skipping segment: seeking to %s", position)
+        end_position = segment["end"]
+        self.logger.info("Skipping segment: seeking to %s", end_position)
         await asyncio.gather(
-            asyncio.create_task(self.lounge_controller.seek_to(position)),
-            asyncio.create_task(self.api_helper.mark_viewed_segments(uuids)),
+            asyncio.create_task(self.lounge_controller.seek_to(end_position)),
+            asyncio.create_task(self.api_helper.mark_viewed_segments(segment["UUID"])),
         )
+        if self.notifier:
+            self.notifier.emit(
+                "segment_skipped",
+                self.screen_id,
+                self.name,
+                video_id=self._current_video_id or None,
+                category=segment.get("category"),
+                skipped_from=round(start_position, 3),
+                skipped_to=round(end_position, 3),
+            )
 
     async def cancel(self):
         self.cancelled = True
@@ -188,7 +227,7 @@ async def main_async(config, debug, http_tracing):
         await notifier.start()
 
     for i in config.devices:
-        device = DeviceListener(api_helper, config, i, debug, web_session)
+        device = DeviceListener(api_helper, config, i, debug, web_session, notifier=notifier)
         devices.append(device)
         await device.initialize_web_session()
         tasks.append(loop.create_task(device.loop()))
