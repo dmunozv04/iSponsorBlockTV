@@ -1,5 +1,7 @@
 import asyncio
+import contextlib
 import logging
+import os
 import time
 from signal import SIGINT, SIGTERM, signal
 from typing import Optional
@@ -244,14 +246,14 @@ class DeviceListener:
         await self.lounge_controller.change_web_session(self.web_session)
 
 
-async def finish(devices, web_session, tcp_connector):
+async def finish(devices, notifier, web_session, tcp_connector):
+    for device in devices:
+        device.cancelled = True
     await asyncio.gather(*(device.cancel() for device in devices), return_exceptions=True)
+    if notifier:
+        await notifier.stop()
     await web_session.close()
     await tcp_connector.close()
-
-
-def handle_signal(signum, frame):
-    raise KeyboardInterrupt()
 
 
 async def main_async(config, debug, http_tracing):
@@ -293,22 +295,38 @@ async def main_async(config, debug, http_tracing):
         await device.initialize_web_session()
         tasks.append(loop.create_task(device.loop()))
         tasks.append(loop.create_task(device.refresh_auth_loop()))
-    signal(SIGTERM, handle_signal)
-    signal(SIGINT, handle_signal)
+    # Drive shutdown through the loop's signal handling and an explicit stop event.
+    # (Raising KeyboardInterrupt from a handler is unreliable here: the device loops
+    # catch BaseException, which swallows the interrupt and leaves the process
+    # running - the "refused to stop" symptom.)
+    stop_event = asyncio.Event()
     try:
-        await asyncio.gather(*tasks)
-    except KeyboardInterrupt:
-        print("Cancelling tasks and exiting...")
-        await finish(devices, web_session, tcp_connector)
-        for task in tasks:
-            task.cancel()
-        await asyncio.gather(*tasks, return_exceptions=True)
-    finally:
-        if notifier:
-            await notifier.stop()
-        await web_session.close()
-        await tcp_connector.close()
-        print("Exited")
+        loop.add_signal_handler(SIGTERM, stop_event.set)
+        loop.add_signal_handler(SIGINT, stop_event.set)
+    except NotImplementedError:  # add_signal_handler is unavailable on Windows
+        signal(SIGTERM, lambda *_: loop.call_soon_threadsafe(stop_event.set))
+        signal(SIGINT, lambda *_: loop.call_soon_threadsafe(stop_event.set))
+
+    runner = asyncio.gather(*tasks, return_exceptions=True)
+    stop_wait = asyncio.ensure_future(stop_event.wait())
+    await asyncio.wait({runner, stop_wait}, return_when=asyncio.FIRST_COMPLETED)
+
+    print("Cancelling tasks and exiting...")
+    stop_wait.cancel()
+    runner.cancel()
+    for task in tasks:
+        task.cancel()
+    # Bounded, best-effort graceful cleanup (incl. MQTT "offline"); a hung network
+    # call can't block the exit.
+    with contextlib.suppress(BaseException):
+        await asyncio.wait_for(
+            finish(devices, notifier, web_session, tcp_connector), timeout=8
+        )
+    print("Exited")
+    # The device loops swallow cancellation, so the interpreter's own task cleanup
+    # can still wedge on one that refuses to stop. We've cleaned up gracefully above;
+    # guarantee the process actually terminates.
+    os._exit(0)
 
 
 def main(config, debug, http_tracing):
