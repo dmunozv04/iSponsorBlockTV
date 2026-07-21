@@ -59,23 +59,24 @@ in `helpers.Config`.
 | `segment_skipped`                          | device, video_id, category, from, to, uuid | `main.py` `DeviceListener.skip()`                                        |
 | `ad_started` / `ad_ended`                  | device, video_id                           | `ytlounge._process_event` mute branches (`onAdStateChange`, `adPlaying`) |
 | `ad_skipped`                               | device, video_id                           | `ytlounge._process_event` skip-ad branch                                 |
-| `now_playing`                              | device, video_id, duration, state          | `_handle_now_playing_event` -> `process_playstatus()`                    |
 | `device_connected` / `device_disconnected` | device, screen_name                        | `loop()` connect + `loungeScreenDisconnected`                            |
 
 `device` = a stable id derived from the configured device (slug of `screen_id`,
 with the human `name` carried as an attribute).
 
-Open item: pyytlounge exposes `video_id` but not the title/channel. v1 publishes
-`video_id`; optional title resolution via the YouTube Data API (only when
-`apikey` is set) is a later enhancement.
+The current video's `title` and `channel` are published as retained _state_ (not
+events): the raw `video_id` shows immediately, then - when `apikey` is set - a
+background YouTube Data API lookup replaces them with the real title and channel
+name. Both blank to an empty string when playback stops. The playback `state`
+(playing / paused / stopped / ...) is published as retained state as well.
 
 ## MQTT topic layout (layer 1, provider-neutral)
 
 - Base: `base_topic` (default `isponsorblocktv`).
 - Availability (LWT): `isponsorblocktv/<device_id>/availability` -> `online`/`offline`.
 - Events: `isponsorblocktv/<device_id>/event` -> `{"event_type": "...", ...fields}`.
-- State (retained): `isponsorblocktv/<device_id>/now_playing`,
-  `.../connected`, `.../segments_skipped`.
+- State (retained): `isponsorblocktv/<device_id>/title`, `.../channel`,
+  `.../playback_state`, `.../connected`, `.../segments_skipped`.
 
 ## Home Assistant Discovery (layer 2)
 
@@ -85,7 +86,9 @@ Open item: pyytlounge exposes `video_id` but not the title/channel. v1 publishes
 - Entities (retained config topics, published once on connect):
   - **event** - `event_types: [segment_skipped, ad_started, ad_skipped, ad_ended]`;
     state topic = the event topic above. This is the entity automations trigger on.
-  - **sensor** `now_playing` - state = video_id, attrs: duration, state.
+  - **sensor** `title` - the current video title (raw id until resolved).
+  - **sensor** `channel` - the current video's channel name.
+  - **sensor** `playback_state` - playing / paused / stopped / ...
   - **sensor** `segments_skipped` - running counter (only when `skip_count_tracking`).
   - **binary_sensor** `connected` - device link state, uses the availability topic.
 - Availability wired via the LWT topic so entities show unavailable when iSB-TV is down.
@@ -103,8 +106,9 @@ Open item: pyytlounge exposes `video_id` but not the title/channel. v1 publishes
   `Notifier`, `await notifier.start()`, pass it into each `DeviceListener`;
   ensure `stop()` in the finish/teardown path.
 - `main.DeviceListener`: accept `notifier`; emit `device_connected` (after the
-  "Connected to device" log), `now_playing` (in `process_playstatus`),
-  `segment_skipped` (in `skip()`), `device_disconnected` on teardown.
+  "Connected to device" log) and `segment_skipped` (in `skip()`), publish the
+  `title` / `channel` / `playback_state` state in `process_playstatus`, and emit
+  `device_disconnected` on teardown.
 - `ytlounge.YtLoungeApi`: accept `notifier`; emit `ad_started`/`ad_ended`/
   `ad_skipped` from the corresponding `_process_event` branches.
 - Setup wizard (`setup_wizard.py`): optional MQTT config screen (can land after a
@@ -130,8 +134,10 @@ Open item: pyytlounge exposes `video_id` but not the title/channel. v1 publishes
 
 ## Open decisions
 
-1. **now_playing detail** - v1 `video_id` only, or add optional YouTube-API title
-   resolution when `apikey` is set?
+1. ~~**now_playing detail** - v1 `video_id` only, or add optional YouTube-API title
+   resolution when `apikey` is set?~~ Resolved: the `title` and `channel` sensors
+   resolve via the YouTube Data API when `apikey` is set, falling back to the raw
+   video id otherwise.
 2. **aiomqtt packaging** - regular dependency (simplest, chosen for v1) vs an
    optional `[mqtt]` extra (zero footprint for non-users, more build work across
    PyPI / Docker / pyapp / HA add-on).

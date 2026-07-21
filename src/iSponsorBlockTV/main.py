@@ -31,9 +31,9 @@ class DeviceListener:
         self.screen_id = device.screen_id
         self.notifier = notifier
         self._current_video_id = ""
-        self._last_now_playing_id = ""
+        self._last_title_id = ""
         self._last_playback_state = ""
-        self._title_task: Optional[asyncio.Task] = None
+        self._metadata_task: Optional[asyncio.Task] = None
         self.cancelled = False
         self.logger = logging.getLogger(f"iSponsorBlockTV-{device.screen_id}")
         self.web_session = web_session
@@ -104,9 +104,9 @@ class DeviceListener:
                 pass
             if self.notifier and not self.cancelled:
                 self.notifier.emit("device_disconnected", self.screen_id, self.name)
-                self.notifier.set_now_playing(self.screen_id, "")
+                self.notifier.set_title(self.screen_id, "")
                 self.notifier.set_channel(self.screen_id, "")
-                self._last_now_playing_id = ""
+                self._last_title_id = ""
                 if self._last_playback_state != "stopped":
                     self._last_playback_state = "stopped"
                     self.notifier.set_playback_state(self.screen_id, "stopped")
@@ -128,33 +128,29 @@ class DeviceListener:
             if playback_state != self._last_playback_state:
                 self._last_playback_state = playback_state
                 self.notifier.set_playback_state(self.screen_id, playback_state)
-        # Announce now_playing BEFORE the (network, cancellable) segment fetch, so it
+        # Publish the title BEFORE the (network, cancellable) segment fetch, so it
         # isn't lost when this task is superseded by the next state change. Track the
-        # id we've *announced* - not every id seen - since a video first arrives in a
+        # id we've *published* - not every id seen - since a video first arrives in a
         # non-playing (buffering) state, which would otherwise dedupe it away.
         if (
             self.notifier
             and state.state.value == 1
             and state.videoId
-            and state.videoId != self._last_now_playing_id
+            and state.videoId != self._last_title_id
         ):
-            self._last_now_playing_id = state.videoId
-            self.notifier.emit(
-                "now_playing",
-                self.screen_id,
-                self.name,
-                video_id=state.videoId,
-                duration=(getattr(state, "duration", 0) or None),
-            )
+            self._last_title_id = state.videoId
+            # Show the id immediately; metadata resolution replaces it with the real
+            # title once the YouTube API answers (a no-op without an API key).
+            self.notifier.set_title(self.screen_id, state.videoId)
             self._start_metadata_resolution(state.videoId)
         elif (
             self.notifier
-            and self._last_now_playing_id
+            and self._last_title_id
             and (state.state.value == -1 or not state.videoId)  # Stopped / no video
         ):
-            # Playback stopped -> blank the now_playing + channel sensors (empty = idle).
-            self._last_now_playing_id = ""
-            self.notifier.set_now_playing(self.screen_id, "")
+            # Playback stopped -> blank the title + channel sensors (empty = idle).
+            self._last_title_id = ""
+            self.notifier.set_title(self.screen_id, "")
             self.notifier.set_channel(self.screen_id, "")
         segments = []
         if state.videoId:
@@ -213,9 +209,9 @@ class DeviceListener:
         # process_playstatus and never blocks the skip path. No-op without an API key.
         if not (self.notifier and getattr(self.api_helper, "apikey", "")):
             return
-        if self._title_task and not self._title_task.done():
-            self._title_task.cancel()
-        self._title_task = asyncio.create_task(self._resolve_metadata(video_id))
+        if self._metadata_task and not self._metadata_task.done():
+            self._metadata_task.cancel()
+        self._metadata_task = asyncio.create_task(self._resolve_metadata(video_id))
 
     async def _resolve_metadata(self, video_id):
         try:
@@ -223,9 +219,9 @@ class DeviceListener:
         except BaseException:
             meta = None
         # Only apply if this is still the current video (user may have moved on).
-        if meta and self.notifier and video_id == self._last_now_playing_id:
+        if meta and self.notifier and video_id == self._last_title_id:
             if meta.get("title"):
-                self.notifier.set_now_playing(self.screen_id, meta["title"])
+                self.notifier.set_title(self.screen_id, meta["title"])
             if meta.get("channel"):
                 self.notifier.set_channel(self.screen_id, meta["channel"])
 
@@ -234,8 +230,8 @@ class DeviceListener:
         await self.lounge_controller.disconnect()
         if self.task:
             self.task.cancel()
-        if self._title_task:
-            self._title_task.cancel()
+        if self._metadata_task:
+            self._metadata_task.cancel()
         if self.lounge_controller.subscribe_task_watchdog:
             self.lounge_controller.subscribe_task_watchdog.cancel()
         if self.lounge_controller.subscribe_task:

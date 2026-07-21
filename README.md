@@ -84,16 +84,18 @@ Enable it in the config wizard (`setup` / `setup-cli`) or add an `mqtt` block to
 
 - `mqtt.enabled` publishes provider-neutral topics under `base_topic` (usable by
   any MQTT consumer). Events are published as JSON to
-  `<base_topic>/<device>/event`, retained state to `.../now_playing`,
-  `.../segments_skipped` and `.../connected`, and process availability to
-  `<base_topic>/availability`.
+  `<base_topic>/<device>/event`, retained state to `.../title`, `.../channel`,
+  `.../playback_state`, `.../segments_skipped` and `.../connected`, and process
+  availability to `<base_topic>/availability`.
 - `mqtt.home_assistant.enabled` additionally publishes
   [MQTT Discovery](https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery)
   configs so Home Assistant auto-creates, per YouTube TV device, an **event**
   entity (fires `segment_skipped`, `ad_started`, `ad_ended`, `ad_skipped`),
-  **now playing** and **segments skipped** sensors, and a **connected** binary
-  sensor - no YAML required. It needs an MQTT broker that both this app and Home
-  Assistant can reach (for example the Mosquitto add-on).
+  **title**, **channel**, **state** and **segments skipped** sensors, and a
+  **connected** binary sensor - no YAML required. The **title** and **channel**
+  sensors show the raw video id until a YouTube Data API lookup (when `apikey` is
+  set) resolves the real title and channel name. It needs an MQTT broker that both
+  this app and Home Assistant can reach (for example the Mosquitto add-on).
 
 The MQTT client (`aiomqtt`) is only imported when MQTT is enabled.
 

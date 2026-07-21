@@ -116,7 +116,7 @@ class Notifier:
         payload = {"event_type": event_type, "device": device_name or did}
         payload.update({k: v for k, v in fields.items() if v is not None})
         self._enqueue(self.event_topic(did), json.dumps(payload), retain=False)
-        self._update_state(did, event_type, fields)
+        self._update_state(did, event_type)
 
     def _enqueue(self, topic: str, payload: str, retain: bool = False) -> None:
         try:
@@ -130,25 +130,24 @@ class Notifier:
         self._state[topic] = payload
         self._enqueue(topic, payload, retain=True)
 
-    def _update_state(self, device_id: str, event_type: str, fields: dict) -> None:
+    def _update_state(self, device_id: str, event_type: str) -> None:
         base = f"{self._base_topic}/{device_id}"
         if event_type == "segment_skipped":
             self._skip_counts[device_id] = self._skip_counts.get(device_id, 0) + 1
             self._publish_state(f"{base}/segments_skipped", str(self._skip_counts[device_id]))
-        elif event_type == "now_playing":
-            self._publish_state(f"{base}/now_playing", str(fields.get("video_id") or ""))
         elif event_type == "device_connected":
             self._publish_state(f"{base}/connected", "ON")
         elif event_type == "device_disconnected":
             self._publish_state(f"{base}/connected", "OFF")
 
-    def set_now_playing(self, device_id: str, value: str) -> None:
-        """Directly set the now_playing sensor state - a resolved title, or an idle
-        string when playback stops. Fire-and-forget; no-op when disabled."""
+    def set_title(self, device_id: str, value: str) -> None:
+        """Set the title sensor state - the resolved video title (or the raw video id
+        until it resolves), or an empty string when playback stops. Fire-and-forget;
+        no-op when disabled."""
         if not self.enabled:
             return
         self._publish_state(
-            f"{self._base_topic}/{slugify(device_id)}/now_playing", str(value)
+            f"{self._base_topic}/{slugify(device_id)}/title", str(value)
         )
 
     def set_playback_state(self, device_id: str, value: str) -> None:

@@ -60,10 +60,10 @@ def discovery_messages(discovery_prefix, base_topic, availability_topic, device_
         ),
         cfg(
             "sensor",
-            "now_playing",
+            "title",
             {
-                "name": "Now playing",
-                "state_topic": f"{dev_base}/now_playing",
+                "name": "Title",
+                "state_topic": f"{dev_base}/title",
                 "icon": "mdi:youtube",
             },
         ),
