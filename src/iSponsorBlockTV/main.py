@@ -90,12 +90,7 @@ class DeviceListener:
                 "Connected to device %s (%s)", lounge_controller.screen_name, self.name
             )
             if self.notifier:
-                self.notifier.emit(
-                    "device_connected",
-                    self.screen_id,
-                    self.name,
-                    screen_name=lounge_controller.screen_name,
-                )
+                self.notifier.set_connected(self.screen_id, True)
             try:
                 self.logger.debug("Subscribing to lounge")
                 sub = await lounge_controller.subscribe_monitored(self)
@@ -103,7 +98,7 @@ class DeviceListener:
             except BaseException:
                 pass
             if self.notifier and not self.cancelled:
-                self.notifier.emit("device_disconnected", self.screen_id, self.name)
+                self.notifier.set_connected(self.screen_id, False)
                 self.notifier.set_title(self.screen_id, "")
                 self.notifier.set_channel(self.screen_id, "")
                 self._last_title_id = ""
