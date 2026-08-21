@@ -1,0 +1,17 @@
+[Unit]
+Description=iSponsorBlockTV
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=isponsorblocktv
+Group=isponsorblocktv
+WorkingDirectory=/opt/isponsorblocktv
+Environment=iSPBTV_data_dir=/var/lib/isponsorblocktv
+ExecStart=/opt/isponsorblocktv/venv/bin/iSponsorBlockTV
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
