@@ -17,6 +17,18 @@ from .constants import youtube_client_blacklist
 create_task = asyncio.create_task
 
 
+def _state_desc(state) -> str:
+    """Descriptive playback state, e.g. '1 (Playing)'.
+    pyytlounge State names differ from YouTube's own labels for 0/3:
+    0 is "ended" and 3 is "buffering" in YouTube's terminology."""
+    if state is None:
+        return "None"
+    try:
+        return f"{state} ({State.parse(state).name})"
+    except Exception:
+        return str(state)
+
+
 class PlaybackState:
     def __init__(self):
         self.currentTime = 0.0
@@ -66,10 +78,21 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         self.auto_play = True
         self.watchdog_running = False
         self.last_event_time = 0
+        # Tracks whether the current video reached its natural end, used
+        # to distinguish an auto-advance from a manual video selection.
+        self._current_video_id = None
+        self._current_video_ended = False
+        self._current_video_ended_at = 0.0
+        self._current_video_ended_window = 10
+        self._current_video_ended_marks = 0
+        # "off" (default) or "pause": pauses the video the receiver
+        # auto-advances to; see autoplay_block_action in helpers.py.
+        self.autoplay_block_action = "off"
         if config:
             self.mute_ads = config.mute_ads
             self.skip_ads = config.skip_ads
             self.auto_play = config.auto_play
+            self.autoplay_block_action = getattr(config, "autoplay_block_action", "off")
         self._command_mutex = asyncio.Lock()
 
     async def _handle_playback_state_event(self, event: PlaybackStateEvent) -> None:
@@ -161,15 +184,92 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         if event_type == "onStateChange":
             data = args[0]
             # print(data)
+            state = data.get("state")
             # Unmute when the video starts playing
-            if self.mute_ads and data["state"] == "1":
+            if self.mute_ads and state == "1":
                 create_task(self.mute(False, override=True))
+            # state "0" is the real end-of-video signal (non-repeating,
+            # fires once at currentTime == duration).
+            if state == "0":
+                self.logger.info(
+                    f"Video {self._current_video_id} reached its natural end "
+                    f"(state {_state_desc(state)})"
+                )
+                self._current_video_ended = True
+                self._current_video_ended_at = asyncio.get_running_loop().time()
+                self._current_video_ended_window = 10
+                self._current_video_ended_marks = 1
         elif event_type == "nowPlaying":
             data = args[0]
+            state = data.get("state")
+            new_video_id = data.get("videoId")
             # Unmute when the video starts playing
-            if self.mute_ads and data.get("state", "0") == "1":
+            if self.mute_ads and state == "1":
                 self.logger.info("Ad has ended, unmuting")
                 create_task(self.mute(False, override=True))
+
+            # Playlists never emit state "0" on the outgoing video;
+            # instead a bare nowPlaying (listId, no videoId) arrives.
+            # This same event also fires periodically during normal
+            # long-video playback, so it is recorded as a timestamped
+            # marker only - not acted on directly.
+            if not new_video_id and data.get("listId") and self._current_video_id:
+                # A tighter window already active means state "0" fired
+                # for this video; preserve it instead of loosening to 90s.
+                keep_tighter_window = (
+                    self._current_video_ended and self._current_video_ended_window == 10
+                )
+                if self._current_video_ended:
+                    self._current_video_ended_marks += 1
+                else:
+                    self._current_video_ended_marks = 1
+                self.logger.debug(
+                    f"Bare listId nowPlaying event for {self._current_video_id} "
+                    f"(mark {self._current_video_ended_marks}, validity 90s)"
+                )
+                self._current_video_ended = True
+                self._current_video_ended_at = asyncio.get_running_loop().time()
+                if not keep_tighter_window:
+                    self._current_video_ended_window = 90
+            elif new_video_id and new_video_id != self._current_video_id:
+                # Only treated as auto-advance if the previous video
+                # ended within its validity window.
+                if self.auto_play:
+                    pass  # autoplay is enabled, no action needed
+                elif self._current_video_ended:
+                    elapsed = asyncio.get_running_loop().time() - self._current_video_ended_at
+                    if elapsed <= self._current_video_ended_window:
+                        if self.autoplay_block_action == "pause":
+                            self.logger.info(
+                                f"Auto-advance detected: {self._current_video_id} "
+                                f"-> {new_video_id} (state {_state_desc(state)}), "
+                                f"autoplay disabled; pausing"
+                            )
+                            create_task(self.pause())
+                        else:
+                            self.logger.info(
+                                f"Auto-advance detected: {self._current_video_id} "
+                                f"-> {new_video_id}, autoplay disabled; "
+                                f"autoplay_block_action is 'off', no action taken"
+                            )
+                    else:
+                        self.logger.info(
+                            f"End-of-video marker for {self._current_video_id} "
+                            f"expired ({elapsed:.1f}s elapsed, "
+                            f"{self._current_video_ended_window}s window, "
+                            f"{self._current_video_ended_marks} mark(s)); "
+                            f"{new_video_id} treated as a manual selection"
+                        )
+                else:
+                    self.logger.info(
+                        f"New video {new_video_id} started (state "
+                        f"{_state_desc(state)}) following "
+                        f"{self._current_video_id}, which had not ended; "
+                        f"treated as a manual selection"
+                    )
+                self._current_video_id = new_video_id
+                self._current_video_ended = False
+                self._current_video_ended_marks = 0
         elif event_type == "onAdStateChange":
             data = args[0]
             if data["adState"] == "0" and data["currentTime"] != "0":  # Ad is not playing
@@ -190,7 +290,9 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             self.volume_state = args[0]
         # Gets segments for the next video before it starts playing
         elif event_type == "autoplayUpNext":
-            if len(args) > 0 and (vid_id := args[0]["videoId"]):  # if video id is not empty
+            # autoplayUpNext fires constantly during normal playback and
+            # on manual selection - not a reliable auto-advance signal.
+            if len(args) > 0 and (vid_id := args[0].get("videoId")):
                 self.logger.info(f"Getting segments for next video: {vid_id}")
                 create_task(self.api_helper.get_segments(vid_id))
 
@@ -228,8 +330,14 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 data = args[0]
                 video_id_saved = data.get("videoId", None)
                 self.shorts_disconnected = False
+                # App-initiated play, not an auto-advance.
+                self._current_video_ended = False
+                self._current_video_ended_marks = 0
+                self._current_video_id = video_id_saved
                 create_task(self.play_video(video_id_saved))
         elif event_type == "loungeScreenDisconnected":
+            self._current_video_ended = False
+            self._current_video_ended_marks = 0
             if args:  # Sometimes it's empty
                 data = args[0]
                 if data["reason"] == "disconnectedByUserScreenInitiated":  # Short playing?
