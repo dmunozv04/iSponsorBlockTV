@@ -66,10 +66,12 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         self.auto_play = True
         self.watchdog_running = False
         self.last_event_time = 0
+        self.closed_captions = ""
         if config:
             self.mute_ads = config.mute_ads
             self.skip_ads = config.skip_ads
             self.auto_play = config.auto_play
+            self.closed_captions = config.closed_captions
         self._command_mutex = asyncio.Lock()
 
     async def _handle_playback_state_event(self, event: PlaybackStateEvent) -> None:
@@ -170,6 +172,13 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             if self.mute_ads and data.get("state", "0") == "1":
                 self.logger.info("Ad has ended, unmuting")
                 create_task(self.mute(False, override=True))
+            # Set Closed Captions when the video starts playing
+            if self.closed_captions and data.get("state", "0") == "1":
+                self.logger.info(
+                    f"Setting closed captions to {self.closed_captions} "
+                    f"for video: {data.get('videoId')}"
+                )
+                create_task(self.set_closed_captions(self.closed_captions, data.get("videoId")))
         elif event_type == "onAdStateChange":
             data = args[0]
             if data["adState"] == "0" and data["currentTime"] != "0":  # Ad is not playing
