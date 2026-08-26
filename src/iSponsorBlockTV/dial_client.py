@@ -1,6 +1,7 @@
 """Send out an M-SEARCH request and listening for responses."""
 
 import asyncio
+import ipaddress
 import logging
 import secrets
 import socket
@@ -81,7 +82,7 @@ def get_ip() -> str:
 class Handler(ssdp.aio.SSDP):
     def __init__(self):
         super().__init__()
-        self.devices_queue: asyncio.Queue[str] = asyncio.Queue()
+        self.devices_queue: asyncio.Queue[Tuple[str, str]] = asyncio.Queue()
 
     def clear(self):
         self.devices_queue = asyncio.Queue()
@@ -93,7 +94,7 @@ class Handler(ssdp.aio.SSDP):
         headers = response.headers
         headers = {k.lower(): v for k, v in headers}
         if "location" in headers:
-            self.devices_queue.put_nowait(headers["location"])
+            self.devices_queue.put_nowait((headers["location"], addr[0]))
 
     def request_received(self, request: ssdp.messages.SSDPRequest, addr):
         raise NotImplementedError("Request received is not implemented, this is a client")
@@ -113,8 +114,24 @@ def _generate_pairing_code() -> str:
     return "".join(str(secrets.randbelow(10)) for _ in range(12))
 
 
+def _url_matches_ip(url: str, expected_ip: str) -> bool:
+    """Return whether a DIAL URL points back to the SSDP responder."""
+    try:
+        parsed_url = URL(url)
+        url_ip = ipaddress.ip_address(parsed_url.host or "")
+        sender_ip = ipaddress.ip_address(expected_ip)
+    except ValueError:
+        return False
+
+    return url_ip == sender_ip
+
+
 async def find_youtube_app(
-    web_session: ClientSession, api_helper: "ApiHelper", url_location: str, active: bool = True
+    web_session: ClientSession,
+    api_helper: "ApiHelper",
+    url_location: str,
+    expected_ip: str,
+    active: bool = True,
 ) -> Optional[Dict[str, Any]]:
     """Discover and validate a YouTube app on a DIAL device.
 
@@ -122,24 +139,39 @@ async def find_youtube_app(
         web_session: aiohttp ClientSession for making requests
         api_helper: API helper instance for pairing operations
         url_location: Device location URL from DIAL discovery
+        expected_ip: IP address of the SSDP response sender
         active: If True, attempt to launch YouTube app to obtain screen ID.
                 If False, only try passive methods (direct service query).
 
     Returns:
         Device dict with screen_id, name, and offset, or None if not found/invalid.
     """
-    async with web_session.get(url_location) as response:
+    if not _url_matches_ip(url_location, expected_ip):
+        logger.debug(
+            "Ignoring DIAL LOCATION from %s with non-matching URL %s", expected_ip, url_location
+        )
+        return None
+
+    async with web_session.get(url_location, allow_redirects=False) as response:
         headers = response.headers
         response = await response.text()
 
     data = xmltodict.parse(response)
     name = data["root"]["device"]["friendlyName"]
     app_url = headers["application-url"]
+    if not _url_matches_ip(app_url, expected_ip):
+        logger.debug(
+            "Ignoring DIAL application-url from %s with non-matching URL %s", expected_ip, app_url
+        )
+        return None
+
     base_url = URL(app_url)
     youtube_url = str(base_url / "YouTube")
     request_headers = {"Origin": "https://www.youtube.com"}
     try:
-        async with web_session.get(youtube_url, headers=request_headers) as response:
+        async with web_session.get(
+            youtube_url, headers=request_headers, allow_redirects=False
+        ) as response:
             youtube_service_xml = await response.text()
             screen_id = _extract_screen_id(youtube_service_xml)
             if screen_id:
@@ -161,7 +193,9 @@ async def find_youtube_app(
     }
     launch_data = {"pairingCode": pairing_code, "theme": "cl"}
 
-    async with web_session.post(youtube_url, headers=launch_headers, data=launch_data) as response:
+    async with web_session.post(
+        youtube_url, headers=launch_headers, data=launch_data, allow_redirects=False
+    ) as response:
         if response.headers.get("Location"):
             logger.debug("Launched YouTube app on %s, waiting for it to pair...", name)
             for _ in range(10):
@@ -223,13 +257,17 @@ async def _process_devices(
     ):
         try:
             # Try to get a device from the queue with timeout
-            url_location = await asyncio.wait_for(handler.devices_queue.get(), timeout=0.5)
+            url_location, expected_ip = await asyncio.wait_for(
+                handler.devices_queue.get(), timeout=0.5
+            )
             # Always create a task - we'll deduplicate by screen_id after we have it
             logger.debug("Discovered device at %s, processing...", url_location)
-            coro = find_youtube_app(web_session, api_helper, url_location, active=active)
+            coro = find_youtube_app(
+                web_session, api_helper, url_location, expected_ip, active=active
+            )
             task = asyncio.create_task(coro)
             pending_tasks.add(task)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             pass
         except Exception:
             pass
