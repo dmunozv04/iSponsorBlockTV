@@ -137,6 +137,30 @@ class ApiHelper:
             return
         return data["snippet"]["channelId"]
 
+    @AsyncLRU(maxsize=100)
+    async def get_video_metadata(self, vid_id):
+        """Resolve a video's title and channel via the YouTube Data API (needs a key).
+
+        Returns a dict {"title": ..., "channel": ...}. Cached; returns None if there
+        is no key, on any error, or if the video is not found.
+        """
+        if not self.apikey:
+            return None
+        params = {"id": vid_id, "key": self.apikey, "part": "snippet"}
+        url = constants.Youtube_api + "videos"
+        try:
+            async with self.web_session.get(url, params=params) as resp:
+                data = await resp.json()
+        except BaseException:
+            return None
+        if not isinstance(data, dict) or "error" in data:
+            return None
+        items = data.get("items") or []
+        if not items:
+            return None
+        snippet = items[0].get("snippet", {})
+        return {"title": snippet.get("title"), "channel": snippet.get("channelTitle")}
+
     @AsyncLRU(maxsize=10)
     async def search_channels(self, channel):
         channels = []
@@ -237,7 +261,12 @@ class ApiHelper:
                 )  # If all segments are locked, ignore ttl
                 segment = i["segment"]
                 UUID = i["UUID"]
-                segment_dict = {"start": segment[0], "end": segment[1], "UUID": [UUID]}
+                segment_dict = {
+                    "start": segment[0],
+                    "end": segment[1],
+                    "UUID": [UUID],
+                    "category": i.get("category"),
+                }
                 try:
                     # Get segment before to check if they are too close to each other
                     segment_before_end = segments[-1]["end"]

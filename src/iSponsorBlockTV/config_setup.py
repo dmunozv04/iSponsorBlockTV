@@ -38,6 +38,15 @@ MUTE_ADS_PROMPT = "Do you want to mute native YouTube ads automatically? (y/N) "
 SKIP_ADS_PROMPT = "Do you want to skip native YouTube ads automatically? (y/N) "
 AUTOPLAY_PROMPT = "Do you want to enable autoplay? (Y/n) "
 ENTER_SPONSORBLOCK_API_PROMPT = f"Enter SponsorBlock API URL (default: {SponsorBlock_api}): "
+MQTT_ENABLE_PROMPT = "Enable MQTT / Home Assistant notifications? (y/N) "
+MQTT_BROKER_PROMPT = "Enter MQTT broker host/IP: "
+MQTT_PORT_PROMPT = "Enter MQTT broker port (default 1883): "
+MQTT_USERNAME_PROMPT = "Enter MQTT username (blank for none): "
+MQTT_PASSWORD_PROMPT = "Enter MQTT password (blank for none): "
+MQTT_TLS_PROMPT = "Use TLS for the MQTT connection? (y/N) "
+MQTT_BASE_TOPIC_PROMPT = "Enter base topic (default isponsorblocktv): "
+MQTT_HA_PROMPT = "Enable Home Assistant auto-discovery (creates entities automatically)? (Y/n) "
+MQTT_HA_PREFIX_PROMPT = "Enter Home Assistant discovery prefix (default homeassistant): "
 
 
 def get_yn_input(prompt):
@@ -70,6 +79,30 @@ async def pair_device(config, web_session: aiohttp.ClientSession, api_helper):
     except Exception as e:
         print(f"Failed to pair device: {e}")
         return
+
+
+def configure_mqtt(config) -> None:
+    """Prompt for MQTT / Home Assistant settings and store them in config.mqtt."""
+    choice = get_yn_input(MQTT_ENABLE_PROMPT)
+    config.mqtt["enabled"] = choice == "y"
+    if choice != "y":
+        return
+    broker = input(MQTT_BROKER_PROMPT).strip()
+    if broker:
+        config.mqtt["broker"] = broker
+    port_in = input(MQTT_PORT_PROMPT).strip()
+    if port_in.isdigit():
+        config.mqtt["port"] = int(port_in)
+    config.mqtt["username"] = input(MQTT_USERNAME_PROMPT).strip()
+    config.mqtt["password"] = input(MQTT_PASSWORD_PROMPT)
+    config.mqtt["tls"] = get_yn_input(MQTT_TLS_PROMPT) == "y"
+    base_topic = input(MQTT_BASE_TOPIC_PROMPT).strip()
+    if base_topic:
+        config.mqtt["base_topic"] = base_topic
+    config.mqtt["home_assistant"]["enabled"] = get_yn_input(MQTT_HA_PROMPT) != "n"
+    prefix = input(MQTT_HA_PREFIX_PROMPT).strip()
+    if prefix:
+        config.mqtt["home_assistant"]["discovery_prefix"] = prefix
 
 
 # skipcq: PY-R1000
@@ -212,6 +245,8 @@ def main(config, debug: bool) -> None:
     # SponsorBlock API URL
     api_url = input(ENTER_SPONSORBLOCK_API_PROMPT).strip()
     config.sponsorblock_api_url = api_url if api_url else SponsorBlock_api
+
+    configure_mqtt(config)
 
     print("Config finished")
     config.save()

@@ -27,25 +27,25 @@ Legend: ✅ = Working, ❌ = Not working, ❔ = Not tested
 Open an issue/pull request if you have tested a device that isn't listed here.
 
 | Device             | Status |
-|:-------------------|:------:|
-| Apple TV           |   ✅*   |
-| Samsung TV (Tizen) |   ✅    |
-| LG TV (WebOS)      |   ✅    |
-| Android TV         |   ✅    |
-| Chromecast         |   ✅    |
-| Google TV          |   ✅    |
-| Roku               |   ✅    |
-| Fire TV            |   ✅    |
-| CCwGTV             |   ✅    |
-| Nintendo Switch    |   ✅    |
-| Xbox One/Series    |   ✅    |
-| Playstation 4/5    |   ✅    |
+| :----------------- | :----: |
+| Apple TV           |  ✅*   |
+| Samsung TV (Tizen) |   ✅   |
+| LG TV (WebOS)      |   ✅   |
+| Android TV         |   ✅   |
+| Chromecast         |   ✅   |
+| Google TV          |   ✅   |
+| Roku               |   ✅   |
+| Fire TV            |   ✅   |
+| CCwGTV             |   ✅   |
+| Nintendo Switch    |   ✅   |
+| Xbox One/Series    |   ✅   |
+| Playstation 4/5    |   ✅   |
 
 *Ad muting won't work when using AirPlay to send the audio to another speaker.
 
 ** Shorts aren't fully supported due to limitations on YouTube's side.
 A single short can be seen by either selecting the "Disconnect" option in the
- warning shown
+warning shown
 or by long pressing the thumbnail to open the menu and clicking play from there
 
 ## Usage
@@ -58,6 +58,47 @@ during setup.
 The device can also be manually added to iSponsorBlockTV with a YouTube TV code.
 This code can be found in the settings page of your YouTube TV application.
 
+## MQTT / Home Assistant
+
+iSponsorBlockTV can publish what it does over MQTT so other systems can react to
+it. This is **opt-in and off by default** - existing setups are unaffected.
+
+Enable it in the config wizard (`setup` / `setup-cli`) or add an `mqtt` block to
+`config.json`:
+
+```json
+"mqtt": {
+    "enabled": true,
+    "broker": "mqtt.example.lan",
+    "port": 1883,
+    "username": "",
+    "password": "",
+    "tls": false,
+    "base_topic": "isponsorblocktv",
+    "home_assistant": {
+        "enabled": true,
+        "discovery_prefix": "homeassistant"
+    }
+}
+```
+
+- `mqtt.enabled` publishes provider-neutral topics under `base_topic` (usable by
+  any MQTT consumer). Events are published as JSON to
+  `<base_topic>/<device>/event`, retained state to `.../title`, `.../channel`,
+  `.../playback_state`, `.../segments_skipped` and `.../connected`, and process
+  availability to `<base_topic>/availability`.
+- `mqtt.home_assistant.enabled` additionally publishes
+  [MQTT Discovery](https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery)
+  configs so Home Assistant auto-creates, per YouTube TV device, an **event**
+  entity (fires `segment_skipped`, `ad_started`, `ad_ended`, `ad_skipped`),
+  **title**, **channel**, **state** and **segments skipped** sensors, and a
+  **connected** binary sensor - no YAML required. The **title** and **channel**
+  sensors show the raw video id until a YouTube Data API lookup (when `apikey` is
+  set) resolves the real title and channel name. It needs an MQTT broker that both
+  this app and Home Assistant can reach (for example the Mosquitto add-on).
+
+The MQTT client (`aiomqtt`) is only imported when MQTT is enabled.
+
 ## Libraries used
 
 - [pyytlounge](https://github.com/FabioGNR/pyytlounge) Used to interact with the
@@ -67,6 +108,8 @@ This code can be found in the settings page of your YouTube TV application.
 - [Textual](https://github.com/textualize/textual/) Used for the amazing new
   graphical configurator
 - [ssdp](https://github.com/codingjoe/ssdp) Used for auto discovery
+- [aiomqtt](https://github.com/empicano/aiomqtt) Used for the optional MQTT /
+  Home Assistant integration
 
 ## Projects using this project
 

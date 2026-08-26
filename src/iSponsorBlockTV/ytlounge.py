@@ -44,6 +44,8 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         config=None,
         api_helper=None,
         logger=None,
+        notifier=None,
+        device_name=None,
     ):
         self._callback_listener = _CallbackListener(self)
         super().__init__(
@@ -70,7 +72,14 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             self.mute_ads = config.mute_ads
             self.skip_ads = config.skip_ads
             self.auto_play = config.auto_play
+        self._notifier = notifier
+        self._device_name = device_name
+        self._screen_id = screen_id
         self._command_mutex = asyncio.Lock()
+
+    def _emit_ad(self, event_type):
+        if self._notifier is not None:
+            self._notifier.emit(event_type, self._screen_id or "", self._device_name)
 
     async def _handle_playback_state_event(self, event: PlaybackStateEvent) -> None:
         self._playback_state.currentTime = event.current_time
@@ -170,20 +179,24 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             if self.mute_ads and data.get("state", "0") == "1":
                 self.logger.info("Ad has ended, unmuting")
                 create_task(self.mute(False, override=True))
+                self._emit_ad("ad_ended")
         elif event_type == "onAdStateChange":
             data = args[0]
             if data["adState"] == "0" and data["currentTime"] != "0":  # Ad is not playing
                 self.logger.info("Ad has ended, unmuting")
                 create_task(self.mute(False, override=True))
+                self._emit_ad("ad_ended")
             elif (
                 self.skip_ads and data["isSkipEnabled"] == "true"
             ):  # YouTube uses strings for booleans
                 self.logger.info("Ad can be skipped, skipping")
                 create_task(self.skip_ad())
                 create_task(self.mute(False, override=True))
+                self._emit_ad("ad_skipped")
             elif self.mute_ads:  # Seen multiple other adStates, assuming they are all ads
                 self.logger.info("Ad has started, muting")
                 create_task(self.mute(True, override=True))
+                self._emit_ad("ad_started")
         # Manages volume, useful since YouTube wants to know the volume
         # when unmuting (even if they already have it)
         elif event_type == "onVolumeChanged":
@@ -208,9 +221,11 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 self.logger.info("Ad can be skipped, skipping")
                 create_task(self.skip_ad())
                 create_task(self.mute(False, override=True))
+                self._emit_ad("ad_skipped")
             elif self.mute_ads:  # Seen multiple other adStates, assuming they are all ads
                 self.logger.info("Ad has started, muting")
                 create_task(self.mute(True, override=True))
+                self._emit_ad("ad_started")
 
         elif event_type == "loungeStatus":
             data = args[0]
