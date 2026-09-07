@@ -8,7 +8,7 @@ import rich_click as click
 from appdirs import user_data_dir
 
 from . import config_setup, main, setup_wizard
-from .constants import config_file_blacklist_keys, github_wiki_base_url, SponsorBlock_api
+from .constants import SponsorBlock_api, config_file_blacklist_keys, github_wiki_base_url
 
 
 class Device:
