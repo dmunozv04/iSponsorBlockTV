@@ -1,16 +1,15 @@
 import asyncio
 import json
 import sys
-from typing import Any, List
+from typing import Any
+from uuid import uuid4
 
 import pyytlounge
 from aiohttp import ClientSession
-
 from pyytlounge.event_listener import EventListener
 from pyytlounge.events import NowPlayingEvent, PlaybackStateEvent
 from pyytlounge.models import State
-from pyytlounge.wrapper import NotLinkedException, api_base, as_aiter, Dict
-from uuid import uuid4
+from pyytlounge.wrapper import Dict, NotLinkedException, api_base, as_aiter
 
 from .constants import youtube_client_blacklist
 
@@ -150,7 +149,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
 
     # Process a lounge subscription event
     # skipcq: PY-R1000
-    async def _process_event(self, event_type: str, args: List[Any]):
+    async def _process_event(self, event_type: str, args: list[Any]):
         self.logger.debug(f"process_event({event_type}, {args})")
         # Update last event time for the watchdog
         self.last_event_time = asyncio.get_running_loop().time()
@@ -385,7 +384,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 self.logger.error(
                     "Connected as screen: please force close the app on the device for iSponsorBlockTV to work properly"
                 )
-                self.logger.warn("Exiting in 5 seconds")
+                self.logger.warning("Exiting in 5 seconds")
                 await asyncio.sleep(5)
                 sys.exit(0)
             except:

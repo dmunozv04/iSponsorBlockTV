@@ -1,7 +1,8 @@
 import html
-from hashlib import sha256
 from asyncio import FIRST_COMPLETED, Task, create_task, wait
-from typing import AsyncIterator, Collection, TypeVar
+from collections.abc import AsyncIterator, Collection
+from hashlib import sha256
+from typing import TypeVar
 
 from aiohttp import ClientSession
 from cache import AsyncLRU
@@ -9,7 +10,6 @@ from pyytlounge.wrapper import api_base
 
 from . import chromecast_client, constants, dial_client
 from .conditional_ttl_cache import AsyncConditionalTTL
-
 
 _T = TypeVar("_T")
 
