@@ -49,6 +49,7 @@ class Config:
         self.channel_whitelist = []
         self.skip_count_tracking = True
         self.mute_ads = False
+        self.ad_volume = None  # None = mute ads instead of lowering the volume
         self.skip_ads = False
         self.minimum_skip_length = 1
         self.auto_play = True
@@ -78,6 +79,10 @@ class Config:
         self.devices = [Device(i) for i in self.devices]
         if not self.apikey and self.channel_whitelist:
             raise ValueError("No youtube API key found and channel whitelist is not empty")
+        if self.ad_volume is not None and not (
+            isinstance(self.ad_volume, int) and 0 <= self.ad_volume <= 100
+        ):
+            raise ValueError("ad_volume must be a number between 0 and 100")
         if self.skip_categories is None:
             self.skip_categories = ["sponsor"]
             print("No categories found, using default: sponsor")
