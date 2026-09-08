@@ -55,6 +55,8 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         self.auth.lounge_id_token = None
         self.api_helper = api_helper
         self.volume_state = {}
+        self.ad_volume = None
+        self.volume_before_ad = None
         self.playback_speed = 1.0
         self.subscribe_task = None
         self.subscribe_task_watchdog = None
@@ -68,6 +70,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         self.last_event_time = 0
         if config:
             self.mute_ads = config.mute_ads
+            self.ad_volume = config.ad_volume
             self.skip_ads = config.skip_ads
             self.auto_play = config.auto_play
         self._command_mutex = asyncio.Lock()
@@ -222,6 +225,10 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                         self._sid = None
                         self._gsession = None  # Force disconnect
                         return
+            # The device only reports its volume when something changes it, so
+            # ask now: without it the first ad has no volume to come back to.
+            if self.ad_volume is not None and "volume" not in self.volume_state:
+                create_task(self.get_volume())
 
         elif event_type == "onSubtitlesTrackChanged":
             if self.shorts_disconnected:
@@ -247,6 +254,10 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
     async def set_volume(self, volume: int) -> None:
         await self._command("setVolume", {"volume": volume})
 
+    # Ask the device for its volume, answered with an onVolumeChanged event
+    async def get_volume(self) -> bool:
+        return await self._command("getVolume")
+
     async def mute(self, mute: bool, override: bool = False) -> None:
         """
         Mute or unmute the device (if the device already
@@ -258,6 +269,15 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
 
         TODO: Only works if the device is subscribed to the lounge
         """
+        # Falls through to the muted flag while the device volume is still
+        # unknown, as there would be nothing to restore once the ad ends.
+        if self.ad_volume is not None:
+            if mute and "volume" in self.volume_state:
+                await self._duck_volume(True)
+                return
+            if not mute and self.volume_before_ad is not None:
+                await self._duck_volume(False)
+                return
         if mute:
             mute_str = "true"
         else:
@@ -269,6 +289,35 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 "setVolume",
                 {"volume": self.volume_state.get("volume", 100), "muted": mute_str},
             )
+
+    async def _duck_volume(self, mute: bool) -> None:
+        """
+        Silence an ad by lowering the volume to `ad_volume` and restore the
+        previous volume afterwards, leaving the muted flag alone.
+
+        Used instead of muting when `ad_volume` is set, for when cutting the
+        sound dead is more jarring than the ad and a barely audible floor is
+        preferred. Only called by `mute`, which is what checks there is a volume
+        to lower and to restore.
+
+        The volume to restore is saved when the ad starts and cannot be read
+        back at the end: the device reports the lowered volume in an
+        `onVolumeChanged` event, so restoring from `volume_state` would leave it
+        at the ad volume.
+
+        :param bool mute: True when an ad starts, False when it ends
+        """
+        if mute:
+            if self.volume_before_ad is not None:  # Already lowered
+                return
+            self.volume_before_ad = self.volume_state["volume"]
+            volume = self.ad_volume
+        else:
+            volume = self.volume_before_ad
+            self.volume_before_ad = None
+        self.volume_state["volume"] = volume
+        self.logger.info("Setting volume to %s", volume)
+        await self._command("setVolume", {"volume": volume})
 
     async def play_video(self, video_id: str) -> bool:
         return await self._command("setPlaylist", {"videoId": video_id})
