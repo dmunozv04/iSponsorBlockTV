@@ -8,6 +8,6 @@ textual==8.2.8
 textual-slider==0.2.0
 xmltodict==1.0.4
 rich_click==1.9.8
-yarl==1.24.5
+yarl==1.25.1
 zeroconf==0.150.0
 pychromecast==14.0.10
