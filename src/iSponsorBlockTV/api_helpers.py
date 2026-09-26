@@ -95,7 +95,7 @@ class ApiHelper:
         }
 
     # Not used anymore, maybe it can stay here a little longer
-    @AsyncLRU(maxsize=10)
+    @AsyncLRU(maxsize=10, skip_args=1)
     async def get_vid_id(self, title, artist, api_key, web_session):
         params = {"q": title + " " + artist, "key": api_key, "part": "snippet"}
         url = constants.Youtube_api + "search"
@@ -114,7 +114,7 @@ class ApiHelper:
                 return i["id"]["videoId"], i["snippet"]["channelId"]
         return
 
-    @AsyncLRU(maxsize=100)
+    @AsyncLRU(maxsize=100, skip_args=1)
     async def is_whitelisted(self, vid_id):
         if self.apikey and self.channel_whitelist:
             channel_id = await self.__get_channel_id(vid_id)
@@ -174,7 +174,9 @@ class ApiHelper:
         return channels
 
     @list_to_tuple  # Convert list to tuple so it can be used as a key in the cache
-    @AsyncConditionalTTL(time_to_live=300, maxsize=10)  # 5 minutes for non-locked segments
+    @AsyncConditionalTTL(
+        time_to_live=300, maxsize=10, skip_args=1
+    )  # 5 minutes for non-locked segments
     async def get_segments(self, vid_id):
         if not self.skip_categories:
             return ([], True)  # Categories explicitly empty, skip segment fetching
