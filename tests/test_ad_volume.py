@@ -40,7 +40,9 @@ async def event(api, event_type, payload):
 
 
 async def ad_starts(api):
-    await event(api, "onAdStateChange", {"adState": "1", "currentTime": "0", "isSkipEnabled": "false"})
+    await event(
+        api, "onAdStateChange", {"adState": "1", "currentTime": "0", "isSkipEnabled": "false"}
+    )
 
 
 async def ad_ends(api):
