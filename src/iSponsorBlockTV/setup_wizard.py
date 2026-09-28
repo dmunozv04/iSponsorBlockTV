@@ -938,10 +938,39 @@ class AdSkipMuteManager(Vertical):
                 id="mute-ads-switch",
                 label="Enable muting ads",
             )
+        yield Label(
+            (
+                "Muting an ad cuts the sound dead. Set a volume below to lower the"
+                " volume during ads instead of muting; the previous volume is"
+                " restored when the ad ends."
+            ),
+            classes="subtitle",
+        )
+        yield Input(
+            placeholder="Ad volume 0-100 (empty to mute instead)",
+            id="ad-volume-input",
+            value="" if self.config.ad_volume is None else str(self.config.ad_volume),
+            validators=[
+                Function(
+                    lambda user_input: (
+                        not user_input or (user_input.isdigit() and int(user_input) <= 100)
+                    ),
+                    "Please enter a volume between 0 and 100",
+                )
+            ],
+        )
 
     @on(Checkbox.Changed, "#mute-ads-switch")
     def changed_mute(self, event: Checkbox.Changed):
         self.config.mute_ads = event.checkbox.value
+
+    @on(Input.Changed, "#ad-volume-input")
+    def changed_ad_volume(self, event: Input.Changed):
+        value = event.input.value.strip()
+        if value.isdigit() and int(value) <= 100:
+            self.config.ad_volume = int(value)
+        else:
+            self.config.ad_volume = None
 
     @on(Checkbox.Changed, "#skip-ads-switch")
     def changed_skip(self, event: Checkbox.Changed):

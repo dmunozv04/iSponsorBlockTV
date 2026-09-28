@@ -55,6 +55,9 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         self.auth.lounge_id_token = None
         self.api_helper = api_helper
         self.volume_state = {}
+        self.ad_volume = None
+        self.content_volume = None
+        self.volume_lowered = False
         self.playback_speed = 1.0
         self.subscribe_task = None
         self.subscribe_task_watchdog = None
@@ -68,6 +71,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         self.last_event_time = 0
         if config:
             self.mute_ads = config.mute_ads
+            self.ad_volume = config.ad_volume
             self.skip_ads = config.skip_ads
             self.auto_play = config.auto_play
         self._command_mutex = asyncio.Lock()
@@ -188,6 +192,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         # when unmuting (even if they already have it)
         elif event_type == "onVolumeChanged":
             self.volume_state = args[0]
+            self._remember_content_volume(args[0].get("volume"))
         # Gets segments for the next video before it starts playing
         elif event_type == "autoplayUpNext":
             if len(args) > 0 and (vid_id := args[0]["videoId"]):  # if video id is not empty
@@ -222,6 +227,10 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                         self._sid = None
                         self._gsession = None  # Force disconnect
                         return
+            # The device only reports its volume when something changes it, so
+            # ask now: without it the first ad has no volume to come back to.
+            if self.ad_volume is not None and self.content_volume is None:
+                create_task(self.get_volume())
 
         elif event_type == "onSubtitlesTrackChanged":
             if self.shorts_disconnected:
@@ -247,6 +256,10 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
     async def set_volume(self, volume: int) -> None:
         await self._command("setVolume", {"volume": volume})
 
+    # Ask the device for its volume, answered with an onVolumeChanged event
+    async def get_volume(self) -> bool:
+        return await self._command("getVolume")
+
     async def mute(self, mute: bool, override: bool = False) -> None:
         """
         Mute or unmute the device (if the device already
@@ -258,6 +271,19 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
 
         TODO: Only works if the device is subscribed to the lounge
         """
+        # Falls through to the muted flag while the device volume is still
+        # unknown, as there would be nothing to restore once the ad ends.
+        if self.ad_volume is not None:
+            if mute and self.content_volume is not None:
+                await self._duck_volume(True)
+                return
+            if not mute and self.volume_lowered:
+                await self._duck_volume(False)
+                return
+            # Playback resumes on every onStateChange: with nothing lowered and
+            # nothing muted, resending volume_state could replay a stale echo.
+            if not mute and self.volume_state.get("muted") != "true":
+                return
         if mute:
             mute_str = "true"
         else:
@@ -269,6 +295,52 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 "setVolume",
                 {"volume": self.volume_state.get("volume", 100), "muted": mute_str},
             )
+
+    async def _duck_volume(self, mute: bool) -> None:
+        """
+        Silence an ad by lowering the volume to `ad_volume` and restore the
+        previous volume afterwards, leaving the muted flag alone.
+
+        Used instead of muting when `ad_volume` is set, for when cutting the
+        sound dead is more jarring than the ad and a barely audible floor is
+        preferred. Only called by `mute`, which is what checks there is a volume
+        to lower and to restore.
+
+        The volume restored is `content_volume`, kept up to date by
+        `_remember_content_volume`, never a snapshot taken when the ad starts:
+        back to back ads let the device's echo of the lowered volume land
+        between two ads, and a snapshot would then save the ad volume as the
+        one to come back to.
+
+        :param bool mute: True when an ad starts, False when it ends
+        """
+        if mute:
+            if self.volume_lowered:
+                return
+            self.volume_lowered = True
+            volume = self.ad_volume
+        else:
+            self.volume_lowered = False
+            volume = self.content_volume
+        self.volume_state["volume"] = volume
+        self.volume_state["muted"] = "false"
+        self.logger.info("Setting volume to %s", volume)
+        # Clears a muted flag left by an ad seen before the volume was known
+        await self._command("setVolume", {"volume": volume, "muted": "false"})
+
+    def _remember_content_volume(self, volume) -> None:
+        """
+        Keep the volume to restore after an ad from what the device reports.
+
+        The device echoes every setVolume, late and in any order relative to
+        ad events, so a report is the user's volume only when no ad is lowering
+        it and it differs from `ad_volume`. A user volume exactly equal to
+        `ad_volume` is therefore never learnt.
+        """
+        if self.ad_volume is None or self.volume_lowered or volume is None:
+            return
+        if int(volume) != self.ad_volume:
+            self.content_volume = volume
 
     async def play_video(self, video_id: str) -> bool:
         return await self._command("setPlaylist", {"videoId": video_id})
