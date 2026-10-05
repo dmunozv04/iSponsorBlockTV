@@ -5,14 +5,14 @@ import ipaddress
 import logging
 import secrets
 import socket
-from typing import TYPE_CHECKING, AsyncIterator, Dict, Any, Optional, Set, Tuple
+from collections.abc import AsyncIterator
+from typing import TYPE_CHECKING, Any
 
 import ssdp
 import xmltodict
+from aiohttp import ClientSession
 from ssdp import network
 from yarl import URL
-
-from aiohttp import ClientSession
 
 if TYPE_CHECKING:
     from .api_helpers import ApiHelper
@@ -82,7 +82,7 @@ def get_ip() -> str:
 class Handler(ssdp.aio.SSDP):
     def __init__(self):
         super().__init__()
-        self.devices_queue: asyncio.Queue[Tuple[str, str]] = asyncio.Queue()
+        self.devices_queue: asyncio.Queue[tuple[str, str]] = asyncio.Queue()
 
     def clear(self):
         self.devices_queue = asyncio.Queue()
@@ -103,7 +103,7 @@ class Handler(ssdp.aio.SSDP):
         pass  # Don't log connection lost, expected on transport close
 
 
-def _extract_screen_id(youtube_service_xml: str) -> Optional[str]:
+def _extract_screen_id(youtube_service_xml: str) -> str | None:
     data = xmltodict.parse(youtube_service_xml)
     service_data = data.get("service", {})
     additional_data = service_data.get("additionalData", {})
@@ -132,7 +132,7 @@ async def find_youtube_app(
     url_location: str,
     expected_ip: str,
     active: bool = True,
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     """Discover and validate a YouTube app on a DIAL device.
 
     Args:
@@ -214,7 +214,7 @@ async def find_youtube_app(
 async def _send_search_requests(
     search_request: ssdp.messages.SSDPRequest,
     transport: asyncio.DatagramTransport,
-    target: Tuple[str, int],
+    target: tuple[str, int],
     active: bool,
     discovery_complete_event: asyncio.Event,
 ) -> None:
@@ -241,10 +241,10 @@ async def _process_devices(
     web_session: ClientSession,
     api_helper: "ApiHelper",
     active: bool,
-    pending_tasks: Set[asyncio.Task],
-    result_queue: asyncio.Queue[Dict[str, Any]],
+    pending_tasks: set[asyncio.Task],
+    result_queue: asyncio.Queue[dict[str, Any]],
     discovery_complete_event: asyncio.Event,
-    seen_screen_ids: Set[str],
+    seen_screen_ids: set[str],
 ) -> None:
     """Process devices from handler queue and validate them.
 
@@ -288,7 +288,7 @@ async def _process_devices(
 
 async def discover(
     web_session: ClientSession, api_helper: "ApiHelper", active: bool = True
-) -> AsyncIterator[Dict[str, Any]]:
+) -> AsyncIterator[dict[str, Any]]:
     """Discover YouTube-capable devices on the local network via DIAL protocol.
 
     Sends out M-SEARCH SSDP requests and listens for responses from DIAL devices.
@@ -363,7 +363,7 @@ async def discover(
                 device = await asyncio.wait_for(result_queue.get(), timeout=1.0)
                 if device:
                     yield device
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # Check if we're done
                 if discovery_complete_event.is_set() and result_queue.empty() and not pending_tasks:
                     break
@@ -383,9 +383,10 @@ async def discover(
 
 
 if __name__ == "__main__":
-    import aiohttp
     import sys
     from pathlib import Path
+
+    import aiohttp
 
     logging.basicConfig(
         level=logging.DEBUG,
