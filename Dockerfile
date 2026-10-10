@@ -45,7 +45,7 @@ RUN pip install --no-cache-dir --target /paneldeps PyChromecast==14.0.10
 # Combine our compiled playback service with the web panel.
 FROM playback AS web
 COPY --from=web_dependencies /paneldeps /paneldeps
-COPY webgui/server.py webui/cast_helper.py /web/
+COPY webgui/server.py webgui/cast_helper.py /web/
 COPY webgui/static /web/static
 
 ENV WEB_PORT=1166 \
