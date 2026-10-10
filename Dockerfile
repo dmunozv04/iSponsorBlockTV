@@ -23,7 +23,7 @@ RUN apk add --no-cache gcc musl-dev && \
     find /usr/local/lib/python3.13/site-packages -name "*.py" -type f -delete && \
     find /usr/local/lib/python3.13/ -name "__pycache__" -type d -exec rm -rf {} +
 
-FROM base
+FROM base AS playback
 
 ENV PIP_NO_CACHE_DIR=off iSPBTV_docker=True iSPBTV_data_dir=data TERM=xterm-256color COLORTERM=truecolor
 
