@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Container version="2">
+  <Name>iSponsorBlockTV-Web</Name>
+  <Repository>ghcr.io/ss1gohan13/isponsorblocktv:web-gui</Repository>
+  <Registry>https://github.com/ss1gohan13/iSponsorBlockTV/pkgs/container/isponsorblocktv</Registry>
+  <Network>host</Network>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Project>https://github.com/ss1gohan13/iSponsorBlockTV/tree/web-gui</Project>
+  <Overview>Unofficial iSponsorBlockTV fork with a password-protected WebGUI. Manage devices, pair Google Cast receivers, adjust SponsorBlock and ad-muting settings, and view service logs. Includes night mode and configuration backups. Mutes YouTube ads and requests skips when available; it does not remove every advertisement. Set a password of at least 12 characters before starting. Stop any previous iSponsorBlockTV instance before reusing its data directory.</Overview>
+  <Category>MediaApp:Video Tools:</Category>
+  <WebUI>http://[IP]:[PORT:1166]/</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/ss1gohan13/iSponsorBlockTV/web-gui/templates/isponsorblocktv-web.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/ss1gohan13/iSponsorBlockTV/web-gui/icon.png</Icon>
+  <ReadMe>https://raw.githubusercontent.com/ss1gohan13/iSponsorBlockTV/web-gui/README.md</ReadMe>
+  <Requires>A password of at least 12 characters. Network access to YouTube and supported receivers. Cross-VLAN discovery may require direct-IP pairing and appropriate firewall rules.</Requires>
+  <Config Name="Appdata" Target="/app/data" Default="/mnt/user/appdata/isponsorblocktv/data" Mode="rw" Description="Persistent configuration and backups. Reuse your existing iSponsorBlockTV data directory only after stopping the previous container." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/isponsorblocktv/data</Config>
+  <Config Name="WebGUI password" Target="WEB_PASSWORD" Default="" Mode="" Description="Required: choose a password of at least 12 characters. Hidden while typing; stored as a Docker environment variable." Type="Variable" Display="always" Required="true" Mask="true">
+  </Config>
+  <Config Name="WebGUI port" Target="WEB_PORT" Default="1166" Mode="" Description="Listening port on the host. If changed, also update the WebUI URL in Advanced View." Type="Variable" Display="always" Required="true" Mask="false">1166</Config>
+  <Config Name="Allowed receiver networks" Target="ALLOWED_NETWORKS" Default="192.168.0.0/16" Mode="" Description="Comma-separated private IPv4 CIDRs containing your receivers. Restricts device checks; does not bypass firewall rules or control browser access." Type="Variable" Display="always" Required="true" Mask="false">192.168.0.0/16</Config>
+  <Config Name="Timezone" Target="TZ" Default="America/Chicago" Mode="" Description="Set your local timezone, for example America/Chicago or Europe/London." Type="Variable" Display="always" Required="false" Mask="false">America/Chicago</Config>
+</Container>
