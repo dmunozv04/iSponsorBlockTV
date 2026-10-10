@@ -11,6 +11,11 @@ or intros) in YouTube videos using the [SponsorBlock](https://sponsor.ajay.app/)
 API. It can also auto mute and press the "Skip Ad" button the moment it becomes
 available on YouTube ads.
 
+> [!NOTE]
+> This is an unofficial WebGUI fork of [dmunozv04/iSponsorBlockTV](https://github.com/dmunozv04/iSponsorBlockTV).
+> The badges, compatibility information, and contributor credits refer to the upstream project.
+> For this fork's image and browser setup, see [WebGUI edition](#webgui-edition).
+
 > [!WARNING]
 > YouTube appers to have changed the screen ID code format and is in the process
 > of revoking all existing codes. This means that you'll have to pair your
@@ -19,6 +24,40 @@ available on YouTube ads.
 ## Installation
 
 Check the [wiki](https://github.com/dmunozv04/iSponsorBlockTV/wiki/Installation)
+for the original application's installation instructions.
+
+### WebGUI edition
+
+This fork adds a password-protected dashboard, night mode, device enable/pause
+controls, playback settings, searchable logs, and automatic configuration backups.
+The panel and playback service run together; no Docker socket mount is needed.
+It retains upstream ad muting and available ad skips, not full removal of every ad.
+
+**Unraid:** use the [template](templates/isponsorblocktv-web.xml), which includes
+the icon and a masked password field, or enter these settings manually:
+
+| Setting | Value |
+| --- | --- |
+| Repository | `ghcr.io/ss1gohan13/isponsorblocktv:web-gui` |
+| Network | `Host` |
+| Data mapping | `/mnt/user/appdata/isponsorblocktv/data` → `/app/data` (read/write) |
+| `WEB_PASSWORD` | Choose your own password of at least 12 characters |
+| `WEB_PORT` | `1166` |
+| `ALLOWED_NETWORKS` | Your receiver subnets, e.g. `192.168.0.0/16` |
+| WebUI | `http://[IP]:[PORT:1166]/` |
+
+Open `http://YOUR-SERVER-IP:1166`. No `--setup-cli` argument is needed.
+To reuse an existing configuration, stop the previous container before starting
+this one with the same data directory. Keep the panel on a trusted LAN or use
+HTTPS through a reverse proxy.
+
+For Chromecast pairing, actively cast a YouTube video, then use **Search local
+network** or enter the receiver's IP and select **Check device**. Across VLANs,
+direct-IP pairing needs TCP 8009 access; host mode does not relay discovery.
+`ALLOWED_NETWORKS` limits receiver checks, not browser access or firewall rules.
+The panel currently pairs Google Cast receivers; other compatible clients can be
+imported through an existing upstream configuration. Playback settings apply to
+all enabled devices. Backups are stored in `/app/data/web-backups/`.
 
 ## Compatibility
 
@@ -45,7 +84,7 @@ Open an issue/pull request if you have tested a device that isn't listed here.
 
 ** Shorts aren't fully supported due to limitations on YouTube's side.
 A single short can be seen by either selecting the "Disconnect" option in the
- warning shown
+warning shown
 or by long pressing the thumbnail to open the menu and clicking play from there
 
 ## Usage
@@ -58,6 +97,9 @@ during setup.
 The device can also be manually added to iSponsorBlockTV with a YouTube TV code.
 This code can be found in the settings page of your YouTube TV application.
 
+The instructions above describe upstream setup. For this fork's browser-based
+Cast pairing, use the [WebGUI edition](#webgui-edition) instructions.
+
 ## Libraries used
 
 - [pyytlounge](https://github.com/FabioGNR/pyytlounge) Used to interact with the
@@ -67,6 +109,8 @@ This code can be found in the settings page of your YouTube TV application.
 - [Textual](https://github.com/textualize/textual/) Used for the amazing new
   graphical configurator
 - [ssdp](https://github.com/codingjoe/ssdp) Used for auto discovery
+- WebGUI additions: [PyChromecast](https://github.com/home-assistant-libs/pychromecast)
+  and [Zeroconf](https://github.com/python-zeroconf/python-zeroconf) for Cast pairing and discovery
 
 ## Projects using this project
 
@@ -74,11 +118,16 @@ This code can be found in the settings page of your YouTube TV application.
 
 ## Contributing
 
+For contributions to the original project:
+
 1. Fork it (<https://github.com/dmunozv04/iSponsorBlockTV/fork>)
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
 5. Create a new Pull Request
+
+For WebGUI changes, target the `web-gui` branch of
+[ss1gohan13/iSponsorBlockTV](https://github.com/ss1gohan13/iSponsorBlockTV).
 
 ## Contributors
 

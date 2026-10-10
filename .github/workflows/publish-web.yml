@@ -1,0 +1,49 @@
+name: Publish WebGUI image
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Test the web backend
+        run: python3 -m unittest discover -s webgui/tests -v
+
+      - name: Check JavaScript syntax
+        run: node --check webgui/static/app.js
+
+      - name: Set image name
+        shell: bash
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          echo "IMAGE=ghcr.io/${OWNER,,}/isponsorblocktv-web" >> "$GITHUB_ENV"
+
+      - name: Sign in to GitHub Container Registry
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish
+        uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
