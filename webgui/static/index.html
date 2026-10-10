@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Sponsor Panel</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
+<body>
+<div id="notice" role="status" aria-live="polite" hidden></div>
+<section id="login" class="login">
+  <div class="brand"><span class="mark">S</span> Sponsor Panel</div>
+  <h1>Your screen.<br>Your time.</h1><p>Sign in to manage iSponsorBlockTV.</p>
+  <form id="loginForm"><label for="password">Panel password</label><input id="password" type="password" autocomplete="current-password" required><button class="primary" type="submit">Sign in <span>→</span></button></form>
+  <small>Local control for your YouTube devices.</small>
+</section>
+<div id="dashboard" hidden>
+  <aside><div class="brand"><span class="mark">S</span> Sponsor Panel</div><div class="eyebrow">YOUR HOME NETWORK</div><nav aria-label="Main navigation"><button class="nav active" data-view="devices">▣ <span>Devices</span></button><button class="nav" data-view="settings">☷ <span>Playback settings</span></button><button class="nav" data-view="logs">≡ <span>Activity & logs</span></button></nav><div class="aside-bottom"><span class="dot"></span> Runs on your server<small>Powered by iSponsorBlockTV<br>Unofficial companion interface</small><button id="logout" class="quiet">Sign out</button></div></aside>
+  <main>
+    <header>
+      <div>
+        <div class="eyebrow">ISPONSORBLOCKTV / CONTROL CENTER</div>
+        <h1 id="pageTitle">Your devices</h1>
+        <p id="pageDescription">Choose where to mute ads and skip sponsored segments.</p>
+      </div>
+      <div class="header-actions">
+        <span id="connection" class="badge">Connecting</span>
+        <label class="theme-toggle" for="nightMode">
+          <span>Night mode</span>
+          <input id="nightMode" type="checkbox" role="switch">
+        </label>
+        <button id="refresh" class="secondary">Refresh</button>
+      </div>
+    </header>
+    <div class="stats"><article><span>Service</span><strong id="serviceStatus">—</strong><small id="serviceDetail">Checking your service</small></article><article><span>Enabled devices</span><strong id="deviceCount">—</strong><small>Selected for automatic skipping</small></article><article><span>Ad handling</span><strong id="adMode">—</strong><small>Unskippable ads still take time</small></article></div>
+    <section id="view-devices" class="view">
+      <div class="section-heading"><h2>Configured devices <span id="totalCount" class="count">0</span></h2><div><button id="servicePause" class="secondary">Pause service</button><button id="restart" class="secondary">Restart service</button></div></div>
+      <div id="deviceList" class="device-grid"></div>
+      <section class="panel discover"><div><div class="eyebrow">ADD A SCREEN</div><h2>Find your next device</h2><p>Discover Google Cast devices nearby, or enter an IP address across your VLANs. Cast a YouTube video before connecting.</p><button id="scan" class="secondary">Search local network</button><small id="networks"></small></div><form id="probeForm"><label for="deviceIp">Chromecast IP address</label><div class="input-row"><input id="deviceIp" placeholder="192.168.52.2" inputmode="decimal" required><button class="primary" type="submit">Check device</button></div><small>An empty search does not mean a device is offline. Multicast discovery may not cross VLANs.</small></form><div id="scanResults"></div></section>
+      <section id="pairResult" class="panel pairing" hidden><div><span class="badge good">YouTube connected</span><h2>Ready to add</h2><p id="pairIp"></p></div><form id="addForm"><label for="deviceName">Device name</label><div class="input-row"><input id="deviceName" maxlength="80" required><button class="primary" type="submit">Add & enable</button><button id="cancelAdd" type="button" class="quiet">Cancel</button></div></form></section>
+      <p class="footnote">Enabling, pausing, or editing a device briefly restarts the service. Your video keeps playing.</p>
+    </section>
+    <section id="view-settings" class="view" hidden><form id="settingsForm" class="panel"><div class="section-heading"><div><h2>Playback, with fewer interruptions</h2><p>These settings apply to all enabled devices.</p></div><button class="primary" type="submit">Save settings</button></div><label class="option"><span><strong>Mute YouTube ads</strong><small>Restore the volume when the ad ends.</small></span><input type="checkbox" id="mute_ads"></label><label class="option"><span><strong>Skip ads when available</strong><small>Press Skip as soon as YouTube allows it.</small></span><input type="checkbox" id="skip_ads"></label><label class="option"><span><strong>Contribute skip counts</strong><small>Send anonymous skip counts to SponsorBlock.</small></span><input type="checkbox" id="skip_count_tracking"></label><div class="category-section"><h3>SponsorBlock categories</h3><p>Skip segments identified by the community. Availability varies by video.</p><div id="categories" class="categories"></div></div><label for="minimum_skip_length">Minimum segment length (seconds)</label><input id="minimum_skip_length" type="number" min="0" max="600" step="0.1"><p class="footnote">A value of 0 includes all segment lengths. Saving backs up your configuration and restarts the service. Other existing settings are preserved.</p></form></section>
+    <section id="view-logs" class="view" hidden><div class="section-heading"><div><h2>Live activity</h2><p>Latest 1,500 lines from this container session. Authentication details are hidden.</p></div><div><button id="pauseLogs" class="secondary">Pause feed</button><button id="downloadLogs" class="secondary">Download logs</button></div></div><label for="logFilter" class="sr-only">Filter logs</label><input id="logFilter" placeholder="Filter activity…"><pre id="logs" tabindex="0" aria-label="Service logs">Waiting for service activity…</pre></section>
+    <footer><span>Local by design.</span><span id="lastUpdated">—</span></footer>
+  </main>
+</div>
+<dialog id="renameDialog"><form id="renameForm"><h2>Rename device</h2><label for="renameInput">Device name</label><input id="renameInput" required maxlength="80"><div class="dialog-actions"><button type="button" id="cancelRename" class="secondary">Cancel</button><button type="submit" class="primary">Save name</button></div></form></dialog>
+</body></html>
