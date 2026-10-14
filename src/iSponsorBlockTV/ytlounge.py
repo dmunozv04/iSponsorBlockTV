@@ -10,7 +10,7 @@ from aiohttp import ClientSession
 from pyytlounge.event_listener import EventListener
 from pyytlounge.events import NowPlayingEvent, PlaybackStateEvent
 from pyytlounge.models import State
-from pyytlounge.wrapper import Dict, NotLinkedException, api_base, as_aiter
+from pyytlounge.wrapper import Dict, NotConnectedException, NotLinkedException, api_base, as_aiter
 
 from .constants import youtube_client_blacklist
 
@@ -72,6 +72,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         self.last_event_time = 0
         self._ad_active = False
         self._ad_dance_task = None
+        self._pending_seek: tuple[str, float] | None = None
         self._last_video_id = ""
         self._last_content_duration = 0.0
         self._last_playback_position = 0.0
@@ -83,6 +84,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             self.skip_ads = config.skip_ads
             self.auto_play = config.auto_play
         self._command_mutex = asyncio.Lock()
+        self._command_message_offset = 1
 
     def _looks_like_ad_duration(self, duration: Any) -> bool:
         try:
@@ -108,6 +110,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             self._has_content_playback_info = True
             if event.duration > 0:
                 self._last_content_duration = event.duration
+        await self._seek_when_content_ready(event.state)
         if self._state_callback:
             await self._state_callback(self._playback_state)
 
@@ -117,6 +120,8 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         if event.duration is not None:
             self._playback_state.duration = event.duration
         if event.video_id and event.video_id != self._last_video_id:
+            if self._pending_seek and event.video_id != self._pending_seek[0]:
+                self._pending_seek = None
             self._last_video_id = event.video_id
             self._last_content_duration = 0.0
             self._last_playback_position = 0.0
@@ -136,8 +141,26 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             self._has_content_playback_info = True
             if event.duration is not None and event.duration > 0:
                 self._last_content_duration = event.duration
+        await self._seek_when_content_ready(event.state)
         if self._state_callback:
             await self._state_callback(self._playback_state)
+
+    async def _seek_when_content_ready(
+        self, state: State, *, rewound_and_seekable: bool = False
+    ) -> None:
+        if (
+            self._ad_active
+            or not self._pending_seek
+            or (state is not State.Playing and not rewound_and_seekable)
+        ):
+            return
+        video_id, position = self._pending_seek
+        if self._last_video_id != video_id:
+            return
+        # Clear before awaiting so repeated playback events cannot seek twice.
+        self._pending_seek = None
+        self.logger.debug("Content ready, seeking video %s to %.2f seconds", video_id, position)
+        await self.seek_to(position)
 
     def _position_before_ad(self) -> float:
         """Estimate the content position when the ad started."""
@@ -160,7 +183,10 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 video_id,
                 position,
             )
-            await self.play_video(video_id, position)
+            if position != 0:
+                await self.play_video_and_force_seek(video_id, position)
+            else:
+                await self.play_video(video_id, position)
         except asyncio.CancelledError:
             pass
 
@@ -240,6 +266,18 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 or self._looks_like_ad_duration(data.get("duration"))
             ):
                 self._ad_active = True
+            if self._pending_seek and data.get("state") == str(State.Stopped.value):
+                position = self._pending_seek[1]
+                # Ignore integer rounding of the requested target. Seek earlier
+                # only once the receiver reports a rewind and usable bounds.
+                rewound_and_seekable = (
+                    position - float(data["currentTime"]) > 1.0
+                    and float(data.get("seekableStartTime", 0)) <= position
+                    <= float(data.get("seekableEndTime", 0))
+                )
+                await self._seek_when_content_ready(
+                    State.Stopped, rewound_and_seekable=rewound_and_seekable
+                )
             # print(data)
             # Unmute when the video starts playing
             if self.mute_ads and not self._ad_active and data["state"] == "1":
@@ -378,20 +416,81 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             )
 
     async def play_video(self, video_id: str, current_time: float | None = None) -> bool:
-        parameters = {"videoId": video_id}
+        self._pending_seek = None
+        parameters: dict[str, Any] = {"videoId": video_id}
         if current_time is not None:
             parameters["currentTime"] = current_time
             print(f"XXXPlaying video {video_id} from {current_time} seconds")
         return await self._command("setPlaylist", parameters)
 
+    async def play_video_and_force_seek(self, video_id: str, current_time: float) -> bool:
+        """Load a video, then seek when rewound content is seekable or playing."""
+        if current_time == 0:
+            self.logger.debug("Force seek to 0 seconds for video %s, sending only setPlaylist", video_id)
+            return await self.play_video(video_id, current_time)
+        self.logger.debug(
+            "Waiting for video %s to play before seeking to %.2f seconds", video_id, current_time
+        )
+        pending = (video_id, current_time)
+        self._pending_seek = pending
+        try:
+            success = await self._command(
+                "setPlaylist", {"videoId": video_id, "currentTime": current_time}
+            )
+        except BaseException:
+            if self._pending_seek is pending:
+                self._pending_seek = None
+            raise
+        if not success and self._pending_seek is pending:
+            self._pending_seek = None
+        return success
+
     async def get_now_playing(self):
         return await self._command("getNowPlaying")
 
-    # Test to wrap the command function in a mutex to avoid race conditions with
-    # the _command_offset (TODO: move to upstream if it works)
-    async def _command(self, command: str, command_parameters: dict = None) -> bool:
+    async def _command(
+        self, command: str, command_parameters: dict[str, Any] | None = None
+    ) -> bool:
+        return await self._commands([(command, command_parameters)])
+
+    async def _commands(
+        self, commands: list[tuple[str, dict[str, Any] | None]]
+    ) -> bool:
+        """Send ordered commands, counting requests and command messages separately."""
+        if not commands:
+            raise ValueError("At least one command is required")
         async with self._command_mutex:
-            return await super()._command(command, command_parameters)
+            if not self.connected():
+                raise NotConnectedException("Not connected")
+
+            command_body: dict[str, Any] = {
+                "count": len(commands),
+                "ofs": self._command_message_offset,
+            }
+            for index, (command, parameters) in enumerate(commands):
+                command_body[f"req{index}__sc"] = command
+                for name, value in (parameters or {}).items():
+                    command_body[f"req{index}_{name}"] = value
+
+            self._command_message_offset += len(commands)
+            # RID counts HTTP requests; ofs counts the messages inside them.
+            self._command_offset += 1
+            params = {
+                **self._common_connection_parameters(),
+                "RID": self._command_offset,
+            }
+            async with self._required_session.post(
+                url=f"{api_base}/bc/bind", data=command_body, params=params
+            ) as response:
+                try:
+                    response_text = await response.text()
+                    if not self._handle_session_result(response.status, response_text):
+                        return False
+                    response.raise_for_status()
+                    return True
+                except Exception:
+                    self._logger.exception("Command failed")
+                    raise
 
     async def change_web_session(self, web_session: ClientSession):
         if self.session is not None:
@@ -415,6 +514,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
 
     async def connect(self) -> bool:
         """Attempt to connect using the previously set tokens"""
+        self._pending_seek = None
         if not self.linked():
             raise NotLinkedException("Not linked")
 
@@ -456,6 +556,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 async for events in self._parse_event_chunks(as_aiter(lines)):
                     await self._process_events(events)
                 self._command_offset = 1
+                self._command_message_offset = 1
                 return self.connected()
             except:
                 self._logger.exception(
