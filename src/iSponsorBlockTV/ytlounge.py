@@ -145,14 +145,8 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         if self._state_callback:
             await self._state_callback(self._playback_state)
 
-    async def _seek_when_content_ready(
-        self, state: State, *, rewound_and_seekable: bool = False
-    ) -> None:
-        if (
-            self._ad_active
-            or not self._pending_seek
-            or (state is not State.Playing and not rewound_and_seekable)
-        ):
+    async def _seek_when_content_ready(self, state: State) -> None:
+        if self._ad_active or state is not State.Playing or not self._pending_seek:
             return
         video_id, position = self._pending_seek
         if self._last_video_id != video_id:
@@ -266,18 +260,6 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 or self._looks_like_ad_duration(data.get("duration"))
             ):
                 self._ad_active = True
-            if self._pending_seek and data.get("state") == str(State.Stopped.value):
-                position = self._pending_seek[1]
-                # Ignore integer rounding of the requested target. Seek earlier
-                # only once the receiver reports a rewind and usable bounds.
-                rewound_and_seekable = (
-                    position - float(data["currentTime"]) > 1.0
-                    and float(data.get("seekableStartTime", 0)) <= position
-                    <= float(data.get("seekableEndTime", 0))
-                )
-                await self._seek_when_content_ready(
-                    State.Stopped, rewound_and_seekable=rewound_and_seekable
-                )
             # print(data)
             # Unmute when the video starts playing
             if self.mute_ads and not self._ad_active and data["state"] == "1":
@@ -424,7 +406,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         return await self._command("setPlaylist", parameters)
 
     async def play_video_and_force_seek(self, video_id: str, current_time: float) -> bool:
-        """Load a video, then seek when rewound content is seekable or playing."""
+        """Load a video, then seek once its content reports playing."""
         if current_time == 0:
             self.logger.debug("Force seek to 0 seconds for video %s, sending only setPlaylist", video_id)
             return await self.play_video(video_id, current_time)
