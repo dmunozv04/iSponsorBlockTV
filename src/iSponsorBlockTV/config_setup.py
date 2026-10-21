@@ -6,7 +6,7 @@ from . import api_helpers
 from .constants import SponsorBlock_api
 
 # Constants for user input prompts
-USE_PROXY_PROMPT = "Do you want to use system-wide proxy? (y/N)"
+USE_PROXY_PROMPT = "Do you want to use system-wide proxy? (y/N) "
 ATVS_REMOVAL_PROMPT = (
     "Do you want to remove the legacy 'atvs' entry (the app won't start with it present)? (y/N) "
 )
@@ -26,9 +26,9 @@ SEARCH_CHANNEL_PROMPT = 'Enter a channel name or "/exit" to exit: '
 SELECT_CHANNEL_PROMPT = "Select one option of the above [0-6]: "
 ENTER_CHANNEL_ID_PROMPT = "Enter a channel ID: "
 ENTER_CUSTOM_CHANNEL_NAME_PROMPT = "Enter the channel name: "
-MINIMUM_SKIP_PROMPT = "Do you want to specify a minimum length of segment to skip? (y/N)"
+MINIMUM_SKIP_PROMPT = "Do you want to specify a minimum length of segment to skip? (y/N) "
 MINIMUM_SKIP_SPECIFICATION_PROMPT = (
-    "Enter minimum length of segment to skip in seconds (enter 0 to disable):"
+    "Enter minimum length of segment to skip in seconds (enter 0 to disable): "
 )
 REPORT_SKIPPED_SEGMENTS_PROMPT = (
     "Do you want to report skipped segments to sponsorblock. Only the segment"
@@ -37,6 +37,8 @@ REPORT_SKIPPED_SEGMENTS_PROMPT = (
 MUTE_ADS_PROMPT = "Do you want to mute native YouTube ads automatically? (y/N) "
 SKIP_ADS_PROMPT = "Do you want to skip native YouTube ads automatically? (y/N) "
 AUTOPLAY_PROMPT = "Do you want to enable autoplay? (Y/n) "
+CLOSED_CAPTIONS_PROMPT = "Do you want to enable Closed Captions? (y/N) "
+CLOSED_CAPTIONS_LANGUAGE_PROMPT = "Enter language code (e.g. en, de, fr): "
 ENTER_SPONSORBLOCK_API_PROMPT = f"Enter SponsorBlock API URL (default: {SponsorBlock_api}): "
 
 
@@ -208,6 +210,12 @@ def main(config, debug: bool) -> None:
 
     choice = get_yn_input(AUTOPLAY_PROMPT)
     config.auto_play = choice != "n"
+
+    choice = get_yn_input(CLOSED_CAPTIONS_PROMPT)
+    if choice == "y":
+        config.closed_captions = input(CLOSED_CAPTIONS_LANGUAGE_PROMPT)
+    else:
+        config.closed_captions = ""
 
     # SponsorBlock API URL
     api_url = input(ENTER_SPONSORBLOCK_API_PROMPT).strip()
