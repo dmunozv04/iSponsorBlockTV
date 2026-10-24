@@ -36,9 +36,7 @@ REPORT_SKIPPED_SEGMENTS_PROMPT = (
 )
 MUTE_ADS_PROMPT = "Do you want to mute native YouTube ads automatically? (y/N) "
 SKIP_ADS_PROMPT = "Do you want to skip native YouTube ads automatically? (y/N) "
-AUTOPLAY_PROMPT = (
-    "Force autoplay on for all linked devices, overriding the TV's setting? (Y/n) "
-)
+AUTOPLAY_PROMPT = "Force autoplay on for all linked devices, overriding the TV's setting? (Y/n) "
 ENTER_SPONSORBLOCK_API_PROMPT = f"Enter SponsorBlock API URL (default: {SponsorBlock_api}): "
 
 
