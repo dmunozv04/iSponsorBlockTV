@@ -311,7 +311,7 @@ async def discover(
     """
     bind = None
     search_target = "urn:dial-multiscreen-org:service:dial:1"
-    max_wait = 10
+    max_wait = 3
     handler = Handler()
     seen_screen_ids = set()
     pending_tasks = set()
