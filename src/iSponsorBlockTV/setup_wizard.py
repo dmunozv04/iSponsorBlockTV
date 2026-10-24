@@ -1022,7 +1022,10 @@ class AutoPlayManager(Vertical):
     def compose(self) -> ComposeResult:
         yield Label("Autoplay", classes="title")
         yield Label(
-            "This feature allows you to enable/disable autoplay",
+            (
+                "iSponsorBlockTV forces this autoplay setting on every linked"
+                " device, overriding the TV's own setting"
+            ),
             classes="subtitle",
             id="autoplay-subtitle",
         )
@@ -1030,7 +1033,7 @@ class AutoPlayManager(Vertical):
             yield Checkbox(
                 value=self.config.auto_play,
                 id="autoplay-switch",
-                label="Enable autoplay",
+                label="Force autoplay on (untick to force it off)",
             )
 
     @on(Checkbox.Changed, "#autoplay-switch")
