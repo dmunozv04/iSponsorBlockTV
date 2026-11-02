@@ -36,7 +36,7 @@ from textual_slider import Slider
 
 # Local imports
 from . import api_helpers
-from .constants import skip_categories, SponsorBlock_api
+from .constants import SponsorBlock_api, skip_categories
 
 
 def _validate_pairing_code(pairing_code: str) -> bool:
@@ -112,7 +112,7 @@ class Device(Element):
     """A device element."""
 
     def process_values_from_data(self):
-        if "name" in self.element_data and self.element_data["name"]:
+        if self.element_data.get("name"):
             self.element_name = escape(self.element_data["name"])
         else:
             self.element_name = (
