@@ -178,8 +178,9 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             if (data["adState"] in {"0", "1082"}) and data[
                 "currentTime"
             ] != "0":  # Ad is not playing, or has just been skipped (1082)
-                self.logger.info("Ad has ended, unmuting")
-                create_task(self.mute(False, override=True))
+                if self.mute_ads:
+                    self.logger.info("Ad has ended, unmuting")
+                    create_task(self.mute(False, override=True))
             elif (
                 self.skip_ads and data["isSkipEnabled"] == "true"
             ):  # YouTube uses strings for booleans
