@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import json
 import sys
 from typing import Any, List
@@ -53,6 +54,8 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         )
         self.auth.screen_id = screen_id
         self.auth.lounge_id_token = None
+        # Unique device_id for iSponsorBlockTV, allows other clients to connect simultaneously
+        self.auth.device_id = hashlib.md5(f"iSponsorBlockTV{screen_id or ''}".encode()).hexdigest()
         self.api_helper = api_helper
         self.volume_state = {}
         self.playback_speed = 1.0
@@ -308,7 +311,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             raise NotLinkedException("Not linked")
 
         connect_body = {
-            "id": self.auth.screen_id,
+            "id": self.auth.device_id,
             "mdx-version": "3",
             "TYPE": "xmlhttp",
             "theme": "cl",
