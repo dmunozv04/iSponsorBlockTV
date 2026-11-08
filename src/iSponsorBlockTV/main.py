@@ -46,6 +46,8 @@ class DeviceListener:
                 try:
                     self.logger.debug("Refreshing auth")
                     await lounge_controller.refresh_auth()
+                except (asyncio.CancelledError, KeyboardInterrupt):
+                    raise
                 except BaseException:
                     await asyncio.sleep(10)
             while not (await self.is_available()) and not self.cancelled:
@@ -53,6 +55,8 @@ class DeviceListener:
                 await asyncio.sleep(10)
             try:
                 await lounge_controller.connect()
+            except (asyncio.CancelledError, KeyboardInterrupt):
+                raise
             except BaseException:
                 pass
             while not lounge_controller.connected() and not self.cancelled:
@@ -61,6 +65,8 @@ class DeviceListener:
                 await asyncio.sleep(10)
                 try:
                     await lounge_controller.connect()
+                except (asyncio.CancelledError, KeyboardInterrupt):
+                    raise
                 except BaseException:
                     pass
             self.logger.info(
@@ -70,6 +76,8 @@ class DeviceListener:
                 self.logger.debug("Subscribing to lounge")
                 sub = await lounge_controller.subscribe_monitored(self)
                 await sub
+            except (asyncio.CancelledError, KeyboardInterrupt):
+                raise
             except BaseException:
                 pass
 
