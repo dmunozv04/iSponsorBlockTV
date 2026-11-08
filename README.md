@@ -5,16 +5,11 @@
 [![GitHub Release](https://img.shields.io/github/v/release/dmunozv04/isponsorblocktv?logo=GitHub&style=flat)](https://github.com/dmunozv04/iSponsorBlockTV/releases/latest)
 [![GitHub Repo stars](https://img.shields.io/github/stars/dmunozv04/isponsorblocktv?style=flat)](https://github.com/dmunozv04/isponsorblocktv)
 
-iSponsorBlockTV is a self-hosted application that connects to your YouTube TV
+iSponsorBlockTV is a self-hosted application that connects to your YouTube for TV
 app (see compatibility below) and automatically skips segments (like Sponsors
 or intros) in YouTube videos using the [SponsorBlock](https://sponsor.ajay.app/)
 API. It can also auto mute and press the "Skip Ad" button the moment it becomes
 available on YouTube ads.
-
-> [!WARNING]
-> YouTube appers to have changed the screen ID code format and is in the process
-> of revoking all existing codes. This means that you'll have to pair your
-> device again. You can find information on how to do that in the wiki.
 
 ## Installation
 
