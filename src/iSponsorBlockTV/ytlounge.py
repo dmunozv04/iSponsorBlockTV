@@ -310,8 +310,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 self.skip_ads and data["isSkipEnabled"] == "true"
             ):  # YouTube uses strings for booleans
                 self.logger.info("Ad can be skipped, skipping")
-                create_task(self.skip_ad())
-                create_task(self.mute(False, override=True))
+                create_task(self._skip_ad_and_unmute())
             elif self.mute_ads:  # Seen multiple other adStates, assuming they are all ads
                 self.logger.info("Ad has started, muting")
                 create_task(self.mute(True, override=True))
@@ -338,8 +337,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 self.skip_ads and data["isSkipEnabled"] == "true"
             ):  # YouTube uses strings for booleans
                 self.logger.info("Ad can be skipped, skipping")
-                create_task(self.skip_ad())
-                create_task(self.mute(False, override=True))
+                create_task(self._skip_ad_and_unmute())
             elif self.skip_ads:  #and data["isSkippable"] == "false": # re-enable after testing
                 if self._ad_dance_task and not self._ad_dance_task.done():
                     self._ad_dance_task.cancel()
@@ -415,6 +413,22 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 "setVolume",
                 {"volume": self.volume_state.get("volume", 100), "muted": mute_str},
             )
+
+    async def _skip_ad_and_unmute(self) -> bool:
+        """Skip a skippable ad and unmute in the same command request."""
+        self.volume_state["muted"] = "false"
+        return await self._commands(
+            [
+                ("skipAd", None),
+                (
+                    "setVolume",
+                    {
+                        "volume": self.volume_state.get("volume", 100),
+                        "muted": "false",
+                    },
+                ),
+            ]
+        )
 
     async def play_video(self, video_id: str, current_time: float | None = None) -> bool:
         self._pending_seek = None
