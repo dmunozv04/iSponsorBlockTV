@@ -1095,6 +1095,123 @@ class SponsorBlockApiUrlManager(Vertical):
             self.config.sponsorblock_api_url = event.input.value.strip()
 
 
+class MqttManager(Vertical):
+    """Manager for MQTT / Home Assistant notifications."""
+
+    def __init__(self, config, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.config = config
+        self.mqtt = config.mqtt
+
+    def compose(self) -> ComposeResult:
+        ha = self.mqtt.get("home_assistant") or {}
+        yield Label("MQTT / Home Assistant", classes="title")
+        yield Label(
+            "Publish events (segment skipped, ads, now playing, device connected)"
+            " to an MQTT broker. Enable Home Assistant discovery to have entities"
+            " created automatically. Off by default.",
+            classes="subtitle",
+        )
+        yield Checkbox(
+            value=bool(self.mqtt.get("enabled")),
+            id="mqtt-enabled-switch",
+            label="Enable MQTT",
+        )
+        yield Input(
+            placeholder="Broker host/IP",
+            id="mqtt-broker-input",
+            value=str(self.mqtt.get("broker") or ""),
+            validators=[
+                Function(self._broker_ok, "Broker host/IP is required when MQTT is enabled")
+            ],
+        )
+        yield Input(
+            placeholder="Port (default 1883)",
+            id="mqtt-port-input",
+            value=str(self.mqtt.get("port", 1883)),
+            validators=[Function(lambda v: v.isdigit(), "Enter a valid port number")],
+        )
+        yield Input(
+            placeholder="Username (optional)",
+            id="mqtt-username-input",
+            value=str(self.mqtt.get("username") or ""),
+        )
+        yield Input(
+            placeholder="Password (optional)",
+            id="mqtt-password-input",
+            password=True,
+            value=str(self.mqtt.get("password") or ""),
+        )
+        yield Checkbox(
+            value=bool(self.mqtt.get("tls")),
+            id="mqtt-tls-switch",
+            label="Use TLS",
+        )
+        yield Input(
+            placeholder="Base topic (default isponsorblocktv)",
+            id="mqtt-base-topic-input",
+            value=str(self.mqtt.get("base_topic") or "isponsorblocktv"),
+        )
+        yield Checkbox(
+            value=bool(ha.get("enabled", True)),
+            id="mqtt-ha-switch",
+            label="Enable Home Assistant discovery",
+        )
+        yield Input(
+            placeholder="Discovery prefix (default homeassistant)",
+            id="mqtt-ha-prefix-input",
+            value=str(ha.get("discovery_prefix") or "homeassistant"),
+        )
+
+    def _broker_ok(self, value: str) -> bool:
+        # The broker is only required once MQTT itself is enabled.
+        return not self.mqtt.get("enabled") or bool(value.strip())
+
+    @on(Checkbox.Changed, "#mqtt-enabled-switch")
+    def changed_enabled(self, event: Checkbox.Changed):
+        self.mqtt["enabled"] = event.checkbox.value
+        # Re-check the broker now that "required" may have flipped.
+        broker = self.query_one("#mqtt-broker-input", Input)
+        broker.validate(broker.value)
+
+    @on(Input.Changed, "#mqtt-broker-input")
+    def changed_broker(self, event: Input.Changed):
+        self.mqtt["broker"] = event.input.value.strip()
+
+    @on(Input.Changed, "#mqtt-port-input")
+    def changed_port(self, event: Input.Changed):
+        if event.input.value.isdigit():
+            self.mqtt["port"] = int(event.input.value)
+
+    @on(Input.Changed, "#mqtt-username-input")
+    def changed_username(self, event: Input.Changed):
+        self.mqtt["username"] = event.input.value.strip()
+
+    @on(Input.Changed, "#mqtt-password-input")
+    def changed_password(self, event: Input.Changed):
+        self.mqtt["password"] = event.input.value
+
+    @on(Checkbox.Changed, "#mqtt-tls-switch")
+    def changed_tls(self, event: Checkbox.Changed):
+        self.mqtt["tls"] = event.checkbox.value
+
+    @on(Input.Changed, "#mqtt-base-topic-input")
+    def changed_base_topic(self, event: Input.Changed):
+        if event.input.value.strip():
+            self.mqtt["base_topic"] = event.input.value.strip()
+
+    @on(Checkbox.Changed, "#mqtt-ha-switch")
+    def changed_ha(self, event: Checkbox.Changed):
+        self.mqtt.setdefault("home_assistant", {})["enabled"] = event.checkbox.value
+
+    @on(Input.Changed, "#mqtt-ha-prefix-input")
+    def changed_ha_prefix(self, event: Input.Changed):
+        if event.input.value.strip():
+            self.mqtt.setdefault("home_assistant", {})["discovery_prefix"] = (
+                event.input.value.strip()
+            )
+
+
 class ISponsorBlockTVSetup(App):
     TITLE = "iSponsorBlockTV"
     SUB_TITLE = "Setup Wizard"
@@ -1140,6 +1257,7 @@ class ISponsorBlockTVSetup(App):
             yield SponsorBlockApiUrlManager(
                 config=self.config, id="sponsorblock-api-url-manager", classes="container"
             )
+            yield MqttManager(config=self.config, id="mqtt-manager", classes="container")
 
     async def on_mount(self) -> None:
         self.web_session = aiohttp.ClientSession(trust_env=self.config.use_proxy)

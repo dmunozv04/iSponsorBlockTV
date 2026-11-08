@@ -1,3 +1,4 @@
+import copy
 import json
 import logging
 import os
@@ -9,6 +10,23 @@ from appdirs import user_data_dir
 
 from . import config_setup, main, setup_wizard
 from .constants import config_file_blacklist_keys, github_wiki_base_url, SponsorBlock_api
+
+# Default MQTT / Home Assistant notification config. Off by default so existing
+# installs are unaffected. Layer 1 (mqtt.enabled) publishes provider-neutral
+# topics; layer 2 (mqtt.home_assistant.enabled) adds Home Assistant discovery.
+DEFAULT_MQTT = {
+    "enabled": False,
+    "broker": "",
+    "port": 1883,
+    "username": "",
+    "password": "",
+    "tls": False,
+    "base_topic": "isponsorblocktv",
+    "home_assistant": {
+        "enabled": True,
+        "discovery_prefix": "homeassistant",
+    },
+}
 
 
 class Device:
@@ -55,7 +73,9 @@ class Config:
         self.join_name = "iSponsorBlockTV"
         self.use_proxy = False
         self.sponsorblock_api_url = SponsorBlock_api
+        self.mqtt = copy.deepcopy(DEFAULT_MQTT)
         self.__load()
+        self._normalize_mqtt()
 
     def validate(self):
         if hasattr(self, "atvs"):
@@ -81,6 +101,35 @@ class Config:
         if self.skip_categories is None:
             self.skip_categories = ["sponsor"]
             print("No categories found, using default: sponsor")
+        self._validate_mqtt()
+
+    def _normalize_mqtt(self):
+        # Merge the (possibly partial) user MQTT config over the defaults so
+        # missing keys keep their defaults, including the nested
+        # home_assistant block.
+        default = copy.deepcopy(DEFAULT_MQTT)
+        user = self.mqtt if isinstance(self.mqtt, dict) else {}
+        ha = {**default["home_assistant"], **(user.get("home_assistant") or {})}
+        self.mqtt = {**default, **user, "home_assistant": ha}
+
+    def _validate_mqtt(self):
+        mqtt = self.mqtt
+        ha = mqtt.get("home_assistant", {})
+        if ha.get("enabled") and not mqtt.get("enabled"):
+            print(
+                "mqtt.home_assistant.enabled is set but mqtt.enabled is false; "
+                "Home Assistant discovery stays inactive until MQTT is enabled."
+            )
+        if not mqtt.get("enabled"):
+            return
+        if not mqtt.get("broker"):
+            raise ValueError("mqtt.enabled is true but mqtt.broker is empty")
+        try:
+            port = int(mqtt.get("port", 1883))
+        except (TypeError, ValueError) as err:
+            raise ValueError("mqtt.port must be an integer") from err
+        if not 0 < port < 65536:
+            raise ValueError("mqtt.port must be between 1 and 65535")
 
     def __load(self):
         try:

@@ -21,5 +21,18 @@
         "name": ""
         }
     ],
-    "use_proxy": false
+    "use_proxy": false,
+    "mqtt": {
+        "enabled": false,
+        "broker": "",
+        "port": 1883,
+        "username": "",
+        "password": "",
+        "tls": false,
+        "base_topic": "isponsorblocktv",
+        "home_assistant": {
+            "enabled": true,
+            "discovery_prefix": "homeassistant"
+        }
+    }
 }
