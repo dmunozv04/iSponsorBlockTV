@@ -156,8 +156,24 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             return
         # Clear before awaiting so repeated playback events cannot seek twice.
         self._pending_seek = None
-        self.logger.debug("Content ready, seeking video %s to %.2f seconds", video_id, position)
-        await self.seek_to(position)
+        self.logger.debug(
+            "Content ready, seeking video %s to %.2f seconds and unmuting",
+            video_id,
+            position,
+        )
+        self.volume_state["muted"] = "false"
+        await self._commands(
+            [
+                ("seekTo", {"newTime": position}),
+                (
+                    "setVolume",
+                    {
+                        "volume": self.volume_state.get("volume", 100),
+                        "muted": "false",
+                    },
+                ),
+            ]
+        )
 
     def _position_before_ad(self) -> float:
         """Estimate the content position when the ad started."""
