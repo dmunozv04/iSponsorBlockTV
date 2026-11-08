@@ -35,6 +35,21 @@ class AdEndUnmuteTests(unittest.IsolatedAsyncioTestCase):
             [call("setVolume", {"volume": 100, "muted": "false"})],
         )
 
+    async def test_skipped_ad_state_restores_volume_when_muting_enabled(self):
+        config = SimpleNamespace(join_name="test", mute_ads=True, skip_ads=False, auto_play=True)
+        lounge = YtLoungeApi(config=config, logger=logging.getLogger(__name__))
+        lounge._command = AsyncMock()
+
+        await lounge._process_event(
+            "onAdStateChange", [{"adState": "1082", "currentTime": "12", "isSkipEnabled": "false"}]
+        )
+        await asyncio.sleep(0)
+
+        self.assertEqual(
+            lounge._command.await_args_list,
+            [call("setVolume", {"volume": 100, "muted": "false"})],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
