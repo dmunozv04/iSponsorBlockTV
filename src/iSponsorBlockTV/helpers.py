@@ -52,6 +52,10 @@ class Config:
         self.skip_ads = False
         self.minimum_skip_length = 1
         self.auto_play = True
+        # Opt-in workaround for receivers that continue to auto-advance:
+        #   "off"   - no action (default; try this first)
+        #   "pause" - pauses the video the receiver auto-advanced to
+        self.autoplay_block_action = "off"
         self.join_name = "iSponsorBlockTV"
         self.use_proxy = False
         self.sponsorblock_api_url = SponsorBlock_api
