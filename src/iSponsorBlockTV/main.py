@@ -2,7 +2,6 @@ import asyncio
 import logging
 import time
 from signal import SIGINT, SIGTERM, signal
-from typing import Optional
 
 import aiohttp
 
@@ -12,7 +11,7 @@ from .debug_helpers import AiohttpTracer
 
 class DeviceListener:
     def __init__(self, api_helper, config, device, debug: bool, web_session):
-        self.task: Optional[asyncio.Task] = None
+        self.task: asyncio.Task | None = None
         self.api_helper = api_helper
         self.offset = device.offset
         self.name = device.name

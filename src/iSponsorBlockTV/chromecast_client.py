@@ -2,12 +2,12 @@
 
 # skipcq: PYL-R0401
 import asyncio
-from typing import Any
 import logging
+from typing import Any
 
 import pychromecast
-from pychromecast.controllers.youtube import YouTubeController
 from pychromecast import Chromecast
+from pychromecast.controllers.youtube import YouTubeController
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +91,7 @@ async def discover(active=True):
                     asyncio.create_task(asyncio.to_thread(_build_device_from_cast, cast))
                 )
                 discovery_deadline = max(discovery_deadline, loop.time() + 1)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 pass
 
             done_tasks = {task for task in pending_tasks if task.done()}
