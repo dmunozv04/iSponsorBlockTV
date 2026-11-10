@@ -338,7 +338,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             ):  # YouTube uses strings for booleans
                 self.logger.info("Ad can be skipped, skipping")
                 create_task(self._skip_ad_and_unmute())
-            elif self.skip_ads:  #and data["isSkippable"] == "false": # re-enable after testing
+            elif self.skip_ads and data["isSkippable"] == "false":
                 if self._ad_dance_task and not self._ad_dance_task.done():
                     self._ad_dance_task.cancel()
                 if self._last_video_id:
