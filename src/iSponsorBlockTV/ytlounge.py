@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import json
+import math
 import sys
 import time
 from typing import Any
@@ -180,8 +181,13 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
     async def _replay_video_after_ad(
         self, video_id: str, position: float, wait_time: float
     ) -> None:
+        toast_task = None
         try:
             await self.pause()
+            if wait_time > 0:
+                toast_task = create_task(
+                    self.send_toast(f"Ad will be skipped in {math.ceil(wait_time)} seconds")
+                )
             await asyncio.sleep(wait_time)
             self.logger.info(
                 "Replaying non-skippable ad content %s from %.2f seconds",
@@ -194,6 +200,16 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 await self.play_video(video_id, position)
         except asyncio.CancelledError:
             pass
+        finally:
+            if toast_task is not None:
+                if not toast_task.done():
+                    toast_task.cancel()
+                try:
+                    await toast_task
+                except asyncio.CancelledError:
+                    pass
+                except Exception:
+                    self.logger.warning("Failed to send ad dance toast", exc_info=True)
 
     # Ensures that we still are subscribed to the lounge
     async def _watchdog(self):
@@ -345,9 +361,11 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 self.logger.info("Ad can be skipped, skipping")
                 create_task(self._skip_ad_and_unmute())
             elif self.skip_ads and data["isSkippable"] == "false":
-                if self._ad_dance_task and not self._ad_dance_task.done():
-                    self._ad_dance_task.cancel()
-                if self._last_video_id:
+                # Connecting the toast remote can repeat adPlaying for the same ad.
+                # Keep the current countdown instead of starting another connection.
+                if self._last_video_id and (
+                    self._ad_dance_task is None or self._ad_dance_task.done()
+                ):
                     self.logger.info("Ad cannot be skipped, pausing and scheduling ad dance")
                     self._ad_dance_task = create_task(
                         self._replay_video_after_ad(
@@ -394,6 +412,77 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
     # Set the volume to a specific value (0-100)
     async def set_volume(self, volume: int) -> None:
         await self._command("setVolume", {"volume": volume})
+
+    async def send_toast(self, message: str) -> bool:
+        """Show a connection toast with the message as a temporary remote's name.
+
+        YouTube controls the toast title and duration. The temporary remote
+        advertises ndt to suppress its disconnect toast and omits dsdtr to
+        avoid last-remote-disconnected behavior. The main session stays intact.
+        """
+        if not self.connected():
+            raise NotConnectedException("Not connected")
+        session = self._required_session
+        url = f"{api_base}/bc/bind"
+        body = {
+            "id": hashlib.md5(
+                f"iSponsorBlockTV-toast{self.auth.screen_id or ''}".encode()
+            ).hexdigest(),
+            "name": message,
+            "device": "REMOTE_CONTROL",
+            "mdx-version": "3",
+            "TYPE": "xmlhttp",
+            "theme": "cl",
+            "sessionSource": "MDX_SESSION_SOURCE_UNKNOWN",
+            "RID": "1",
+            "CVER": "1",
+            # ndt suppresses the disconnect toast while allowing the connection toast.
+            "capabilities": "que,atp,vsp,ndt",
+            "ui": "true",
+            "app": "ytios-phone-20.15.1",
+            "pairing_type": "manual",
+            "VER": "8",
+            "loungeIdToken": self.auth.lounge_id_token,
+        }
+        sid = gsession = last_event_id = None
+        try:
+            async with session.post(url=url, data=body) as response:
+                response.raise_for_status()
+                text = await response.text()
+            # Keep the temporary session's events out of the main controller.
+            async for events in self._parse_event_chunks(as_aiter(text.splitlines())):
+                for event_id, (event_type, *args) in events:
+                    last_event_id = event_id
+                    if event_type == "c":
+                        sid = args[0]
+                    elif event_type == "S":
+                        gsession = args[0]
+            return sid is not None and gsession is not None
+        finally:
+            if sid is not None:
+                params = {
+                    **self._common_connection_parameters(),
+                    "name": message,
+                    "SID": sid,
+                    "AID": last_event_id,
+                    "gsessionid": gsession,
+                    "CVER": "1",
+                    "RID": "2",
+                    "auth_failure_option": "send_error",
+                }
+                async with session.post(
+                    url=url,
+                    data={
+                        "ui": "true",
+                        "TYPE": "terminate",
+                        "clientDisconnectReason": (
+                            "MDX_SESSION_DISCONNECT_REASON_DISCONNECTED_BY_USER"
+                        ),
+                    },
+                    params=params,
+                ) as response:
+                    response.raise_for_status()
+                    await response.text()
 
     async def mute(self, mute: bool, override: bool = False) -> None:
         """
