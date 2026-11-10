@@ -20,7 +20,7 @@ class DeviceListener:
         self.logger = logging.getLogger(f"iSponsorBlockTV-{device.screen_id}")
         self.web_session = web_session
         self.lounge_controller = ytlounge.YtLoungeApi(
-            device.screen_id, config, api_helper, self.logger
+            device.screen_id, config, api_helper, self.logger, offset=self.offset
         )
 
     # Ensures that we have a valid auth token

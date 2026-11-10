@@ -49,6 +49,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         config=None,
         api_helper=None,
         logger=None,
+        offset: float = 0.0,
     ):
         self._callback_listener = _CallbackListener(self)
         super().__init__(
@@ -61,6 +62,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         # Unique device_id for iSponsorBlockTV, allows other clients to connect simultaneously
         self.auth.device_id = hashlib.md5(f"iSponsorBlockTV{screen_id or ''}".encode()).hexdigest()
         self.api_helper = api_helper
+        self.offset = offset
         self.volume_state = {}
         self.playback_speed = 1.0
         self.subscribe_task = None
@@ -74,13 +76,14 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         self.watchdog_running = False
         self.last_event_time = 0
         self._ad_active = False
+        self._ad_is_skippable = False
         self._ad_dance_task = None
         self._pending_seek: tuple[str, float] | None = None
         self._last_video_id = ""
         self._last_content_duration = 0.0
         self._last_playback_position = 0.0
         self._last_content_playback_speed = 1.0
-        self._last_playback_info_time = time.monotonic()
+        self._last_playback_info_time = time.time()
         self._has_content_playback_info = False
         if config:
             self.mute_ads = config.mute_ads
@@ -109,7 +112,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         if not self._ad_active and event.state is State.Playing:
             self._last_playback_position = event.current_time
             self._last_content_playback_speed = self.playback_speed
-            self._last_playback_info_time = time.monotonic()
+            self._last_playback_info_time = time.time()
             self._has_content_playback_info = True
             if event.duration > 0:
                 self._last_content_duration = event.duration
@@ -140,7 +143,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         ):
             self._last_playback_position = event.current_time
             self._last_content_playback_speed = self.playback_speed
-            self._last_playback_info_time = time.monotonic()
+            self._last_playback_info_time = time.time()
             self._has_content_playback_info = True
             if event.duration is not None and event.duration > 0:
                 self._last_content_duration = event.duration
@@ -157,29 +160,17 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         # Clear before awaiting so repeated playback events cannot seek twice.
         self._pending_seek = None
         self.logger.debug(
-            "Content ready, seeking video %s to %.2f seconds and unmuting",
+            "Content ready, seeking video %s to %.2f seconds",
             video_id,
             position,
         )
-        self.volume_state["muted"] = "false"
-        await self._commands(
-            [
-                ("seekTo", {"newTime": position}),
-                (
-                    "setVolume",
-                    {
-                        "volume": self.volume_state.get("volume", 100),
-                        "muted": "false",
-                    },
-                ),
-            ]
-        )
+        await self._command("seekTo", {"newTime": position})
 
     def _position_before_ad(self) -> float:
         """Estimate the content position when the ad started."""
         if not self._has_content_playback_info:
             return 0.0
-        elapsed = time.monotonic() - self._last_playback_info_time
+        elapsed = time.time() - self._last_playback_info_time - self.offset
         return max(
             0.0,
             self._last_playback_position
@@ -190,6 +181,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         self, video_id: str, position: float, wait_time: float
     ) -> None:
         try:
+            await self.pause()
             await asyncio.sleep(wait_time)
             self.logger.info(
                 "Replaying non-skippable ad content %s from %.2f seconds",
@@ -281,7 +273,12 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 self._ad_active = True
             # print(data)
             # Unmute when the video starts playing
-            if self.mute_ads and not self._ad_active and data["state"] == "1":
+            if (
+                self.mute_ads
+                and self._ad_is_skippable
+                and not self._ad_active
+                and data["state"] == "1"
+            ):
                 create_task(self.mute(False, override=True))
         elif event_type == "nowPlaying":
             data = args[0]
@@ -294,24 +291,32 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             elif data.get("videoId") and data.get("duration") not in (None, "0", 0):
                 self._ad_active = False
             # Unmute when the video starts playing
-            if self.mute_ads and not self._ad_active and data.get("state", "0") == "1":
+            if (
+                self.mute_ads
+                and self._ad_is_skippable
+                and not self._ad_active
+                and data.get("state", "0") == "1"
+            ):
                 self.logger.info("Ad has ended, unmuting")
                 create_task(self.mute(False, override=True))
         elif event_type == "onAdStateChange":
             data = args[0]
+            if "isSkippable" in data:
+                self._ad_is_skippable = data["isSkippable"] == "true"
             if data["adState"] in {"0", "1082"}:  # Ad is not playing or was skipped
                 self._ad_active = False
                 if self._ad_dance_task and not self._ad_dance_task.done():
                     self._ad_dance_task.cancel()
-                if data["currentTime"] != "0":
+                if self._ad_is_skippable:
                     self.logger.info("Ad has ended, unmuting")
                     create_task(self.mute(False, override=True))
+                self._ad_is_skippable = False
             elif (
                 self.skip_ads and data["isSkipEnabled"] == "true"
             ):  # YouTube uses strings for booleans
                 self.logger.info("Ad can be skipped, skipping")
                 create_task(self._skip_ad_and_unmute())
-            elif self.mute_ads:  # Seen multiple other adStates, assuming they are all ads
+            elif self.mute_ads and self._ad_is_skippable:
                 self.logger.info("Ad has started, muting")
                 create_task(self.mute(True, override=True))
         # Manages volume, useful since YouTube wants to know the volume
@@ -328,6 +333,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         elif event_type == "adPlaying":
             data = args[0]
             self._ad_active = True
+            self._ad_is_skippable = data["isSkippable"] == "true"
             # Gets segments for the next video (after the ad) before it starts playing
             if self._last_video_id:
                 self.logger.info(f"Getting segments for next video: {self._last_video_id}")
@@ -342,17 +348,15 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 if self._ad_dance_task and not self._ad_dance_task.done():
                     self._ad_dance_task.cancel()
                 if self._last_video_id:
-                    self.logger.info("Ad cannot be skipped, scheduling ad dance")
+                    self.logger.info("Ad cannot be skipped, pausing and scheduling ad dance")
                     self._ad_dance_task = create_task(
                         self._replay_video_after_ad(
                             self._last_video_id,
                             self._position_before_ad(),
-                            max(0.0, 5.0 - float(data["currentTime"])),
+                            max(0.0, 5.0 - float(data["currentTime"]) - self.offset),
                         )
                     )
-                if self.mute_ads:
-                    create_task(self.mute(True, override=True))
-            elif self.mute_ads:  # Seen multiple other adStates, assuming they are all ads
+            elif self.mute_ads and self._ad_is_skippable:
                 self.logger.info("Ad has started, muting")
                 create_task(self.mute(True, override=True))
 
