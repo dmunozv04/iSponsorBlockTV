@@ -117,7 +117,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             self._has_content_playback_info = True
             if event.duration > 0:
                 self._last_content_duration = event.duration
-        await self._seek_when_content_ready(event.state)
+        await self._seek_when_content_ready(event.state, event.current_time)
         if self._state_callback:
             await self._state_callback(self._playback_state)
 
@@ -148,18 +148,27 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             self._has_content_playback_info = True
             if event.duration is not None and event.duration > 0:
                 self._last_content_duration = event.duration
-        await self._seek_when_content_ready(event.state)
+        await self._seek_when_content_ready(event.state, event.current_time)
         if self._state_callback:
             await self._state_callback(self._playback_state)
 
-    async def _seek_when_content_ready(self, state: State) -> None:
-        if self._ad_active or state is not State.Playing or not self._pending_seek:
+    async def _seek_when_content_ready(
+        self, state: State, current_time: float | None
+    ) -> None:
+        if (
+            self._ad_active
+            or state is not State.Playing
+            or current_time is None
+            or not self._pending_seek
+        ):
             return
         video_id, position = self._pending_seek
         if self._last_video_id != video_id:
             return
         # Clear before awaiting so repeated playback events cannot seek twice.
         self._pending_seek = None
+        if abs(current_time - position) <= 1.0:
+            return
         self.logger.debug(
             "Content ready, seeking video %s to %.2f seconds",
             video_id,
