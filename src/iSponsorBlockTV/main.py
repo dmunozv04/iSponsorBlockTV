@@ -108,7 +108,7 @@ class DeviceListener:
                 next_segment = segment
                 start_next_segment = position if is_within_start_range else segment_start
                 break
-        if start_next_segment:
+        if next_segment is not None:
             time_to_next = (
                 (start_next_segment - position - (time.monotonic() - time_start))
                 / self.lounge_controller.playback_speed
