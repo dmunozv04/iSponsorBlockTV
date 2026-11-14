@@ -10,4 +10,4 @@ xmltodict==1.0.4
 rich_click==1.9.8
 yarl==1.25.1
 zeroconf==0.150.0
-pychromecast==14.0.10
+pychromecast==14.1.1
