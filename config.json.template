@@ -11,6 +11,7 @@
     ],
     "skip_count_tracking": true,
     "mute_ads": true,
+    "ad_volume": null,
     "skip_ads": true,
     "minimum_skip_length": 1,
     "auto_play": true,

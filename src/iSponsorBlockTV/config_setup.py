@@ -35,6 +35,10 @@ REPORT_SKIPPED_SEGMENTS_PROMPT = (
     " UUID will be sent? (Y/n) "
 )
 MUTE_ADS_PROMPT = "Do you want to mute native YouTube ads automatically? (y/N) "
+AD_VOLUME_PROMPT = (
+    "Enter the volume to set during ads (0-100), or leave empty to mute instead."
+    " Useful if muting an ad is too abrupt: "
+)
 SKIP_ADS_PROMPT = "Do you want to skip native YouTube ads automatically? (y/N) "
 AUTOPLAY_PROMPT = "Do you want to enable autoplay? (Y/n) "
 ENTER_SPONSORBLOCK_API_PROMPT = f"Enter SponsorBlock API URL (default: {SponsorBlock_api}): "
@@ -202,6 +206,17 @@ def main(config, debug: bool) -> None:
 
     choice = get_yn_input(MUTE_ADS_PROMPT)
     config.mute_ads = choice == "y"
+
+    if config.mute_ads:
+        while True:
+            ad_volume = input(AD_VOLUME_PROMPT).strip()
+            if not ad_volume:
+                config.ad_volume = None
+                break
+            if ad_volume.isdigit() and int(ad_volume) <= 100:
+                config.ad_volume = int(ad_volume)
+                break
+            print("You entered an invalid volume, try again.")
 
     choice = get_yn_input(SKIP_ADS_PROMPT)
     config.skip_ads = choice == "y"
