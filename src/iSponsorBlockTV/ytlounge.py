@@ -67,7 +67,6 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         self.logger = logger
         self.shorts_disconnected = False
         self.auto_play = True
-        self.watchdog_running = False
         self.last_event_time = 0
         if config:
             self.mute_ads = config.mute_ads
@@ -99,31 +98,21 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         If no events are received within the expected timeframe,
         it cancels the current subscription.
         """
-        self.watchdog_running = True
-        self.last_event_time = asyncio.get_running_loop().time()
+        while self.subscribe_task and not self.subscribe_task.done():
+            await asyncio.sleep(10)
+            current_time = asyncio.get_running_loop().time()
+            time_since_last_event = current_time - self.last_event_time
 
-        try:
-            while self.watchdog_running:
-                await asyncio.sleep(10)
-                current_time = asyncio.get_running_loop().time()
-                time_since_last_event = current_time - self.last_event_time
+            # YouTube sends a message at least every 30 seconds
+            if time_since_last_event > 60:
+                self.logger.debug(
+                    f"Watchdog triggered: No events for {time_since_last_event:.1f} seconds"
+                )
 
-                # YouTube sends a message at least every 30 seconds
-                if time_since_last_event > 60:
-                    self.logger.debug(
-                        f"Watchdog triggered: No events for {time_since_last_event:.1f} seconds"
-                    )
-
-                    # Cancel current subscription
-                    if self.subscribe_task and not self.subscribe_task.done():
-                        self.subscribe_task.cancel()
-                        await asyncio.sleep(1)  # Give it time to cancel
-        except asyncio.CancelledError:
-            self.logger.debug("Watchdog task cancelled")
-            self.watchdog_running = False
-        except BaseException as e:
-            self.logger.error(f"Watchdog error: {e}")
-            self.watchdog_running = False
+                # Cancel current subscription
+                if self.subscribe_task and not self.subscribe_task.done():
+                    self.subscribe_task.cancel()
+                    return
 
     # Subscribe to the lounge and start the watchdog
     async def subscribe_monitored(self, callback):
@@ -132,11 +121,10 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
 
         # Stop existing watchdog if running
         if self.subscribe_task_watchdog and not self.subscribe_task_watchdog.done():
-            self.watchdog_running = False
             self.subscribe_task_watchdog.cancel()
             try:
                 await self.subscribe_task_watchdog
-            except (asyncio.CancelledError, Exception):
+            except asyncio.CancelledError:
                 pass
 
         # Start new subscription
@@ -147,6 +135,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             except (asyncio.CancelledError, Exception):
                 pass
 
+        self.last_event_time = asyncio.get_running_loop().time()
         self.subscribe_task = asyncio.create_task(super().subscribe())
         self.subscribe_task_watchdog = asyncio.create_task(self._watchdog())
         return self.subscribe_task
