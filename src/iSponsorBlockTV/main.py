@@ -66,12 +66,17 @@ class DeviceListener:
             self.logger.info(
                 "Connected to device %s (%s)", lounge_controller.screen_name, self.name
             )
-            try:
-                self.logger.debug("Subscribing to lounge")
-                sub = await lounge_controller.subscribe_monitored(self)
-                await sub
-            except BaseException:
-                pass
+            while lounge_controller.connected() and not self.cancelled:
+                try:
+                    self.logger.debug("Subscribing to lounge")
+                    sub = await lounge_controller.subscribe_monitored(self)
+                    await sub
+                    if lounge_controller.connected() and not self.cancelled:
+                        self.logger.debug(
+                            "Lounge subscription ended; reopening it on the existing session"
+                        )
+                except BaseException:
+                    break
 
     # Method called on playback state change
     async def __call__(self, state):
