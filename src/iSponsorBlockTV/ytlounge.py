@@ -83,6 +83,11 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         self._resume_check: tuple[str, float, float] | None = None
         self._ad_is_skippable = False
         self._ad_dance_task = None
+        # Ad dances in the current ad break, to avoid replaying in a loop
+        self._ad_dance_video = ""
+        self._ad_dance_count = 0
+        self._ad_dance_time = 0.0
+        self._ad_dance_gave_up = False
         self._pending_seek: tuple[str, float] | None = None
         self._last_video_id = ""
         self._last_content_duration = 0.0
@@ -135,6 +140,11 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 self._ad_started_position,
                 time.time(),
             )
+        if self._ad_active and self._ad_dance_gave_up:
+            self._ad_dance_gave_up = False
+            if self.mute_ads:
+                self.logger.info("Ad has ended, unmuting")
+                create_task(self.mute(False, override=True))
         self._ad_active = False
         self._ad_started_position = None
 
@@ -275,6 +285,45 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             0.0,
             self._last_playback_position
             + elapsed * self._last_content_playback_speed,
+        )
+
+    # After a replay YouTube may show the same ad again, resumed where it was cut off.
+    # Its currentTime is then past 5 s, so the dance replayed at once, in a loop.
+    _AD_DANCE_WAIT = 5.0
+    _AD_DANCE_MAX_ATTEMPTS = 3
+    _AD_DANCE_BREAK_WINDOW = 30.0
+
+    def _schedule_ad_dance(self, ad_current_time: float) -> None:
+        """Replay the content once the ad played 5 seconds, without looping."""
+        video_id = self._last_video_id
+        now = time.time()
+        if video_id != self._ad_dance_video or now - self._ad_dance_time > (
+            self._AD_DANCE_BREAK_WINDOW
+        ):
+            self._ad_dance_count = 0  # a new ad break
+        if self._ad_dance_count >= self._AD_DANCE_MAX_ATTEMPTS:
+            if not self._ad_dance_gave_up:
+                self._ad_dance_gave_up = True
+                self.logger.info(
+                    "Ad came back after %d ad dances, letting it play",
+                    self._ad_dance_count,
+                )
+                if self.mute_ads:
+                    create_task(self.mute(True, override=True))
+            return
+        wait_time = max(0.0, self._AD_DANCE_WAIT - ad_current_time - self.offset)
+        if self._ad_dance_count:
+            # The same ad again: give it the full wait time instead of replaying at once
+            wait_time = max(wait_time, self._AD_DANCE_WAIT)
+        self._ad_dance_video = video_id
+        self._ad_dance_count += 1
+        self._ad_dance_time = now
+        self.logger.info(
+            "Ad cannot be skipped, pausing and scheduling ad dance (attempt %d)",
+            self._ad_dance_count,
+        )
+        self._ad_dance_task = create_task(
+            self._replay_video_after_ad(video_id, self._position_before_ad(), wait_time)
         )
 
     async def _replay_video_after_ad(
@@ -468,14 +517,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 if self._last_video_id and (
                     self._ad_dance_task is None or self._ad_dance_task.done()
                 ):
-                    self.logger.info("Ad cannot be skipped, pausing and scheduling ad dance")
-                    self._ad_dance_task = create_task(
-                        self._replay_video_after_ad(
-                            self._last_video_id,
-                            self._position_before_ad(),
-                            max(0.0, 5.0 - float(data["currentTime"]) - self.offset),
-                        )
-                    )
+                    self._schedule_ad_dance(float(data["currentTime"]))
             elif self.mute_ads and self._ad_is_skippable:
                 self.logger.info("Ad has started, muting")
                 create_task(self.mute(True, override=True))

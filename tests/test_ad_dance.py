@@ -345,5 +345,53 @@ class AdRightAfterAdDance(LoungeTest):
         self.assertAlmostEqual(self.api._ad_started_position, 325.95, delta=1.0)
 
 
+class AdDanceLoop(LoungeTest):
+    """Seen on a TV: after each replay the same ad came back past 5 s and was danced
+    away at once, 7 times in 13 seconds."""
+
+    async def same_ad_again(self, ad_current_time="8"):
+        await self.send("adPlaying", ad_playing(ad_current_time=ad_current_time))
+
+    def mutes(self):
+        return [p["muted"] for name, p in self.commands if name == "setVolume"]
+
+    async def test_same_ad_again_waits_the_full_time(self):
+        await self.play_content(at=100)
+        await self.same_ad_again("5")
+        await self.same_ad_again("8")
+        self.assertEqual([round(w, 2) for _, _, w in self.replays], [0.0, 5.0])
+
+    async def test_gives_up_after_three_ad_dances(self):
+        await self.play_content(at=100)
+        for _ in range(5):
+            await self.same_ad_again()
+        self.assertEqual(len(self.replays), 3)
+        self.assertEqual(self.mutes(), ["true"])
+
+    async def test_unmutes_when_the_given_up_ad_ends(self):
+        await self.play_content(at=100)
+        for _ in range(4):
+            await self.same_ad_again()
+        await self.send("onAdStateChange", ad_state("0", skippable=False))
+        self.assertEqual(self.mutes(), ["true", "false"])
+
+    async def test_new_ad_break_starts_counting_again(self):
+        await self.play_content(at=100)
+        for _ in range(3):
+            await self.same_ad_again()
+        self.api._ad_dance_time -= 31  # a later ad break
+        await self.same_ad_again("0")
+        self.assertEqual(len(self.replays), 4)
+        self.assertAlmostEqual(self.replays[-1][2], 5.0, delta=0.01)
+
+    async def test_no_mute_when_muting_is_disabled(self):
+        self.api.mute_ads = False
+        await self.play_content(at=100)
+        for _ in range(4):
+            await self.same_ad_again()
+        await self.send("onAdStateChange", ad_state("0", skippable=False))
+        self.assertEqual(self.mutes(), [])
+
+
 if __name__ == "__main__":
     unittest.main()
