@@ -1,0 +1,6 @@
+# Worker dependencies are installed from the root requirements.txt.
+fastapi==0.163.1
+itsdangerous==2.2.0
+uvicorn==0.54.0
+pydantic==2.14.3
+starlette==1.10.0

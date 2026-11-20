@@ -31,3 +31,7 @@ build-backend = "hatchling.build"
 
 [tool.ruff]
 line-length = 100
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]

@@ -25,7 +25,7 @@ RUN apk add --no-cache gcc musl-dev && \
 
 FROM base
 
-ENV PIP_NO_CACHE_DIR=off iSPBTV_docker=True iSPBTV_data_dir=data TERM=xterm-256color COLORTERM=truecolor
+ENV PIP_NO_CACHE_DIR=off iSPBTV_docker=True iSPBTV_data_dir=data TERM=xterm-256color COLORTERM=truecolor HOME=/tmp HEALTHCHECK_PATH=/tmp/isponsorblocktv-health
 
 COPY requirements.txt .
 
@@ -34,5 +34,8 @@ COPY --from=dep_installer /usr/local /usr/local
 WORKDIR /app
 
 COPY --from=compiler /app .
+
+HEALTHCHECK --interval=15s --timeout=5s --start-period=15s --retries=3 \
+  CMD python3 -c "import os,time; assert time.time()-os.stat('/tmp/isponsorblocktv-health').st_mtime < 30"
 
 ENTRYPOINT ["python3", "-u", "main.pyc"]

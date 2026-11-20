@@ -21,9 +21,44 @@ permissions:
   packages: write
 
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+          cache: pip
+      - run: pip install -r requirements.txt -r dashboard/backend/requirements.txt -r requirements-dev.txt
+      - run: pytest -q
+      - run: ruff check --isolated src/iSponsorBlockTV/config_store.py src/iSponsorBlockTV/helpers.py src/iSponsorBlockTV/main.py dashboard/backend tests
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: dashboard/frontend/package-lock.json
+      - run: npm ci && npm run lint && npm run build
+        working-directory: dashboard/frontend
+
   build:
+    needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: isponsorblocktv
+            dockerhub_image: dmunozv04/isponsorblocktv
+            dockerfile: Dockerfile
+            platforms: linux/amd64,linux/arm64,linux/arm/v7,linux/386,linux/arm/v6
+          - image: isponsorblocktv-dashboard
+            dockerhub_image: ""
+            dockerfile: dashboard/Dockerfile
+            platforms: linux/amd64,linux/arm64
     env:
-        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      PUBLISH_IMAGES: ${{ github.event_name == 'release' || startsWith(github.ref, 'refs/tags/v') || github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
     runs-on: ubuntu-latest
     steps:
       # Get the repository's code
@@ -36,8 +71,8 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: |
-            ghcr.io/${{ github.repository }}
-            ${{ env.DOCKERHUB_USERNAME && 'dmunozv04/isponsorblocktv' || '' }}
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+            ${{ env.DOCKERHUB_USERNAME && matrix.dockerhub_image || '' }}
           tags: |
             type=raw,value=develop,priority=900,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
             type=ref,enable=true,priority=600,prefix=pr-,suffix=,event=pr
@@ -56,14 +91,14 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Login to DockerHub
-        if: github.event_name != 'pull_request' && env.DOCKERHUB_USERNAME != ''
+        if: env.PUBLISH_IMAGES == 'true' && env.DOCKERHUB_USERNAME != '' && matrix.dockerhub_image != ''
         uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to GHCR
-        if: github.event_name != 'pull_request'
+        if: env.PUBLISH_IMAGES == 'true'
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
@@ -74,9 +109,10 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          platforms: linux/amd64, linux/arm64, linux/arm/v7, linux/386, linux/arm/v6
-          push: ${{ github.event_name != 'pull_request' }}
+          file: ${{ matrix.dockerfile }}
+          platforms: ${{ matrix.platforms }}
+          push: ${{ env.PUBLISH_IMAGES == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}

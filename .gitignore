@@ -160,3 +160,6 @@ data/config.json
 .DS_Store
 
 .DS_Store
+.idea
+
+.venv*/
