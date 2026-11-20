@@ -88,6 +88,11 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         self._ad_dance_count = 0
         self._ad_dance_time = 0.0
         self._ad_dance_gave_up = False
+        # (video_id, position, time) of the pending ad dance, see _ad_ended_during_ad_dance
+        self._ad_dance_target: tuple[str, float, float] | None = None
+        self._ad_dance_recover_task = None
+        self._last_content_playing_time = 0.0
+        self._video_closed_time = 0.0
         self._pending_seek: tuple[str, float] | None = None
         self._last_video_id = ""
         self._last_content_duration = 0.0
@@ -206,6 +211,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         if self._ad_active or position is None:
             return
         if state is State.Playing:
+            self._last_content_playing_time = time.time()
             self._remember_content_position(position, duration)
         elif (
             state in (State.Buffering, State.Starting, State.Paused)
@@ -322,9 +328,98 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             "Ad cannot be skipped, pausing and scheduling ad dance (attempt %d)",
             self._ad_dance_count,
         )
+        self._cancel_ad_dance_recovery()
+        position = self._position_before_ad()
+        self._ad_dance_target = (video_id, position, now)
         self._ad_dance_task = create_task(
-            self._replay_video_after_ad(video_id, self._position_before_ad(), wait_time)
+            self._replay_video_after_ad(video_id, position, wait_time)
         )
+
+    # Seen on a TV: in an ad break with several ads YouTube reports "no ad" (adState 0)
+    # between two ads. That cancelled the pending ad dance, but the TV stayed paused
+    # between the ads and the content until the video was left and opened again.
+    _AD_DANCE_RECOVER_WAIT = 3.0
+
+    def _ad_ended_during_ad_dance(self) -> None:
+        """The ad ended while the ad dance had the TV paused: don't leave it paused."""
+        self._ad_dance_task.cancel()
+        # The next ad of the break may arrive before the cancelled task finished
+        self._ad_dance_task = None
+        target = self._ad_dance_target
+        self._ad_dance_target = None
+        if not target:
+            return
+        self.logger.info("Ad ended during the ad dance, resuming playback")
+        self._cancel_ad_dance_recovery()
+        self._ad_dance_recover_task = create_task(
+            self._recover_after_cancelled_ad_dance(*target)
+        )
+
+    def _cancel_ad_dance_recovery(self) -> None:
+        if self._ad_dance_recover_task and not self._ad_dance_recover_task.done():
+            self._ad_dance_recover_task.cancel()
+        self._ad_dance_recover_task = None
+
+    async def _recover_after_cancelled_ad_dance(
+        self, video_id: str, position: float, since: float
+    ) -> None:
+        """Unpause; if the content still doesn't play, replay it like the ad dance."""
+        try:
+            await self.play()
+            await asyncio.sleep(self._AD_DANCE_RECOVER_WAIT)
+            if (
+                self._ad_active  # another ad started, it gets its own ad dance
+                or self._last_video_id != video_id  # another video was opened
+                or self._video_closed_time >= since  # the user left the video
+                or self._last_content_playing_time >= since  # the content plays
+            ):
+                return
+            self.logger.info("Content still not playing after the ad, replaying it")
+            await self._replay_content(video_id, position)
+        except asyncio.CancelledError:
+            pass
+        except Exception:
+            self.logger.warning("Failed to resume after the ad", exc_info=True)
+
+    async def _replay_content(self, video_id: str, position: float) -> None:
+        self.logger.info(
+            "Replaying non-skippable ad content %s from %.2f seconds",
+            video_id,
+            position,
+        )
+        # The content restarts here and does not advance until it plays. Otherwise
+        # an ad right after the replay would add the whole ad time to the position.
+        self._remember_content_position(position, None, advancing=False)
+        if position != 0:
+            await self.play_video_and_force_seek(video_id, position)
+        else:
+            await self.play_video(video_id, position)
+
+    # The countdown shows one toast per second: "Skipping ad in 5", 4, 3, 2, 1
+    _COUNTDOWN_STEP = 1.0
+
+    async def _ad_countdown(self, wait_time: float) -> None:
+        """Count down the seconds until the ad dance in toasts on the TV.
+
+        A toast that takes longer than a second to send skips the numbers it missed,
+        so the countdown never lags behind the ad dance.
+        """
+        loop = asyncio.get_running_loop()
+        step = self._COUNTDOWN_STEP
+        end = loop.time() + wait_time
+        while True:
+            # The small margin keeps a late wake-up from repeating the same number
+            remaining = math.ceil((end - loop.time()) / step - 0.05)
+            if remaining < 1:
+                return
+            started = loop.time()
+            await self.send_toast(f"Skipping ad in {remaining}")
+            took = loop.time() - started
+            if took > step:
+                self.logger.info("Countdown toast took %.1f seconds", took)
+            delay = end - (remaining - 1) * step - loop.time()
+            if delay > 0:
+                await asyncio.sleep(delay)
 
     async def _replay_video_after_ad(
         self, video_id: str, position: float, wait_time: float
@@ -333,22 +428,10 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         try:
             await self.pause()
             if wait_time > 0:
-                toast_task = create_task(
-                    self.send_toast(f"Ad will be skipped in {math.ceil(wait_time)} seconds")
-                )
+                toast_task = create_task(self._ad_countdown(wait_time))
             await asyncio.sleep(wait_time)
-            self.logger.info(
-                "Replaying non-skippable ad content %s from %.2f seconds",
-                video_id,
-                position,
-            )
-            # The content restarts here and does not advance until it plays. Otherwise
-            # an ad right after the replay would add the whole ad time to the position.
-            self._remember_content_position(position, None, advancing=False)
-            if position != 0:
-                await self.play_video_and_force_seek(video_id, position)
-            else:
-                await self.play_video(video_id, position)
+            self._ad_dance_target = None  # replaying now, nothing to recover
+            await self._replay_content(video_id, position)
         except asyncio.CancelledError:
             pass
         finally:
@@ -457,6 +540,8 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 self._set_ad_active()
             elif data.get("videoId") and data.get("duration") not in (None, "0", 0):
                 self._set_ad_inactive()
+            elif not data.get("videoId"):
+                self._video_closed_time = time.time()  # the user left the video
             # Unmute when the video starts playing
             if (
                 self.mute_ads
@@ -473,7 +558,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             if data["adState"] in {"0", "1082"}:  # Ad is not playing or was skipped
                 self._set_ad_inactive()
                 if self._ad_dance_task and not self._ad_dance_task.done():
-                    self._ad_dance_task.cancel()
+                    self._ad_ended_during_ad_dance()
                 if self._ad_is_skippable:
                     self.logger.info("Ad has ended, unmuting")
                     create_task(self.mute(False, override=True))

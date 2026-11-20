@@ -393,5 +393,176 @@ class AdDanceLoop(LoungeTest):
         self.assertEqual(self.mutes(), [])
 
 
+class AdEndsDuringAdDance(LoungeTest):
+    """Seen on a TV: in an ad break with several ads YouTube reported adState 0
+    between the ads. That cancelled the ad dance, and the TV stayed paused until the
+    video was left and opened again."""
+
+    stub_replay = False
+
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
+        self.api._AD_DANCE_RECOVER_WAIT = 0.05
+        self.toasts = []
+
+        async def fake_toast(message):
+            self.toasts.append(message)
+            return True
+
+        self.api.send_toast = fake_toast
+
+    async def dance_then_ad_ends(self, at=100):
+        await self.play_content(at=at)
+        await self.send("adPlaying", ad_playing())  # waits 5 s
+        await self.send("onAdStateChange", ad_state("0", skippable=False))
+
+    async def settle(self):
+        await asyncio.sleep(0.1)  # past the recover wait
+
+    def replays_sent(self):
+        return [p for name, p in self.commands if name == "setPlaylist"]
+
+    async def test_resumes_playback_when_the_ad_ends(self):
+        await self.dance_then_ad_ends()
+        self.assertEqual(self.command_names()[:2], ["pause", "play"], self.commands)
+        self.assertIsNone(self.api._ad_dance_task)
+
+    async def test_replays_when_the_content_still_does_not_play(self):
+        await self.dance_then_ad_ends(at=100)
+        await self.settle()
+        replays = self.replays_sent()
+        self.assertEqual(len(replays), 1, self.commands)
+        self.assertEqual(replays[0]["videoId"], VIDEO)
+        self.assertAlmostEqual(float(replays[0]["currentTime"]), 100, delta=1.0)
+
+    async def test_replays_from_the_start_without_a_seek(self):
+        await self.dance_then_ad_ends(at=0)
+        await self.settle()
+        self.assertEqual(len(self.replays_sent()), 1, self.commands)
+
+    async def test_no_replay_when_the_content_plays_again(self):
+        await self.dance_then_ad_ends(at=100)
+        await self.send("onStateChange", state_change(100, "1"))
+        await self.settle()
+        self.assertEqual(self.replays_sent(), [])
+
+    async def test_no_replay_when_another_ad_starts(self):
+        await self.dance_then_ad_ends(at=100)
+        await self.send("adPlaying", ad_playing())  # the next ad of the break
+        await self.settle()
+        self.assertEqual(self.replays_sent(), [])
+        self.assertIsNotNone(self.api._ad_dance_task)
+        self.assertFalse(self.api._ad_dance_task.done())  # its own ad dance waits
+        self.assertEqual(self.api._ad_dance_count, 2)
+
+    async def test_no_replay_when_the_user_left_the_video(self):
+        await self.dance_then_ad_ends(at=100)
+        await self.send("nowPlaying", {})
+        await self.settle()
+        self.assertEqual(self.replays_sent(), [])
+
+    async def test_no_replay_when_another_video_was_opened(self):
+        await self.dance_then_ad_ends(at=100)
+        other = now_playing(0, state="3")
+        other["videoId"] = "other456"
+        await self.send("nowPlaying", other)
+        await self.settle()
+        self.assertEqual(self.replays_sent(), [])
+
+    async def test_ad_ending_after_the_replay_sends_nothing_more(self):
+        await self.play_content(at=100)
+        await self.send("adPlaying", ad_playing(ad_current_time="5"))  # no wait
+        for _ in range(5):
+            await asyncio.sleep(0)
+        await self.send("onAdStateChange", ad_state("0", skippable=False))
+        await self.settle()
+        self.assertEqual(self.command_names(), ["pause", "setPlaylist"], self.commands)
+
+    async def test_skippable_ad_ending_does_not_resume(self):
+        await self.play_content(at=100)
+        await self.send("adPlaying", ad_playing(skippable=True))
+        await self.send("onAdStateChange", ad_state("1082"))
+        await self.settle()
+        self.assertNotIn("play", self.command_names())
+
+
+class Countdown(LoungeTest):
+    """The ad dance counts down in toasts: Skipping ad in 5, 4, 3, 2, 1."""
+
+    STEP = 0.02
+
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
+        self.api._COUNTDOWN_STEP = self.STEP
+        self.toasts = []
+        self.toast_delay = 0.0
+
+        async def fake_toast(message):
+            self.toasts.append(message)
+            await asyncio.sleep(self.toast_delay)
+            return True
+
+        self.api.send_toast = fake_toast
+
+    async def test_counts_down_every_step(self):
+        await self.api._ad_countdown(5 * self.STEP)
+        self.assertEqual(self.toasts, [f"Skipping ad in {n}" for n in (5, 4, 3, 2, 1)])
+
+    async def test_starts_at_the_remaining_seconds(self):
+        await self.api._ad_countdown(3.5 * self.STEP)
+        self.assertEqual(self.toasts, [f"Skipping ad in {n}" for n in (4, 3, 2, 1)])
+
+    async def test_slow_toasts_skip_numbers_instead_of_lagging(self):
+        self.toast_delay = 1.6 * self.STEP
+        loop = asyncio.get_running_loop()
+        start = loop.time()
+        await self.api._ad_countdown(5 * self.STEP)
+        self.assertLess(loop.time() - start, 6.7 * self.STEP)
+        self.assertLess(len(self.toasts), 5)
+        self.assertEqual(self.toasts[0], "Skipping ad in 5")
+        numbers = [int(t.rsplit(" ", 1)[1]) for t in self.toasts]
+        self.assertEqual(numbers, sorted(numbers, reverse=True))
+        self.assertEqual(len(set(numbers)), len(numbers))
+
+    async def test_no_countdown_without_wait(self):
+        await self.api._ad_countdown(0)
+        self.assertEqual(self.toasts, [])
+
+
+class CountdownDuringAdDance(LoungeTest):
+    stub_replay = False
+
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
+        self.api._COUNTDOWN_STEP = 0.02
+        self.api._AD_DANCE_WAIT = 0.1
+        self.toasts = []
+
+        async def fake_toast(message):
+            self.toasts.append(message)
+            return True
+
+        self.api.send_toast = fake_toast
+
+    async def test_countdown_then_replay(self):
+        await self.play_content(at=100)
+        await self.send("adPlaying", ad_playing())
+        await self.api._ad_dance_task
+        self.assertEqual(self.toasts, [f"Skipping ad in {n}" for n in (5, 4, 3, 2, 1)])
+        self.assertEqual(self.command_names(), ["pause", "setPlaylist"], self.commands)
+
+    async def test_countdown_stops_when_the_ad_ends(self):
+        self.api._AD_DANCE_RECOVER_WAIT = 10  # not part of this test
+        await self.play_content(at=100)
+        await self.send("adPlaying", ad_playing())
+        await asyncio.sleep(0.03)
+        await self.send("onAdStateChange", ad_state("0", skippable=False))
+        count = len(self.toasts)
+        await asyncio.sleep(0.15)
+        self.assertEqual(len(self.toasts), count)
+        self.assertLess(count, 5)
+        self.api._cancel_ad_dance_recovery()
+
+
 if __name__ == "__main__":
     unittest.main()
