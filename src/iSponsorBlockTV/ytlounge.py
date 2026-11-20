@@ -293,6 +293,9 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 video_id,
                 position,
             )
+            # The content restarts here and does not advance until it plays. Otherwise
+            # an ad right after the replay would add the whole ad time to the position.
+            self._remember_content_position(position, None, advancing=False)
             if position != 0:
                 await self.play_video_and_force_seek(video_id, position)
             else:

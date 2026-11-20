@@ -66,7 +66,9 @@ class LoungeTest(unittest.IsolatedAsyncioTestCase):
     stub_replay = True
 
     async def asyncSetUp(self):
-        cfg = types.SimpleNamespace(join_name="test", mute_ads=True, skip_ads=True, auto_play=True)
+        cfg = types.SimpleNamespace(
+            join_name="test", mute_ads=True, skip_ads=True, auto_play=True
+        )
         helper = types.SimpleNamespace(get_segments=self._noop)
         self.api = YtLoungeApi(
             screen_id="s",
@@ -108,7 +110,9 @@ class LoungeTest(unittest.IsolatedAsyncioTestCase):
         return [name for name, _ in self.commands]
 
     def replay_position(self):
-        self.assertEqual(len(self.replays), 1, f"expected one ad dance, got {self.replays}")
+        self.assertEqual(
+            len(self.replays), 1, f"expected one ad dance, got {self.replays}"
+        )
         video, position, _ = self.replays[0]
         self.assertEqual(video, VIDEO)
         return position
@@ -252,7 +256,12 @@ class Pause(LoungeTest):
 
 def ad_state(state, skippable=True):
     flag = "true" if skippable else "false"
-    return {"adState": state, "currentTime": "0", "isSkipEnabled": flag, "isSkippable": flag}
+    return {
+        "adState": state,
+        "currentTime": "0",
+        "isSkipEnabled": flag,
+        "isSkippable": flag,
+    }
 
 
 class ResumeAfterSkippedAd(LoungeTest):
@@ -317,6 +326,23 @@ class ResumeAfterAdDance(LoungeTest):
         await self.send("nowPlaying", now_playing(100))
         self.assertIsNone(self.api._resume_check)
         self.assertNotIn("seekTo", self.command_names())
+
+
+class AdRightAfterAdDance(LoungeTest):
+    """Seen on a TV: the ad dance replays at 325.95, another ad starts at once and the
+    position was estimated at 332.89 (the ad time counted as content time)."""
+
+    stub_replay = False
+
+    async def test_ad_time_after_replay_is_not_counted(self):
+        await self.play_content(at=325.95)
+        await self.send("adPlaying", ad_playing(ad_current_time="5"))  # no wait
+        for _ in range(5):
+            await asyncio.sleep(0)
+        await self.send("nowPlaying", now_playing(325.95, state="3"))  # content loading
+        self.api._last_playback_info_time -= 7  # the next ad comes 7 s later
+        await self.send("onStateChange", state_change(0, "1081", duration="15"))
+        self.assertAlmostEqual(self.api._ad_started_position, 325.95, delta=1.0)
 
 
 if __name__ == "__main__":
