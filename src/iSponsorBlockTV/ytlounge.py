@@ -79,6 +79,8 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         self._ad_active = False
         # Content position frozen at the first ad signal, see _set_ad_active
         self._ad_started_position: float | None = None
+        # (video_id, position, time) to check where the content resumes after an ad
+        self._resume_check: tuple[str, float, float] | None = None
         self._ad_is_skippable = False
         self._ad_dance_task = None
         self._pending_seek: tuple[str, float] | None = None
@@ -115,11 +117,59 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         """
         if not self._ad_active:
             self._ad_started_position = self._position_before_ad()
+            self._resume_check = None
+            self.logger.info(
+                "Ad detected, content was at %.2f seconds", self._ad_started_position
+            )
         self._ad_active = True
 
     def _set_ad_inactive(self) -> None:
+        if (
+            self._ad_active
+            and self._ad_started_position is not None
+            and self._last_video_id
+            and not self._pending_seek  # the ad dance checks its own seek
+        ):
+            self._resume_check = (
+                self._last_video_id,
+                self._ad_started_position,
+                time.time(),
+            )
         self._ad_active = False
         self._ad_started_position = None
+
+    # After a skipped (or ended) ad YouTube resumes the content by itself, sometimes a
+    # few seconds before the ad started. Only such small backward jumps are corrected,
+    # within a short time after the ad, so a deliberate seek is left alone.
+    _RESUME_EARLY_MIN = 1.5
+    _RESUME_EARLY_MAX = 15.0
+    _RESUME_CHECK_WINDOW = 15.0
+
+    async def _check_resume_position(
+        self, state: State, current_time: float | None
+    ) -> None:
+        if not self._resume_check or self._ad_active:
+            return
+        if state is not State.Playing or current_time is None:
+            return
+        video_id, position, since = self._resume_check
+        self._resume_check = None
+        if (
+            video_id != self._last_video_id
+            or time.time() - since > self._RESUME_CHECK_WINDOW
+        ):
+            return
+        early = position - current_time
+        self.logger.info(
+            "Content resumed at %.2f seconds after the ad (ad started at %.2f)",
+            current_time,
+            position,
+        )
+        if self._RESUME_EARLY_MIN <= early <= self._RESUME_EARLY_MAX:
+            self.logger.info(
+                "Resumed %.1f seconds early, seeking to %.2f", early, position
+            )
+            await self._command("seekTo", {"newTime": position})
 
     def _remember_content_position(
         self, position: float, duration: float | None, advancing: bool = True
@@ -164,6 +214,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         )
         self._update_content_position(event.state, event.current_time, event.duration)
         await self._seek_when_content_ready(event.state, event.current_time)
+        await self._check_resume_position(event.state, event.current_time)
         if self._state_callback:
             await self._state_callback(self._playback_state)
 
@@ -185,6 +236,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         )
         self._update_content_position(event.state, event.current_time, event.duration)
         await self._seek_when_content_ready(event.state, event.current_time)
+        await self._check_resume_position(event.state, event.current_time)
         if self._state_callback:
             await self._state_callback(self._playback_state)
 

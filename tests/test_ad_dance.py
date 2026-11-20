@@ -66,9 +66,7 @@ class LoungeTest(unittest.IsolatedAsyncioTestCase):
     stub_replay = True
 
     async def asyncSetUp(self):
-        cfg = types.SimpleNamespace(
-            join_name="test", mute_ads=True, skip_ads=True, auto_play=True
-        )
+        cfg = types.SimpleNamespace(join_name="test", mute_ads=True, skip_ads=True, auto_play=True)
         helper = types.SimpleNamespace(get_segments=self._noop)
         self.api = YtLoungeApi(
             screen_id="s",
@@ -110,9 +108,7 @@ class LoungeTest(unittest.IsolatedAsyncioTestCase):
         return [name for name, _ in self.commands]
 
     def replay_position(self):
-        self.assertEqual(
-            len(self.replays), 1, f"expected one ad dance, got {self.replays}"
-        )
+        self.assertEqual(len(self.replays), 1, f"expected one ad dance, got {self.replays}")
         video, position, _ = self.replays[0]
         self.assertEqual(video, VIDEO)
         return position
@@ -252,6 +248,75 @@ class Pause(LoungeTest):
         self.api._last_playback_info_time -= 30  # 30 s later
         await self.send("adPlaying", ad_playing())
         self.assertAlmostEqual(self.replay_position(), 200, delta=1.0)
+
+
+def ad_state(state, skippable=True):
+    flag = "true" if skippable else "false"
+    return {"adState": state, "currentTime": "0", "isSkipEnabled": flag, "isSkippable": flag}
+
+
+class ResumeAfterSkippedAd(LoungeTest):
+    """YouTube resumes the content itself after a skipped ad, sometimes too early."""
+
+    async def skip_ad_at(self, at=100, end_state="1082"):
+        await self.play_content(at=at)
+        await self.send("adPlaying", ad_playing(skippable=True))
+        await self.send("onAdStateChange", ad_state(end_state))
+
+    def seeks(self):
+        return [params for name, params in self.commands if name == "seekTo"]
+
+    async def test_resumed_early_after_skip_is_corrected(self):
+        await self.skip_ad_at(100)
+        await self.send("onStateChange", state_change(95, "1"))
+        self.assertEqual(len(self.seeks()), 1, self.commands)
+        self.assertAlmostEqual(self.seeks()[0]["newTime"], 100, delta=1.0)
+
+    async def test_resumed_early_after_ad_ended_is_corrected(self):
+        await self.skip_ad_at(100, end_state="0")
+        await self.send("onStateChange", state_change(95, "1"))
+        self.assertEqual(len(self.seeks()), 1, self.commands)
+
+    async def test_resumed_at_the_right_position_is_left_alone(self):
+        await self.skip_ad_at(100)
+        await self.send("onStateChange", state_change(100.3, "1"))
+        self.assertEqual(self.seeks(), [])
+
+    async def test_resumed_later_is_left_alone(self):
+        await self.skip_ad_at(100)
+        await self.send("onStateChange", state_change(104, "1"))
+        self.assertEqual(self.seeks(), [])
+
+    async def test_big_jump_back_is_left_alone(self):
+        await self.skip_ad_at(100)
+        await self.send("onStateChange", state_change(40, "1"))
+        self.assertEqual(self.seeks(), [])
+
+    async def test_only_the_first_playing_event_is_checked(self):
+        await self.skip_ad_at(100)
+        await self.send("onStateChange", state_change(100, "1"))
+        await self.send("onStateChange", state_change(95, "1"))  # user seeks back
+        self.assertEqual(self.seeks(), [])
+
+    async def test_check_expires(self):
+        await self.skip_ad_at(100)
+        video, position, since = self.api._resume_check
+        self.api._resume_check = (video, position, since - 20)
+        await self.send("onStateChange", state_change(95, "1"))
+        self.assertEqual(self.seeks(), [])
+
+
+class ResumeAfterAdDance(LoungeTest):
+    stub_replay = False
+
+    async def test_ad_dance_is_not_checked_twice(self):
+        await self.play_content(at=100)
+        await self.send("adPlaying", ad_playing(ad_current_time="5"))  # no wait
+        for _ in range(5):
+            await asyncio.sleep(0)
+        await self.send("nowPlaying", now_playing(100))
+        self.assertIsNone(self.api._resume_check)
+        self.assertNotIn("seekTo", self.command_names())
 
 
 if __name__ == "__main__":
