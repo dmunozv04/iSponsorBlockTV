@@ -8,7 +8,7 @@ import rich_click as click
 from appdirs import user_data_dir
 
 from . import config_setup, main, setup_wizard
-from .constants import config_file_blacklist_keys, github_wiki_base_url, SponsorBlock_api
+from .constants import config_file_blacklist_keys, github_wiki_base_url
 
 
 class Device:
@@ -39,26 +39,34 @@ class Device:
 
 
 class Config:
+    """Application configuration loaded from and persisted to config.json."""
+
     def __init__(self, data_dir):
         self.data_dir = data_dir
         self.config_file = data_dir + "/config.json"
-
         self.devices = []
-        self.apikey = ""
-        self.skip_categories = None  # None = absent from config; [] = explicitly empty
-        self.channel_whitelist = []
-        self.skip_count_tracking = True
-        self.mute_ads = False
-        self.skip_ads = False
-        self.minimum_skip_length = 1
-        self.auto_play = True
-        self.join_name = "iSponsorBlockTV"
-        self.use_proxy = False
-        self.sponsorblock_api_url = SponsorBlock_api
+        self._has_deprecated_atvs = False
+
         self.__load()
 
+    def to_dict(self):
+        """Serialize configuration fields back to a JSON-compatible dict."""
+        document = {
+            key: value
+            for key, value in self.__dict__.items()
+            if key not in config_file_blacklist_keys and not key.startswith("_")
+        }
+        document["devices"] = [
+            {**device.__dict__, "offset": device.offset * 1000}
+            if isinstance(device, Device)
+            else device
+            for device in self.devices
+        ]
+        return document
+
     def validate(self):
-        if hasattr(self, "atvs"):
+        """Validate configuration fields and instantiate Device objects."""
+        if self._has_deprecated_atvs:
             print(
                 (
                     "The atvs config option is deprecated and has stopped working."
@@ -70,35 +78,26 @@ class Config:
             print("Exiting in 10 seconds...")
             time.sleep(10)
             sys.exit()
-        if not self.devices:
-            print("No devices found, please add at least one device")
-            print("Exiting in 10 seconds...")
-            time.sleep(10)
-            sys.exit()
-        self.devices = [Device(i) for i in self.devices]
-        if not self.apikey and self.channel_whitelist:
-            raise ValueError("No youtube API key found and channel whitelist is not empty")
-        if self.skip_categories is None:
-            self.skip_categories = ["sponsor"]
-            print("No categories found, using default: sponsor")
+        from .config_store import normalize_config
+
+        normalized = normalize_config(self.to_dict(), strict=False)
+        self.__dict__.update(normalized)
+        self.devices = [Device(device) for device in normalized["devices"]]
 
     def __load(self):
+        from .config_store import normalize_config
+
         try:
-            with open(self.config_file, "r", encoding="utf-8") as f:
-                config = json.load(f)
-                for i in config:
-                    if i not in config_file_blacklist_keys:
-                        setattr(self, i, config[i])
+            with open(self.config_file, encoding="utf-8") as stream:
+                raw = json.load(stream)
+            if isinstance(raw, dict) and "atvs" in raw:
+                self._has_deprecated_atvs = True
+            self.__dict__.update(normalize_config(raw, strict=False))
         except FileNotFoundError:
-            print(
-                f"No config file found, using defaults. Config will be saved to {self.config_file}"
-            )
-            # Create data directory if it doesn't exist (if we're not running in docker)
             if not os.path.exists(self.data_dir):
                 if not os.getenv("iSPBTV_docker"):
-                    print("Creating data directory")
                     os.makedirs(self.data_dir)
-                else:  # Running in docker without mounting the data dir
+                else:
                     print(
                         "Running in docker without mounting the data dir, check the"
                         " wiki for more information: "
@@ -112,28 +111,20 @@ class Config:
                     print("Exiting in 10 seconds...")
                     time.sleep(10)
                     sys.exit()
-            else:
-                print("Blank config file created")
+            self.__dict__.update(normalize_config({}))
 
     def save(self):
-        with open(self.config_file, "w", encoding="utf-8") as f:
-            config_dict = self.__dict__
-            # Don't save the config file name
-            config_file = self.config_file
-            data_dir = self.data_dir
-            del config_dict["config_file"]
-            del config_dict["data_dir"]
-            json.dump(config_dict, f, indent=4)
-            self.config_file = config_file
-            self.data_dir = data_dir
+        """Atomically persist the current configuration to disk."""
+        from .config_store import write_config
+
+        write_config(self.config_file, self.to_dict())
 
     def __eq__(self, other):
-        if isinstance(other, Config):
-            return self.__dict__ == other.__dict__
-        return False
+        if not isinstance(other, Config):
+            return NotImplemented
+        return self.data_dir == other.data_dir and self.to_dict() == other.to_dict()
 
-    def __hash__(self):
-        return hash(tuple(sorted(self.items())))
+    __hash__ = None
 
 
 @click.group(invoke_without_command=True)
@@ -145,6 +136,7 @@ class Config:
 )
 @click.option("--debug", is_flag=True, help="debug mode")
 @click.option("--http-tracing", is_flag=True, help="Enable HTTP request/response tracing")
+@click.option("--watch-config", is_flag=True, help="Reload when the configuration file changes")
 # legacy commands as arguments
 @click.option("--setup", is_flag=True, help="Setup the program graphically", hidden=True)
 @click.option(
@@ -154,12 +146,13 @@ class Config:
     hidden=True,
 )
 @click.pass_context
-def cli(ctx, data, debug, http_tracing, setup, setup_cli):
+def cli(ctx, data, debug, http_tracing, watch_config, setup, setup_cli):
     """iSponsorblockTV"""
     ctx.ensure_object(dict)
     ctx.obj["data_dir"] = data
     ctx.obj["debug"] = debug
     ctx.obj["http_tracing"] = http_tracing
+    ctx.obj["watch_config"] = watch_config
 
     logger = logging.getLogger()
     ctx.obj["logger"] = logger
@@ -221,7 +214,11 @@ def start(ctx):
     """Start the main program"""
     config = Config(ctx.obj["data_dir"])
     config.validate()
-    main.main(config, ctx.obj["debug"], ctx.obj["http_tracing"])
+    if not config.devices and not ctx.obj["watch_config"]:
+        raise click.ClickException(
+            "No devices found. Run setup, or use --watch-config to wait for configuration."
+        )
+    main.main(config, ctx.obj["debug"], ctx.obj["http_tracing"], ctx.obj["watch_config"])
 
 
 # Create fake "self" group to show pyapp options in help menu

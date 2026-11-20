@@ -1,9 +1,11 @@
-# Ignore files
-.dockerignore
-.gitignore
-.deepsource.toml
+.git
 .github
-
-Dockerfile
-docker-compose.yml
-README.md
+.venv*
+**/node_modules
+**/dist
+**/__pycache__
+data
+.env*
+!.env.example
+**/*.exe
+**/*.log

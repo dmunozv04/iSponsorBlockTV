@@ -1,0 +1,30 @@
+services:
+  worker:
+    build: .
+    image: isponsorblocktv:local
+    command: ["--watch-config"]
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp]
+    volumes:
+      - ./data:/app/data
+  dashboard:
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+    image: isponsorblocktv-dashboard:local
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp]
+    ports:
+      - "${DASHBOARD_BIND_IP:-127.0.0.1}:${DASHBOARD_PORT:-8080}:8080"
+    environment:
+      FORWARDED_ALLOW_IPS: "${FORWARDED_ALLOW_IPS:-127.0.0.1}"
+      DASHBOARD_USERNAME: "${DASHBOARD_USERNAME:-admin}"
+      DASHBOARD_PASSWORD: "${DASHBOARD_PASSWORD:-}"
+    volumes:
+      - ./data:/app/data
