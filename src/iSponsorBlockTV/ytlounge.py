@@ -77,6 +77,8 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         self.watchdog_running = False
         self.last_event_time = 0
         self._ad_active = False
+        # Content position frozen at the first ad signal, see _set_ad_active
+        self._ad_started_position: float | None = None
         self._ad_is_skippable = False
         self._ad_dance_task = None
         self._pending_seek: tuple[str, float] | None = None
@@ -104,19 +106,63 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             and duration < self._last_content_duration * self._AD_DURATION_RATIO
         )
 
+    def _set_ad_active(self) -> None:
+        """Mark an ad as active and freeze the content position at the first ad signal.
+
+        adPlaying usually arrives a moment after the ad started. Estimating the position
+        only then adds the time the ad was already playing, so the content was resumed
+        a few seconds too far.
+        """
+        if not self._ad_active:
+            self._ad_started_position = self._position_before_ad()
+        self._ad_active = True
+
+    def _set_ad_inactive(self) -> None:
+        self._ad_active = False
+        self._ad_started_position = None
+
+    def _remember_content_position(
+        self, position: float, duration: float | None, advancing: bool = True
+    ) -> None:
+        self._last_playback_position = position
+        # A position reported while loading or paused does not advance
+        self._last_content_playback_speed = self.playback_speed if advancing else 0.0
+        self._last_playback_info_time = time.time()
+        self._has_content_playback_info = True
+        if duration is not None and duration > 0:
+            self._last_content_duration = duration
+
+    def _update_content_position(
+        self, state: State, position: float | None, duration: float | None
+    ) -> None:
+        """Remember where the content is, to resume it there after the ad dance.
+
+        Besides playing, the position is also taken while the content is loading or
+        paused: after a seek the TV reports the new position while loading it, and an
+        ad may start before the content plays there. Those positions only count with
+        the content's duration (a loading ad has its own), and not while the seek after
+        an ad dance is pending (the TV then reports a stale start position).
+        """
+        if self._ad_active or position is None:
+            return
+        if state is State.Playing:
+            self._remember_content_position(position, duration)
+        elif (
+            state in (State.Buffering, State.Starting, State.Paused)
+            and not self._pending_seek
+            and duration is not None
+            and self._last_content_duration > 0
+            and abs(duration - self._last_content_duration) <= 1.0
+        ):
+            self._remember_content_position(position, duration, advancing=False)
+
     async def _handle_playback_state_event(self, event: PlaybackStateEvent) -> None:
         self._playback_state.currentTime = event.current_time
         self._playback_state.duration = event.duration
         self._playback_state.state = (
             State.Advertisement if self._ad_active else event.state
         )
-        if not self._ad_active and event.state is State.Playing:
-            self._last_playback_position = event.current_time
-            self._last_content_playback_speed = self.playback_speed
-            self._last_playback_info_time = time.time()
-            self._has_content_playback_info = True
-            if event.duration > 0:
-                self._last_content_duration = event.duration
+        self._update_content_position(event.state, event.current_time, event.duration)
         await self._seek_when_content_ready(event.state, event.current_time)
         if self._state_callback:
             await self._state_callback(self._playback_state)
@@ -137,17 +183,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         self._playback_state.state = (
             State.Advertisement if self._ad_active else event.state
         )
-        if (
-            not self._ad_active
-            and event.current_time is not None
-            and event.state is State.Playing
-        ):
-            self._last_playback_position = event.current_time
-            self._last_content_playback_speed = self.playback_speed
-            self._last_playback_info_time = time.time()
-            self._has_content_playback_info = True
-            if event.duration is not None and event.duration > 0:
-                self._last_content_duration = event.duration
+        self._update_content_position(event.state, event.current_time, event.duration)
         await self._seek_when_content_ready(event.state, event.current_time)
         if self._state_callback:
             await self._state_callback(self._playback_state)
@@ -178,6 +214,8 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
 
     def _position_before_ad(self) -> float:
         """Estimate the content position when the ad started."""
+        if self._ad_active and self._ad_started_position is not None:
+            return self._ad_started_position
         if not self._has_content_playback_info:
             return 0.0
         elapsed = time.time() - self._last_playback_info_time - self.offset
@@ -295,7 +333,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 data.get("state") == str(State.Advertisement.value)
                 or self._looks_like_ad_duration(data.get("duration"))
             ):
-                self._ad_active = True
+                self._set_ad_active()
             # print(data)
             # Unmute when the video starts playing
             if (
@@ -312,9 +350,9 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
                 or data.get("adVideoId")
                 or self._looks_like_ad_duration(data.get("duration"))
             ):
-                self._ad_active = True
+                self._set_ad_active()
             elif data.get("videoId") and data.get("duration") not in (None, "0", 0):
-                self._ad_active = False
+                self._set_ad_inactive()
             # Unmute when the video starts playing
             if (
                 self.mute_ads
@@ -329,7 +367,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             if "isSkippable" in data:
                 self._ad_is_skippable = data["isSkippable"] == "true"
             if data["adState"] in {"0", "1082"}:  # Ad is not playing or was skipped
-                self._ad_active = False
+                self._set_ad_inactive()
                 if self._ad_dance_task and not self._ad_dance_task.done():
                     self._ad_dance_task.cancel()
                 if self._ad_is_skippable:
@@ -357,7 +395,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         # #Used to know if an ad is skippable or not
         elif event_type == "adPlaying":
             data = args[0]
-            self._ad_active = True
+            self._set_ad_active()
             self._ad_is_skippable = data["isSkippable"] == "true"
             # Gets segments for the next video (after the ad) before it starts playing
             if self._last_video_id:
@@ -537,7 +575,6 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         parameters: dict[str, Any] = {"videoId": video_id}
         if current_time is not None:
             parameters["currentTime"] = current_time
-            print(f"XXXPlaying video {video_id} from {current_time} seconds")
         return await self._command("setPlaylist", parameters)
 
     async def play_video_and_force_seek(self, video_id: str, current_time: float) -> bool:
