@@ -133,12 +133,17 @@ class DeviceListener:
             self.lounge_controller.subscribe_task_watchdog.cancel()
         if self.lounge_controller.subscribe_task:
             self.lounge_controller.subscribe_task.cancel()
-        await asyncio.gather(
-            self.task,
-            self.lounge_controller.subscribe_task_watchdog,
-            self.lounge_controller.subscribe_task,
-            return_exceptions=True,
-        )
+        # gather() rejects None, which these are if the device never connected
+        pending = [
+            task
+            for task in (
+                self.task,
+                self.lounge_controller.subscribe_task_watchdog,
+                self.lounge_controller.subscribe_task,
+            )
+            if task is not None
+        ]
+        await asyncio.gather(*pending, return_exceptions=True)
 
     async def initialize_web_session(self):
         await self.lounge_controller.change_web_session(self.web_session)
