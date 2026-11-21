@@ -395,32 +395,6 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         else:
             await self.play_video(video_id, position)
 
-    # The countdown shows one toast per second: "Skipping ad in 5", 4, 3, 2, 1
-    _COUNTDOWN_STEP = 1.0
-
-    async def _ad_countdown(self, wait_time: float) -> None:
-        """Count down the seconds until the ad dance in toasts on the TV.
-
-        A toast that takes longer than a second to send skips the numbers it missed,
-        so the countdown never lags behind the ad dance.
-        """
-        loop = asyncio.get_running_loop()
-        step = self._COUNTDOWN_STEP
-        end = loop.time() + wait_time
-        while True:
-            # The small margin keeps a late wake-up from repeating the same number
-            remaining = math.ceil((end - loop.time()) / step - 0.05)
-            if remaining < 1:
-                return
-            started = loop.time()
-            await self.send_toast(f"Skipping ad in {remaining}")
-            took = loop.time() - started
-            if took > step:
-                self.logger.info("Countdown toast took %.1f seconds", took)
-            delay = end - (remaining - 1) * step - loop.time()
-            if delay > 0:
-                await asyncio.sleep(delay)
-
     async def _replay_video_after_ad(
         self, video_id: str, position: float, wait_time: float
     ) -> None:
@@ -428,7 +402,9 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         try:
             await self.pause()
             if wait_time > 0:
-                toast_task = create_task(self._ad_countdown(wait_time))
+                toast_task = create_task(
+                    self.send_toast(f"Ad will be skipped in {math.ceil(wait_time)} seconds")
+                )
             await asyncio.sleep(wait_time)
             self._ad_dance_target = None  # replaying now, nothing to recover
             await self._replay_content(video_id, position)
