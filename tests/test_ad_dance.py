@@ -66,9 +66,7 @@ class LoungeTest(unittest.IsolatedAsyncioTestCase):
     stub_replay = True
 
     async def asyncSetUp(self):
-        cfg = types.SimpleNamespace(
-            join_name="test", mute_ads=True, skip_ads=True, auto_play=True
-        )
+        cfg = types.SimpleNamespace(join_name="test", mute_ads=True, skip_ads=True, auto_play=True)
         helper = types.SimpleNamespace(get_segments=self._noop)
         self.api = YtLoungeApi(
             screen_id="s",
@@ -110,9 +108,7 @@ class LoungeTest(unittest.IsolatedAsyncioTestCase):
         return [name for name, _ in self.commands]
 
     def replay_position(self):
-        self.assertEqual(
-            len(self.replays), 1, f"expected one ad dance, got {self.replays}"
-        )
+        self.assertEqual(len(self.replays), 1, f"expected one ad dance, got {self.replays}")
         video, position, _ = self.replays[0]
         self.assertEqual(video, VIDEO)
         return position

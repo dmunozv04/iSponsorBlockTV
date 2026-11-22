@@ -128,9 +128,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         if not self._ad_active:
             self._ad_started_position = self._position_before_ad()
             self._resume_check = None
-            self.logger.info(
-                "Ad detected, content was at %.2f seconds", self._ad_started_position
-            )
+            self.logger.info("Ad detected, content was at %.2f seconds", self._ad_started_position)
         self._ad_active = True
 
     def _set_ad_inactive(self) -> None:
@@ -160,19 +158,14 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
     _RESUME_EARLY_MAX = 15.0
     _RESUME_CHECK_WINDOW = 15.0
 
-    async def _check_resume_position(
-        self, state: State, current_time: float | None
-    ) -> None:
+    async def _check_resume_position(self, state: State, current_time: float | None) -> None:
         if not self._resume_check or self._ad_active:
             return
         if state is not State.Playing or current_time is None:
             return
         video_id, position, since = self._resume_check
         self._resume_check = None
-        if (
-            video_id != self._last_video_id
-            or time.time() - since > self._RESUME_CHECK_WINDOW
-        ):
+        if video_id != self._last_video_id or time.time() - since > self._RESUME_CHECK_WINDOW:
             return
         early = position - current_time
         self.logger.info(
@@ -181,9 +174,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             position,
         )
         if self._RESUME_EARLY_MIN <= early <= self._RESUME_EARLY_MAX:
-            self.logger.info(
-                "Resumed %.1f seconds early, seeking to %.2f", early, position
-            )
+            self.logger.info("Resumed %.1f seconds early, seeking to %.2f", early, position)
             await self._command("seekTo", {"newTime": position})
 
     def _remember_content_position(
@@ -225,9 +216,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
     async def _handle_playback_state_event(self, event: PlaybackStateEvent) -> None:
         self._playback_state.currentTime = event.current_time
         self._playback_state.duration = event.duration
-        self._playback_state.state = (
-            State.Advertisement if self._ad_active else event.state
-        )
+        self._playback_state.state = State.Advertisement if self._ad_active else event.state
         self._update_content_position(event.state, event.current_time, event.duration)
         await self._seek_when_content_ready(event.state, event.current_time)
         await self._check_resume_position(event.state, event.current_time)
@@ -247,18 +236,14 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             self._last_playback_position = 0.0
             self._has_content_playback_info = False
         self._playback_state.videoId = self._last_video_id
-        self._playback_state.state = (
-            State.Advertisement if self._ad_active else event.state
-        )
+        self._playback_state.state = State.Advertisement if self._ad_active else event.state
         self._update_content_position(event.state, event.current_time, event.duration)
         await self._seek_when_content_ready(event.state, event.current_time)
         await self._check_resume_position(event.state, event.current_time)
         if self._state_callback:
             await self._state_callback(self._playback_state)
 
-    async def _seek_when_content_ready(
-        self, state: State, current_time: float | None
-    ) -> None:
+    async def _seek_when_content_ready(self, state: State, current_time: float | None) -> None:
         if (
             self._ad_active
             or state is not State.Playing
@@ -289,8 +274,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         elapsed = time.time() - self._last_playback_info_time - self.offset
         return max(
             0.0,
-            self._last_playback_position
-            + elapsed * self._last_content_playback_speed,
+            self._last_playback_position + elapsed * self._last_content_playback_speed,
         )
 
     # After a replay YouTube may show the same ad again, resumed where it was cut off.
@@ -351,9 +335,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             return
         self.logger.info("Ad ended during the ad dance, resuming playback")
         self._cancel_ad_dance_recovery()
-        self._ad_dance_recover_task = create_task(
-            self._recover_after_cancelled_ad_dance(*target)
-        )
+        self._ad_dance_recover_task = create_task(self._recover_after_cancelled_ad_dance(*target))
 
     def _cancel_ad_dance_recovery(self) -> None:
         if self._ad_dance_recover_task and not self._ad_dance_recover_task.done():
@@ -492,9 +474,8 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         # (that way we can get the segments)
         if event_type == "onStateChange":
             data = args[0]
-            if (
-                data.get("state") == str(State.Advertisement.value)
-                or self._looks_like_ad_duration(data.get("duration"))
+            if data.get("state") == str(State.Advertisement.value) or self._looks_like_ad_duration(
+                data.get("duration")
             ):
                 self._set_ad_active()
             # print(data)
@@ -738,7 +719,9 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
     async def play_video_and_force_seek(self, video_id: str, current_time: float) -> bool:
         """Load a video, then seek once its content reports playing."""
         if current_time == 0:
-            self.logger.debug("Force seek to 0 seconds for video %s, sending only setPlaylist", video_id)
+            self.logger.debug(
+                "Force seek to 0 seconds for video %s, sending only setPlaylist", video_id
+            )
             return await self.play_video(video_id, current_time)
         self.logger.debug(
             "Waiting for video %s to play before seeking to %.2f seconds", video_id, current_time
@@ -765,9 +748,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
     ) -> bool:
         return await self._commands([(command, command_parameters)])
 
-    async def _commands(
-        self, commands: list[tuple[str, dict[str, Any] | None]]
-    ) -> bool:
+    async def _commands(self, commands: list[tuple[str, dict[str, Any] | None]]) -> bool:
         """Send ordered commands, counting requests and command messages separately."""
         if not commands:
             raise ValueError("At least one command is required")
