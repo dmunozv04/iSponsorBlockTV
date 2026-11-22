@@ -79,8 +79,11 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         self._ad_active = False
         # Content position frozen at the first ad signal, see _set_ad_active
         self._ad_started_position: float | None = None
-        # (video_id, position, time) to check where the content resumes after an ad
-        self._resume_check: tuple[str, float, float] | None = None
+        # (video_id, position, time, max_early) to check where the content resumes after an ad
+        self._resume_check: tuple[str, float, float, float] | None = None
+        # (video_id, position, time) of the last seek sent after an ad, see _seek_target
+        self._ad_seek: tuple[str, float, float] | None = None
+        self._ad_started_after_seek = False
         self._ad_is_skippable = False
         self._ad_dance_task = None
         # Ad dances in the current ad break, to avoid replaying in a loop
@@ -126,7 +129,11 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         a few seconds too far.
         """
         if not self._ad_active:
-            self._ad_started_position = self._position_before_ad()
+            seek_target = self._seek_target()
+            self._ad_started_after_seek = seek_target is not None
+            self._ad_started_position = (
+                seek_target if seek_target is not None else self._position_before_ad()
+            )
             self._resume_check = None
             self.logger.info("Ad detected, content was at %.2f seconds", self._ad_started_position)
         self._ad_active = True
@@ -138,10 +145,16 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             and self._last_video_id
             and not self._pending_seek  # the ad dance checks its own seek
         ):
+            max_early = (
+                self._RESUME_EARLY_MAX_AFTER_SEEK
+                if self._ad_started_after_seek
+                else self._RESUME_EARLY_MAX
+            )
             self._resume_check = (
                 self._last_video_id,
                 self._ad_started_position,
                 time.time(),
+                max_early,
             )
         if self._ad_active and self._ad_dance_gave_up:
             self._ad_dance_gave_up = False
@@ -158,12 +171,34 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
     _RESUME_EARLY_MAX = 15.0
     _RESUME_CHECK_WINDOW = 15.0
 
+    # Seen on a TV: replayed after an ad dance, the content mostly loads about 20 s
+    # before the requested position. The seek forward then crosses the ad's cue point,
+    # YouTube plays another ad and afterwards resumes the content at the early load
+    # position, not at the seek target. The next ad dance replayed from there, so the
+    # content drifted back by 20 s with every such ad. An ad that starts shortly after
+    # one of our seeks therefore belongs to the seek target.
+    _AD_SEEK_WINDOW = 5.0
+    _RESUME_EARLY_MAX_AFTER_SEEK = 30.0
+
+    async def _seek_after_ad(self, video_id: str, position: float) -> None:
+        self._ad_seek = (video_id, position, time.time())
+        await self._command("seekTo", {"newTime": position})
+
+    def _seek_target(self) -> float | None:
+        """Our last seek target, if the content has not reported playing there yet."""
+        if not self._ad_seek:
+            return None
+        video_id, position, since = self._ad_seek
+        if video_id != self._last_video_id or time.time() - since > self._AD_SEEK_WINDOW:
+            return None
+        return position
+
     async def _check_resume_position(self, state: State, current_time: float | None) -> None:
         if not self._resume_check or self._ad_active:
             return
         if state is not State.Playing or current_time is None:
             return
-        video_id, position, since = self._resume_check
+        video_id, position, since, max_early = self._resume_check
         self._resume_check = None
         if video_id != self._last_video_id or time.time() - since > self._RESUME_CHECK_WINDOW:
             return
@@ -173,9 +208,9 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             current_time,
             position,
         )
-        if self._RESUME_EARLY_MIN <= early <= self._RESUME_EARLY_MAX:
+        if self._RESUME_EARLY_MIN <= early <= max_early:
             self.logger.info("Resumed %.1f seconds early, seeking to %.2f", early, position)
-            await self._command("seekTo", {"newTime": position})
+            await self._seek_after_ad(video_id, position)
 
     def _remember_content_position(
         self, position: float, duration: float | None, advancing: bool = True
@@ -204,6 +239,9 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         if state is State.Playing:
             self._last_content_playing_time = time.time()
             self._remember_content_position(position, duration)
+            seek_target = self._seek_target()
+            if seek_target is not None and abs(position - seek_target) <= 1.5:
+                self._ad_seek = None  # the seek took effect
         elif (
             state in (State.Buffering, State.Starting, State.Paused)
             and not self._pending_seek
@@ -263,7 +301,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             video_id,
             position,
         )
-        await self._command("seekTo", {"newTime": position})
+        await self._seek_after_ad(video_id, position)
 
     def _position_before_ad(self) -> float:
         """Estimate the content position when the ad started."""
@@ -272,10 +310,15 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         if not self._has_content_playback_info:
             return 0.0
         elapsed = time.time() - self._last_playback_info_time - self.offset
-        return max(
+        estimate = max(
             0.0,
             self._last_playback_position + elapsed * self._last_content_playback_speed,
         )
+        # Seen on a TV: switched off during a video and on again the next morning, the
+        # estimate had run on for the whole night (26614 s in a 1300 s video).
+        if 0 < self._last_content_duration < estimate:
+            return self._last_playback_position
+        return estimate
 
     # After a replay YouTube may show the same ad again, resumed where it was cut off.
     # Its currentTime is then past 5 s, so the dance replayed at once, in a loop.
@@ -808,6 +851,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
     async def connect(self) -> bool:
         """Attempt to connect using the previously set tokens"""
         self._pending_seek = None
+        self._ad_seek = None
         if not self.linked():
             raise NotLinkedException("Not linked")
 

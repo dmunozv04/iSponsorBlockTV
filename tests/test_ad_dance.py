@@ -305,8 +305,8 @@ class ResumeAfterSkippedAd(LoungeTest):
 
     async def test_check_expires(self):
         await self.skip_ad_at(100)
-        video, position, since = self.api._resume_check
-        self.api._resume_check = (video, position, since - 20)
+        video, position, since, max_early = self.api._resume_check
+        self.api._resume_check = (video, position, since - 20, max_early)
         await self.send("onStateChange", state_change(95, "1"))
         self.assertEqual(self.seeks(), [])
 
@@ -480,6 +480,86 @@ class AdEndsDuringAdDance(LoungeTest):
         await self.send("onAdStateChange", ad_state("1082"))
         await self.settle()
         self.assertNotIn("play", self.command_names())
+
+
+class AdTriggeredBySeekAfterAdDance(LoungeTest):
+    """Seen on a TV: replayed at 765.84, the content loaded at 745. The seek to 765.84
+    started another ad at once, and YouTube then resumed at 745.77. The next ad dance
+    replayed from 745, so the content drifted back by 20 s with every such ad."""
+
+    stub_replay = False
+
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
+        self.api.send_toast = self._noop
+
+    async def replay_loads_early(self, target=765.84, loaded=745.0):
+        await self.play_content(at=target)
+        await self.send("adPlaying", ad_playing(ad_current_time="5"))  # no wait
+        for _ in range(5):
+            await asyncio.sleep(0)
+        await self.send("onAdStateChange", ad_state("0", skippable=False))
+        await self.send("nowPlaying", now_playing(loaded, state="-1"))
+        await self.send("onStateChange", state_change(loaded + 0.1, "1"))
+
+    def seeks(self):
+        return [params["newTime"] for name, params in self.commands if name == "seekTo"]
+
+    async def test_ad_right_after_the_seek_belongs_to_the_seek_target(self):
+        await self.replay_loads_early()
+        self.assertEqual(len(self.seeks()), 1, self.commands)
+        self.assertAlmostEqual(self.seeks()[0], 765.84, delta=0.01)
+        await self.send("onStateChange", state_change(0, "1", duration="11"))
+        self.assertAlmostEqual(self.api._ad_started_position, 765.84, delta=0.01)
+
+    async def test_resumed_at_the_early_load_position_is_corrected(self):
+        await self.replay_loads_early()
+        await self.send("adPlaying", ad_playing(skippable=True))
+        await self.send("onAdStateChange", ad_state("1082"))
+        await self.send("onStateChange", state_change(745.77, "1"))
+        self.assertEqual(len(self.seeks()), 2, self.commands)
+        self.assertAlmostEqual(self.seeks()[1], 765.84, delta=0.01)
+
+    async def test_next_ad_dance_replays_from_the_seek_target(self):
+        await self.replay_loads_early()
+        await self.send("adPlaying", ad_playing(ad_current_time="5"))
+        _, position, _ = self.api._ad_dance_target
+        self.assertAlmostEqual(position, 765.84, delta=0.01)
+        self.api._ad_dance_task.cancel()
+
+    async def test_ad_after_the_seek_took_effect_uses_the_content_position(self):
+        await self.replay_loads_early()
+        await self.send("onStateChange", state_change(765.9, "1"))
+        self.assertIsNone(self.api._ad_seek)
+        await self.send("onStateChange", state_change(0, "1", duration="11"))
+        self.assertAlmostEqual(self.api._ad_started_position, 765.9, delta=1.0)
+
+    async def test_ad_after_the_correcting_seek_belongs_to_its_target(self):
+        await self.replay_loads_early()
+        await self.send("adPlaying", ad_playing(skippable=True))
+        await self.send("onAdStateChange", ad_state("1082"))
+        await self.send("onStateChange", state_change(745.77, "1"))  # corrected to 765.84
+        await self.send("onStateChange", state_change(0, "1", duration="6"))
+        self.assertAlmostEqual(self.api._ad_started_position, 765.84, delta=0.01)
+
+    async def test_seek_target_expires(self):
+        await self.replay_loads_early()
+        video, position, since = self.api._ad_seek
+        self.api._ad_seek = (video, position, since - 10)
+        await self.send("onStateChange", state_change(0, "1", duration="11"))
+        self.assertAlmostEqual(self.api._ad_started_position, 745.1, delta=1.0)
+
+
+class StalePositionEstimate(LoungeTest):
+    """Seen on a TV: switched off during a video and on again the next morning, the
+    ad was estimated at 26614 s in a 1300 s video."""
+
+    async def test_estimate_is_capped_by_the_video_duration(self):
+        await self.send("nowPlaying", now_playing(792, duration="1300"))
+        await self.send("onStateChange", state_change(792, "1", duration="1300"))
+        self.api._last_playback_info_time -= 8 * 3600
+        await self.send("adPlaying", ad_playing())
+        self.assertAlmostEqual(self.replay_position(), 792, delta=1.0)
 
 
 if __name__ == "__main__":
