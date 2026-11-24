@@ -62,6 +62,7 @@ def ad_playing(ad_current_time="0", skippable=False):
     }
 
 
+# skipcq: PTC-W0046  # base class with shared setup, the tests are in its subclasses
 class LoungeTest(unittest.IsolatedAsyncioTestCase):
     stub_replay = True
 
@@ -412,7 +413,8 @@ class AdEndsDuringAdDance(LoungeTest):
         await self.send("adPlaying", ad_playing())  # waits 5 s
         await self.send("onAdStateChange", ad_state("0", skippable=False))
 
-    async def settle(self):
+    @staticmethod
+    async def settle():
         await asyncio.sleep(0.1)  # past the recover wait
 
     def replays_sent(self):
