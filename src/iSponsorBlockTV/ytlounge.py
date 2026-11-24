@@ -97,6 +97,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         self._last_content_playing_time = 0.0
         self._video_closed_time = 0.0
         self._pending_seek: tuple[str, float] | None = None
+        self._pending_seek_time = 0.0
         self._last_video_id = ""
         self._last_content_duration = 0.0
         self._last_playback_position = 0.0
@@ -771,6 +772,7 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
         )
         pending = (video_id, current_time)
         self._pending_seek = pending
+        self._pending_seek_time = time.time()
         try:
             success = await self._command(
                 "setPlaylist", {"videoId": video_id, "currentTime": current_time}
@@ -848,10 +850,16 @@ class YtLoungeApi(pyytlounge.YtLoungeApi):
             "v": "2",
         }
 
+    # Seen on a TV: the connection is rebuilt every few minutes and right after a
+    # toast, so often between the ad dance's replay and the content playing. Dropping
+    # the pending seek there left the content where the TV loaded it, 20 s early.
+    # A recent seek still applies after reconnecting; video changes cancel it anyway.
+    _PENDING_SEEK_KEEP = 30.0
+
     async def connect(self) -> bool:
         """Attempt to connect using the previously set tokens"""
-        self._pending_seek = None
-        self._ad_seek = None
+        if time.time() - self._pending_seek_time > self._PENDING_SEEK_KEEP:
+            self._pending_seek = None
         if not self.linked():
             raise NotLinkedException("Not linked")
 

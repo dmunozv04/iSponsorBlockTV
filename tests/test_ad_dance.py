@@ -550,6 +550,43 @@ class AdTriggeredBySeekAfterAdDance(LoungeTest):
         self.assertAlmostEqual(self.api._ad_started_position, 745.1, delta=1.0)
 
 
+class ReconnectAfterAdDance(LoungeTest):
+    """Seen on a TV: replayed at 409.33, the connection was rebuilt before the content
+    played, then a skippable ad came. Reconnecting dropped the pending seek, so the
+    content stayed at 389.53, where the TV had loaded it."""
+
+    async def reconnect(self):
+        with self.assertRaises(Exception):  # not linked in the tests
+            await self.api.connect()
+
+    def seeks(self):
+        return [params["newTime"] for name, params in self.commands if name == "seekTo"]
+
+    async def replay_then_reconnect(self):
+        await self.play_content(at=409.33)
+        await self.api.play_video_and_force_seek(VIDEO, 409.33)
+        await self.reconnect()
+
+    async def test_seek_survives_reconnect(self):
+        await self.replay_then_reconnect()
+        await self.send("onStateChange", state_change(389.53, "1"))
+        self.assertEqual(self.seeks(), [409.33])
+
+    async def test_seek_survives_reconnect_and_another_ad(self):
+        await self.replay_then_reconnect()
+        await self.send("adPlaying", ad_playing(skippable=True))
+        await self.send("onAdStateChange", ad_state("1082"))
+        await self.send("onStateChange", state_change(389.53, "1"))
+        self.assertEqual(self.seeks(), [409.33])
+
+    async def test_old_seek_is_dropped_on_reconnect(self):
+        await self.play_content(at=409.33)
+        await self.api.play_video_and_force_seek(VIDEO, 409.33)
+        self.api._pending_seek_time -= 60
+        await self.reconnect()
+        self.assertIsNone(self.api._pending_seek)
+
+
 class StalePositionEstimate(LoungeTest):
     """Seen on a TV: switched off during a video and on again the next morning, the
     ad was estimated at 26614 s in a 1300 s video."""
