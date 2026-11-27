@@ -37,6 +37,12 @@ REPORT_SKIPPED_SEGMENTS_PROMPT = (
 MUTE_ADS_PROMPT = "Do you want to mute native YouTube ads automatically? (y/N) "
 SKIP_ADS_PROMPT = "Do you want to skip native YouTube ads automatically? (y/N) "
 AUTOPLAY_PROMPT = "Do you want to enable autoplay? (Y/n) "
+AUTOPLAY_BLOCK_PROMPT = (
+    "Some YouTube TV receivers auto-advance to the next video even"
+    " with autoplay disabled above. Do you want iSponsorBlockTV to"
+    " pause the video it auto-advances to when this happens? NOTE:"
+    " Try disabled initially; enable if the issue persists. (y/N) "
+)
 ENTER_SPONSORBLOCK_API_PROMPT = f"Enter SponsorBlock API URL (default: {SponsorBlock_api}): "
 
 
@@ -208,6 +214,11 @@ def main(config, debug: bool) -> None:
 
     choice = get_yn_input(AUTOPLAY_PROMPT)
     config.auto_play = choice != "n"
+
+    config.autoplay_block_action = "off"
+    if not config.auto_play:
+        choice = get_yn_input(AUTOPLAY_BLOCK_PROMPT)
+        config.autoplay_block_action = "pause" if choice == "y" else "off"
 
     # SponsorBlock API URL
     api_url = input(ENTER_SPONSORBLOCK_API_PROMPT).strip()

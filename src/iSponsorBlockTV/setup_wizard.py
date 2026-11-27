@@ -38,6 +38,10 @@ from textual_slider import Slider
 from . import api_helpers
 from .constants import skip_categories, SponsorBlock_api
 
+AUTOPLAY_BLOCK_TOOLTIP = (
+    "Pauses the video the receiver auto-advances to. Reactive, not guaranteed - try disabled first."
+)
+
 
 def _validate_pairing_code(pairing_code: str) -> bool:
     try:
@@ -1036,6 +1040,59 @@ class AutoPlayManager(Vertical):
     @on(Checkbox.Changed, "#autoplay-switch")
     def changed_skip(self, event: Checkbox.Changed):
         self.config.auto_play = event.checkbox.value
+        try:
+            block_switch = self.app.query_one("#autoplay-block-switch", Checkbox)
+        except NoMatches:
+            pass
+        else:
+            block_switch.disabled = event.checkbox.value
+            block_switch.tooltip = (
+                "Only applies when autoplay above is disabled"
+                if event.checkbox.value
+                else AUTOPLAY_BLOCK_TOOLTIP
+            )
+
+
+class AutoplayBlockActionManager(Vertical):
+    """Manager for the auto-advance pause workaround, only relevant
+    when autoplay above is disabled."""
+
+    def __init__(self, config, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.config = config
+
+    def compose(self) -> ComposeResult:
+        yield Label("Auto-advance workaround", classes="title")
+        yield Label(
+            "Some YouTube TV receivers auto-advance to the next video even"
+            " with autoplay disabled above. This pauses the video the"
+            " receiver switches to when that happens. Reactive: the wrong"
+            " video briefly starts before being paused, and on some"
+            " receivers the pause itself can be undone a few seconds"
+            " later with no action taken here. Try leaving this disabled"
+            " first; enable only if the issue persists.",
+            classes="subtitle",
+            id="autoplay-block-subtitle",
+        )
+        with Horizontal(id="autoplay-block-container"):
+            yield Checkbox(
+                value=self.config.autoplay_block_action == "pause",
+                id="autoplay-block-switch",
+                label="Pause auto-advanced videos",
+                disabled=self.config.auto_play,
+            )
+
+    def on_mount(self) -> None:
+        switch = self.query_one("#autoplay-block-switch", Checkbox)
+        switch.tooltip = (
+            "Only applies when autoplay above is disabled"
+            if self.config.auto_play
+            else AUTOPLAY_BLOCK_TOOLTIP
+        )
+
+    @on(Checkbox.Changed, "#autoplay-block-switch")
+    def changed_block_action(self, event: Checkbox.Changed):
+        self.config.autoplay_block_action = "pause" if event.checkbox.value else "off"
 
 
 class UseProxyManager(Vertical):
@@ -1136,6 +1193,9 @@ class ISponsorBlockTVSetup(App):
             )
             yield ApiKeyManager(config=self.config, id="api-key-manager", classes="container")
             yield AutoPlayManager(config=self.config, id="autoplay-manager", classes="container")
+            yield AutoplayBlockActionManager(
+                config=self.config, id="autoplay-block-manager", classes="container"
+            )
             yield UseProxyManager(config=self.config, id="useproxy-manager", classes="container")
             yield SponsorBlockApiUrlManager(
                 config=self.config, id="sponsorblock-api-url-manager", classes="container"
