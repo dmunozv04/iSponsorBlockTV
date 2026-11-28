@@ -9,5 +9,8 @@ textual-slider==0.2.0
 xmltodict==1.0.4
 rich_click==1.9.8
 yarl==1.25.1
-zeroconf==0.150.0
-pychromecast==14.0.10
+zeroconf==0.154.0
+pychromecast==14.1.1
+# Security floors for transitive dependencies (otherwise whatever pip resolves on build day)
+certifi>=2026.10.18
+urllib3>=2.8.0
